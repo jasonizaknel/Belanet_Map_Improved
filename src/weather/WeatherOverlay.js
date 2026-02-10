@@ -146,6 +146,7 @@
       if(this._svc && typeof this._svc.on==='function'){ const evs=['request','response','error','revalidate_start','revalidate_success','revalidate_error','cache_hit','cache_miss','fallback_cache']; const offs=[]; for(const ev of evs){ offs.push(this._svc.on(ev,(p)=>this._em.emit('service',{event:ev,payload:p}))); } this._offSvc=()=>{ for(const off of offs){ try{ off(); }catch(_){ } } }; }
 
       this._resizeCanvas();
+      if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>this._resizeCanvas()); }
       this._attachClock(meta);
       this._fetchData();
 

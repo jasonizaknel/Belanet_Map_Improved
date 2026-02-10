@@ -439,19 +439,24 @@ class StrikeMarker {
 // ADDED: Update weather tile layers
 function updateWeatherLayers() {
     const apiKey = window.AppConfig ? window.AppConfig.openWeatherKey : null;
-    
-    // Define available layers
+    if (!AppState.map || !google || !google.maps) return;
+
     const layerTypes = ['precipitation_new', 'clouds_new', 'temp_new'];
-    
-    if (!AppState.visibility.weather || !apiKey) {
-        layerTypes.forEach(type => {
-            if (AppState.weatherLayers[type]) {
-                AppState.map.overlayMapTypes.removeAt(AppState.map.overlayMapTypes.indexOf(AppState.weatherLayers[type]));
-                delete AppState.weatherLayers[type];
+
+    // Clear existing weather layers safely from overlayMapTypes (MVCArray)
+    for (const key of Object.keys(AppState.weatherLayers)) {
+        const overlay = AppState.weatherLayers[key];
+        if (!overlay) continue;
+        const overlays = AppState.map.overlayMapTypes;
+        for (let i = overlays.getLength() - 1; i >= 0; i--) {
+            if (overlays.getAt(i) === overlay) {
+                overlays.removeAt(i);
             }
-        });
-        return;
+        }
+        delete AppState.weatherLayers[key];
     }
+
+    if (!AppState.visibility.weather || !apiKey) return;
 
     if (AppState.weatherData.current) {
         console.log('[Weather] Current conditions:', {
@@ -461,20 +466,20 @@ function updateWeatherLayers() {
         });
     }
 
-    // Use clouds as the default visual overlay (always visible)
+    // Default to a visible, low-noise layer
     const type = 'clouds_new';
-    
-    if (!AppState.weatherLayers[type]) {
-        AppState.weatherLayers[type] = new google.maps.ImageMapType({
-            getTileUrl: function(coord, zoom) {
-                return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}.png?appid=${apiKey}`;
-            },
-            tileSize: new google.maps.Size(256, 256),
-            name: "Clouds",
-            opacity: 0.55
-        });
-        AppState.map.overlayMapTypes.push(AppState.weatherLayers[type]);
-    }
+
+    const imageMapType = new google.maps.ImageMapType({
+        getTileUrl: function(coord, zoom) {
+            return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}.png?appid=${apiKey}`;
+        },
+        tileSize: new google.maps.Size(256, 256),
+        name: 'Clouds',
+        opacity: 0.55
+    });
+
+    AppState.weatherLayers[type] = imageMapType;
+    AppState.map.overlayMapTypes.push(imageMapType);
 }
 
 // ADDED: Animate polyline drawing from start to end
