@@ -68,7 +68,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - RAF-driven tick loop; events: `tick`, `mode`, `rate`, `timeSet`; Page Visibility backpressure
 - Unit tests: rate math, mode switching, simulation anchoring, tick cadence under visibility changes
 
-### [ ] Step: Implement WeatherOverlay UI and CSS
+### [x] Step: Implement WeatherOverlay UI and CSS
+<!-- chat-id: ce700694-66dc-4267-bec6-8315d09dbcd6 -->
 - Create `src/weather/WeatherOverlay.js` and `src/weather/weather-overlay.css`
 - Build overlay DOM (header/body/footer) with drag, resize, pin/unpin, and per-layer toggles
 - Implement canvas renderer for layers: temperature gradient, precipitation sprites, wind particles, humidity fog, cloud noise
