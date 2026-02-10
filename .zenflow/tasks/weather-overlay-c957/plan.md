@@ -62,7 +62,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Unit tests: normalization, 3‑hour resampling, caching freshness, and retry behavior with mocked fetch
 - Verification: manual fetch for sample coords, confirm structure and units
 
-### [ ] Step: Implement ClockManager
+### [x] Step: Implement ClockManager
+<!-- chat-id: f2c0854f-da4d-493e-bf97-06f22ff09a1e -->
 - Create `src/weather/ClockManager.js` with modes `realtime|simulation`, adjustable rate 0.5×–10×
 - RAF-driven tick loop; events: `tick`, `mode`, `rate`, `timeSet`; Page Visibility backpressure
 - Unit tests: rate math, mode switching, simulation anchoring, tick cadence under visibility changes
