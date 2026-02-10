@@ -53,7 +53,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Implement WeatherService
+### [x] Step: Implement WeatherService
+<!-- chat-id: c6d4741d-ff91-4347-be70-852d4917f574 -->
 - Create `src/weather/WeatherService.js` with constructor options `{ apiKey, baseUrl, ttl, storage }`
 - Implement `fetchOneCall`, `getCurrent`, `getHourly`, `getDaily`, and `getHourly3h` with normalization
 - Add caching with TTL and SWR policy; localStorage persistence when available
