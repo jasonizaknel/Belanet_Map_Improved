@@ -395,7 +395,17 @@
       }
 
       try{
-        const json = await this._requestJson(url);
+        let json;
+        try {
+          json = await this._requestJson(url);
+        } catch (e) {
+          if (e && e.code === 'UNAUTHENTICATED' && typeof this.baseUrl === 'string' && this.baseUrl.includes('/3.0/onecall')) {
+            const fallbackUrl = url.replace('/3.0/onecall', '/2.5/onecall');
+            json = await this._requestJson(fallbackUrl, { retries: 1 });
+          } else {
+            throw e;
+          }
+        }
         const norm = this._normalize(json);
         const newEntry = { ts: now, data: norm };
         this._cacheSet(kind, key, newEntry);

@@ -441,7 +441,7 @@ function updateWeatherLayers() {
     const apiKey = window.AppConfig ? window.AppConfig.openWeatherKey : null;
     
     // Define available layers
-    const layerTypes = ['precip_new', 'clouds_new', 'temp_new'];
+    const layerTypes = ['precipitation_new', 'clouds_new', 'temp_new'];
     
     if (!AppState.visibility.weather || !apiKey) {
         layerTypes.forEach(type => {
@@ -462,7 +462,7 @@ function updateWeatherLayers() {
     }
 
     // For now, we use precipitation as the default overlay
-    const type = 'precip_new';
+    const type = 'precipitation_new';
     
     if (!AppState.weatherLayers[type]) {
         AppState.weatherLayers[type] = new google.maps.ImageMapType({
