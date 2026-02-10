@@ -53,16 +53,41 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Implementation
+### [ ] Step: Implement WeatherService
+- Create `src/weather/WeatherService.js` with constructor options `{ apiKey, baseUrl, ttl, storage }`
+- Implement `fetchOneCall`, `getCurrent`, `getHourly`, `getDaily`, and `getHourly3h` with normalization
+- Add caching with TTL and SWR policy; localStorage persistence when available
+- Implement categorized error handling (network, 401, 429, 5xx) with retry/backoff
+- Unit tests: normalization, 3‑hour resampling, caching freshness, and retry behavior with mocked fetch
+- Verification: manual fetch for sample coords, confirm structure and units
 
-Implement the task according to the technical specification and general engineering best practices.
+### [ ] Step: Implement ClockManager
+- Create `src/weather/ClockManager.js` with modes `realtime|simulation`, adjustable rate 0.5×–10×
+- RAF-driven tick loop; events: `tick`, `mode`, `rate`, `timeSet`; Page Visibility backpressure
+- Unit tests: rate math, mode switching, simulation anchoring, tick cadence under visibility changes
 
-1. Break the task into steps where possible.
-2. Implement the required changes in the codebase
-3. If relevant, write unit tests alongside each change.
-4. Run relevant tests and linters in the end of each step.
-5. Perform basic manual verification if applicable.
-6. After completion, write a report to `{@artifacts_path}/report.md` describing:
-   - What was implemented
-   - How the solution was tested
-   - The biggest issues or challenges encountered
+### [ ] Step: Implement WeatherOverlay UI and CSS
+- Create `src/weather/WeatherOverlay.js` and `src/weather/weather-overlay.css`
+- Build overlay DOM (header/body/footer) with drag, resize, pin/unpin, and per-layer toggles
+- Implement canvas renderer for layers: temperature gradient, precipitation sprites, wind particles, humidity fog, cloud noise
+- Drive animations from `ClockManager`; interpolate between hourly points; apply predictive easing
+- Persist position/size/layers/mode/rate in localStorage; responsive scaling with devicePixelRatio
+- Unit tests: mount/unmount smoke, event wiring, state persistence; minimal render assertions
+- Manual verification: interactions, layer toggles, animation responsiveness
+
+### [ ] Step: Integration and Demo Harness
+- Integrate into existing page (e.g., `map.html`) if present; otherwise add `public/weather-demo.html` to mount and exercise overlay
+- Wire environment API key detection and pass to `WeatherService`; expose controls for lat/lon
+- Manual verification checklist across screen sizes and browsers
+
+### [ ] Step: Performance and Polish
+- Optimize draw loop; reduce effect density on low FPS or when tab hidden; offscreen canvas composition
+- Validate responsiveness and crisp rendering at various DPR values
+- Add keyboard shortcuts (Esc, p, m, [, ]) and ensure non-interference with host app
+
+### [ ] Step: Error Handling UX and Telemetry
+- Surface categorized errors with actionable hints; fallback to cached data when available
+- Emit overlay/service events for host logging/analytics if present
+
+### [ ] Step: Final Report
+- Write `{@artifacts_path}/report.md` detailing implementation, tests, and notable issues
