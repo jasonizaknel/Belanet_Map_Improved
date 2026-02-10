@@ -80,6 +80,8 @@
     return values.reduce((a, b) => a + b, 0);
   }
 
+  function toNumber(x, fallback = 0){ const n = Number(x); return Number.isFinite(n) ? n : fallback; }
+
   function pickWeather(w) {
     if (Array.isArray(w) && w.length) return w[0];
     return w || null;
@@ -316,6 +318,70 @@
       return `${this.baseUrl}?${p.toString()}`;
     }
 
+    async _fetchFreeTierAggregate(params){
+      const q = (base) => {
+        const p = new URLSearchParams();
+        p.set('lat', String(params.lat));
+        p.set('lon', String(params.lon));
+        p.set('appid', this.apiKey);
+        p.set('units', params.units || this.units);
+        p.set('lang', params.lang || this.lang);
+        return `${base}?${p.toString()}`;
+      };
+      const curUrl = q('https://api.openweathermap.org/data/2.5/weather');
+      const fcUrl = q('https://api.openweathermap.org/data/2.5/forecast');
+      const [curRes, fcRes] = await Promise.all([
+        this._requestJson(curUrl, { retries: 1 }),
+        this._requestJson(fcUrl, { retries: 1 }),
+      ]);
+      const current = {
+        dt: curRes.dt,
+        sunrise: curRes.sys && curRes.sys.sunrise,
+        sunset: curRes.sys && curRes.sys.sunset,
+        temp: toNumber(curRes.main && curRes.main.temp),
+        feels_like: toNumber(curRes.main && curRes.main.feels_like),
+        pressure: toNumber(curRes.main && curRes.main.pressure),
+        humidity: toNumber(curRes.main && curRes.main.humidity),
+        dew_point: null,
+        uvi: 0,
+        clouds: toNumber(curRes.clouds && curRes.clouds.all),
+        visibility: toNumber(curRes.visibility, null),
+        wind_speed: toNumber(curRes.wind && curRes.wind.speed),
+        wind_deg: toNumber(curRes.wind && curRes.wind.deg),
+        wind_gust: toNumber(curRes.wind && curRes.wind.gust, null),
+        rain: curRes.rain ? { '1h': toNumber(curRes.rain['1h'], 0), '3h': toNumber(curRes.rain['3h'], 0) } : undefined,
+        snow: curRes.snow ? { '1h': toNumber(curRes.snow['1h'], 0), '3h': toNumber(curRes.snow['3h'], 0) } : undefined,
+        weather: pickWeather(curRes.weather),
+      };
+      const hourly = Array.isArray(fcRes.list) ? fcRes.list.map((it) => ({
+        dt: it.dt,
+        temp: toNumber(it.main && it.main.temp),
+        feels_like: toNumber(it.main && it.main.feels_like),
+        pressure: toNumber(it.main && it.main.pressure),
+        humidity: toNumber(it.main && it.main.humidity),
+        dew_point: null,
+        uvi: 0,
+        clouds: toNumber(it.clouds && it.clouds.all),
+        visibility: toNumber(it.visibility, null),
+        wind_speed: toNumber(it.wind && it.wind.speed),
+        wind_deg: toNumber(it.wind && it.wind.deg),
+        wind_gust: toNumber(it.wind && it.wind.gust, null),
+        pop: toNumber(it.pop, 0),
+        rain: it.rain ? { '3h': toNumber(it.rain['3h'], 0), '1h': toNumber(it.rain['1h'], 0) } : undefined,
+        snow: it.snow ? { '3h': toNumber(it.snow['3h'], 0), '1h': toNumber(it.snow['1h'], 0) } : undefined,
+        weather: pickWeather(it.weather),
+      })) : [];
+      return {
+        lat: toNumber((curRes.coord && curRes.coord.lat) || params.lat),
+        lon: toNumber((curRes.coord && curRes.coord.lon) || params.lon),
+        timezone: curRes.timezone || null,
+        timezone_offset: toNumber(curRes.timezone, 0),
+        current,
+        hourly,
+        daily: [],
+      };
+    }
+
     _cacheGet(kind, key) {
       const mem = this._mem.get(kind + '|' + key);
       let disk = null;
@@ -399,9 +465,17 @@
         try {
           json = await this._requestJson(url);
         } catch (e) {
-          if (e && e.code === 'UNAUTHENTICATED' && typeof this.baseUrl === 'string' && this.baseUrl.includes('/3.0/onecall')) {
-            const fallbackUrl = url.replace('/3.0/onecall', '/2.5/onecall');
-            json = await this._requestJson(fallbackUrl, { retries: 1 });
+          if (e && e.code === 'UNAUTHENTICATED') {
+            if (typeof this.baseUrl === 'string' && this.baseUrl.includes('/3.0/onecall')) {
+              try {
+                const fallbackUrl = url.replace('/3.0/onecall', '/2.5/onecall');
+                json = await this._requestJson(fallbackUrl, { retries: 1 });
+              } catch (_e) {
+                json = await this._fetchFreeTierAggregate(params);
+              }
+            } else {
+              json = await this._fetchFreeTierAggregate(params);
+            }
           } else {
             throw e;
           }
