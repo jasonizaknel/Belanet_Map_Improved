@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-02-04T16:13:58.741Z",
+  "summary": {
+    "totalAgents": 5,
+    "totalTasksCompleted": 0,
+    "totalDistanceTraveled": 2900.613319350952,
+    "totalFuelUsed": 0.3480735983221143,
+    "simulationDuration": 640730
+  },
+  "agentStats": [
+    {
+      "name": "Tech 1",
+      "tasksCompleted": 0,
+      "distanceTraveled": 171.14569838721297,
+      "fuelUsed": 0.020537483806465556,
+      "skills": [
+        "fiber",
+        "voip",
+        "tower_climbing"
+      ],
+      "remainingInventory": {
+        "router": 5,
+        "cable_cat6": 6,
+        "poe_injector": 12,
+        "radio_ubnt": 12,
+        "radio_mikrotik": 10
+      }
+    },
+    {
+      "name": "Tech 2",
+      "tasksCompleted": 0,
+      "distanceTraveled": 69.26766742341346,
+      "fuelUsed": 0.008312120090809616,
+      "skills": [
+        "fiber",
+        "cctv",
+        "tower_climbing"
+      ],
+      "remainingInventory": {
+        "router": 5,
+        "cable_cat6": 9,
+        "poe_injector": 10,
+        "radio_ubnt": 9,
+        "radio_mikrotik": 6
+      }
+    },
+    {
+      "name": "Tech 3",
+      "tasksCompleted": 0,
+      "distanceTraveled": 1521.714086558508,
+      "fuelUsed": 0.18260569038702099,
+      "skills": [
+        "wireless",
+        "tower_climbing",
+        "cctv"
+      ],
+      "remainingInventory": {
+        "router": 13,
+        "cable_cat6": 8,
+        "poe_injector": 11,
+        "radio_ubnt": 12,
+        "radio_mikrotik": 9
+      }
+    },
+    {
+      "name": "Tech 4",
+      "tasksCompleted": 0,
+      "distanceTraveled": 430.2344462137125,
+      "fuelUsed": 0.051628133545645494,
+      "skills": [
+        "cctv",
+        "fiber"
+      ],
+      "remainingInventory": {
+        "router": 12,
+        "cable_cat6": 12,
+        "poe_injector": 7,
+        "radio_ubnt": 13,
+        "radio_mikrotik": 14
+      }
+    },
+    {
+      "name": "Tech 5",
+      "tasksCompleted": 0,
+      "distanceTraveled": 708.2514207681058,
+      "fuelUsed": 0.08499017049217268,
+      "skills": [
+        "cctv",
+        "wireless",
+        "tower_climbing"
+      ],
+      "remainingInventory": {
+        "router": 11,
+        "cable_cat6": 7,
+        "poe_injector": 11,
+        "radio_ubnt": 13,
+        "radio_mikrotik": 12
+      }
+    }
+  ]
+}

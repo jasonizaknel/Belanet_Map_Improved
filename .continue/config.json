@@ -1,0 +1,10 @@
+{
+  "models": [
+    {
+      "title": "Local Ollama",
+      "provider": "ollama",
+      "model": "deepseek-coder:6.7b"
+    }
+  ],
+  "systemMessage": "You are a senior JavaScript engineer focused on feature development. Always read repo.md before proposing or implementing changes."
+}

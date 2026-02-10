@@ -1,0 +1,549 @@
+{
+    "totalTowers": 57,
+    "mismatchCount": 54,
+    "mismatches": [
+        {
+            "towerId": "DIMA",
+            "triedNames": [
+                "DIMA",
+                "DIMA-Tower.belanet.co.za",
+                "DIMA"
+            ]
+        },
+        {
+            "towerId": "Alma",
+            "triedNames": [
+                "Alma",
+                "Alma-Tower.belanet.co.za",
+                "Alma"
+            ]
+        },
+        {
+            "towerId": "Office",
+            "triedNames": [
+                "Office",
+                "Office-Tower.belanet.co.za",
+                "Office"
+            ]
+        },
+        {
+            "towerId": "Bingley Silo",
+            "triedNames": [
+                "Bingley Silo",
+                "Bingley Silo-Tower.belanet.co.za",
+                "Bingley-Silo"
+            ]
+        },
+        {
+            "towerId": "Bronkhorst Rep",
+            "triedNames": [
+                "Bronkhorst Rep",
+                "Bronkhorst Rep-Tower.belanet.co.za",
+                "Bronkhorst-Rep"
+            ]
+        },
+        {
+            "towerId": "Bambalela",
+            "triedNames": [
+                "Bambalela",
+                "Bambalela-Tower.belanet.co.za",
+                "Bambalela"
+            ]
+        },
+        {
+            "towerId": "Buyskop",
+            "triedNames": [
+                "Buyskop",
+                "Buyskop-Tower.belanet.co.za",
+                "Buyskop"
+            ]
+        },
+        {
+            "towerId": "Chester",
+            "triedNames": [
+                "Chester",
+                "Chester-Tower.belanet.co.za",
+                "Chester"
+            ]
+        },
+        {
+            "towerId": "Fish Eagle",
+            "triedNames": [
+                "Fish Eagle",
+                "Fish Eagle-Tower.belanet.co.za",
+                "Fish-Eagle"
+            ]
+        },
+        {
+            "towerId": "Forever",
+            "triedNames": [
+                "Forever",
+                "Forever-Tower.belanet.co.za",
+                "Forever"
+            ]
+        },
+        {
+            "towerId": "Hope",
+            "triedNames": [
+                "Hope",
+                "Hope-Tower.belanet.co.za",
+                "Hope"
+            ]
+        },
+        {
+            "towerId": "Hoerskool",
+            "triedNames": [
+                "Hoerskool",
+                "Hoerskool-Tower.belanet.co.za",
+                "Hoerskool"
+            ]
+        },
+        {
+            "towerId": "Humphries Rep",
+            "triedNames": [
+                "Humphries Rep",
+                "Humphries Rep-Tower.belanet.co.za",
+                "Humphries-Rep"
+            ]
+        },
+        {
+            "towerId": "Itaba-Indle",
+            "triedNames": [
+                "Itaba-Indle",
+                "Itaba-Indle-Tower.belanet.co.za",
+                "Itaba-Indle"
+            ]
+        },
+        {
+            "towerId": "Jubaweni",
+            "triedNames": [
+                "Jubaweni",
+                "Jubaweni-Tower.belanet.co.za",
+                "Jubaweni"
+            ]
+        },
+        {
+            "towerId": "Klein-Kariba",
+            "triedNames": [
+                "Klein-Kariba",
+                "Klein-Kariba-Tower.belanet.co.za",
+                "Klein-Kariba"
+            ]
+        },
+        {
+            "towerId": "Lehau Silo",
+            "triedNames": [
+                "Lehau Silo",
+                "Lehau Silo-Tower.belanet.co.za",
+                "Lehau-Silo"
+            ]
+        },
+        {
+            "towerId": "Leopards Rock",
+            "triedNames": [
+                "Leopards Rock",
+                "Leopards Rock-Tower.belanet.co.za",
+                "Leopards-Rock"
+            ]
+        },
+        {
+            "towerId": "LMS",
+            "triedNames": [
+                "LMS",
+                "LMS-Tower.belanet.co.za",
+                "LMS"
+            ]
+        },
+        {
+            "towerId": "Lumarie",
+            "triedNames": [
+                "Lumarie",
+                "Lumarie-Tower.belanet.co.za",
+                "Lumarie"
+            ]
+        },
+        {
+            "towerId": "Mabula Lodge Tower",
+            "triedNames": [
+                "Mabula Lodge Tower",
+                "Mabula Lodge Tower-Tower.belanet.co.za",
+                "Mabula-Lodge-Tower"
+            ]
+        },
+        {
+            "towerId": "Mabula Timeshare Tower",
+            "triedNames": [
+                "Mabula Timeshare Tower",
+                "Mabula Timeshare Tower-Tower.belanet.co.za",
+                "Mabula-Timeshare-Tower"
+            ]
+        },
+        {
+            "towerId": "Mantsole",
+            "triedNames": [
+                "Mantsole",
+                "Mantsole-Tower.belanet.co.za",
+                "Mantsole"
+            ]
+        },
+        {
+            "towerId": "Marulani",
+            "triedNames": [
+                "Marulani",
+                "Marulani-Tower.belanet.co.za",
+                "Marulani"
+            ]
+        },
+        {
+            "towerId": "Mbizi",
+            "triedNames": [
+                "Mbizi",
+                "Mbizi-Tower.belanet.co.za",
+                "Mbizi"
+            ]
+        },
+        {
+            "towerId": "Meletse",
+            "triedNames": [
+                "Meletse",
+                "Meletse-Tower.belanet.co.za",
+                "Meletse"
+            ]
+        },
+        {
+            "towerId": "Mokaikai",
+            "triedNames": [
+                "Mokaikai",
+                "Mokaikai-Tower.belanet.co.za",
+                "Mokaikai"
+            ]
+        },
+        {
+            "towerId": "Monate",
+            "triedNames": [
+                "Monate",
+                "Monate-Tower.belanet.co.za",
+                "Monate"
+            ]
+        },
+        {
+            "towerId": "Mooiplaas",
+            "triedNames": [
+                "Mooiplaas",
+                "Mooiplaas-Tower.belanet.co.za",
+                "Mooiplaas"
+            ]
+        },
+        {
+            "towerId": "N1 Sondela",
+            "triedNames": [
+                "N1 Sondela",
+                "N1 Sondela-Tower.belanet.co.za",
+                "N1-Sondela"
+            ]
+        },
+        {
+            "towerId": "Nebel",
+            "triedNames": [
+                "Nebel",
+                "Nebel-Tower.belanet.co.za",
+                "Nebel"
+            ]
+        },
+        {
+            "towerId": "Negester",
+            "triedNames": [
+                "Negester",
+                "Negester-Tower.belanet.co.za",
+                "Negester"
+            ]
+        },
+        {
+            "towerId": "Nutfield Silo",
+            "triedNames": [
+                "Nutfield Silo",
+                "Nutfield Silo-Tower.belanet.co.za",
+                "Nutfield-Silo"
+            ]
+        },
+        {
+            "towerId": "OPS",
+            "triedNames": [
+                "OPS",
+                "OPS-Tower.belanet.co.za",
+                "OPS"
+            ]
+        },
+        {
+            "towerId": "Pakstoor Sondela",
+            "triedNames": [
+                "Pakstoor Sondela",
+                "Pakstoor Sondela-Tower.belanet.co.za",
+                "Pakstoor-Sondela"
+            ]
+        },
+        {
+            "towerId": "Pienaarsrivier",
+            "triedNames": [
+                "Pienaarsrivier",
+                "Pienaarsrivier-Tower.belanet.co.za",
+                "Pienaarsrivier"
+            ]
+        },
+        {
+            "towerId": "Pontenilo Tower",
+            "triedNames": [
+                "Pontenilo Tower",
+                "Pontenilo Tower-Tower.belanet.co.za",
+                "Pontenilo-Tower"
+            ]
+        },
+        {
+            "towerId": "PRSS",
+            "triedNames": [
+                "PRSS",
+                "PRSS-Tower.belanet.co.za",
+                "PRSS"
+            ]
+        },
+        {
+            "towerId": "Radium",
+            "triedNames": [
+                "Radium",
+                "Radium-Tower.belanet.co.za",
+                "Radium"
+            ]
+        },
+        {
+            "towerId": "Raid",
+            "triedNames": [
+                "Raid",
+                "Raid-Tower.belanet.co.za",
+                "Raid"
+            ]
+        },
+        {
+            "towerId": "RK Tower",
+            "triedNames": [
+                "RK Tower",
+                "RK Tower-Tower.belanet.co.za",
+                "RK-Tower"
+            ]
+        },
+        {
+            "towerId": "Settlers",
+            "triedNames": [
+                "Settlers",
+                "Settlers-Tower.belanet.co.za",
+                "Settlers"
+            ]
+        },
+        {
+            "towerId": "Silo Sectors",
+            "triedNames": [
+                "Silo Sectors",
+                "Silo Sectors-Tower.belanet.co.za",
+                "Silo-Sectors"
+            ]
+        },
+        {
+            "towerId": "Small Hill",
+            "triedNames": [
+                "Small Hill",
+                "Small Hill-Tower.belanet.co.za",
+                "Small-Hill"
+            ]
+        },
+        {
+            "towerId": "SunsetHill RB1100",
+            "triedNames": [
+                "SunsetHill RB1100",
+                "SunsetHill RB1100-Tower.belanet.co.za",
+                "SunsetHill-RB1100"
+            ]
+        },
+        {
+            "towerId": "T-Bar",
+            "triedNames": [
+                "T-Bar",
+                "T-Bar-Tower.belanet.co.za",
+                "T-Bar"
+            ]
+        },
+        {
+            "towerId": "Tembi Hop",
+            "triedNames": [
+                "Tembi Hop",
+                "Tembi Hop-Tower.belanet.co.za",
+                "Tembi-Hop"
+            ]
+        },
+        {
+            "towerId": "Thaba Pitsi",
+            "triedNames": [
+                "Thaba Pitsi",
+                "Thaba Pitsi-Tower.belanet.co.za",
+                "Thaba-Pitsi"
+            ]
+        },
+        {
+            "towerId": "Thaba Sheba",
+            "triedNames": [
+                "Thaba Sheba",
+                "Thaba Sheba-Tower.belanet.co.za",
+                "Thaba-Sheba"
+            ]
+        },
+        {
+            "towerId": "Tshepe",
+            "triedNames": [
+                "Tshepe",
+                "Tshepe-Tower.belanet.co.za",
+                "Tshepe"
+            ]
+        },
+        {
+            "towerId": "UFO",
+            "triedNames": [
+                "UFO",
+                "UFO-Tower.belanet.co.za",
+                "UFO"
+            ]
+        },
+        {
+            "towerId": "Vodacom",
+            "triedNames": [
+                "Vodacom",
+                "Vodacom-Tower.belanet.co.za",
+                "Vodacom"
+            ]
+        },
+        {
+            "towerId": "VSKW",
+            "triedNames": [
+                "VSKW",
+                "VSKW-Tower.belanet.co.za",
+                "VSKW"
+            ]
+        },
+        {
+            "towerId": "Zwartkloof",
+            "triedNames": [
+                "Zwartkloof",
+                "Zwartkloof-Tower.belanet.co.za",
+                "Zwartkloof"
+            ]
+        }
+    ],
+    "availableNagiosHosts": [
+        "301",
+        "311",
+        "9Ster-Sector1.belanet.co.za",
+        "9Ster-Tower.belanet.co.za",
+        "All Problems\nAll Types\n\n5\n316",
+        "All Problems\nAll Types\n\n6\n307",
+        "Alma-High-Site",
+        "Alma-Sec1.belanet.co.za",
+        "Alma-Sec2.belanet.co.za",
+        "Alma-Sec3.belanet.co.za",
+        "Alma-Sec4.belanet.co.za",
+        "Alma-Sec5.belanet.co.za",
+        "Alma-to-Voda.belanet.co.za",
+        "BBSilo-EdgeCCR.belanet.co.za",
+        "BBSilo-Sector1.belanet.co.za",
+        "BBSilo-Sector2.belanet.co.za",
+        "BBSilo-Sector3.belanet.co.za",
+        "BBSilo-Sector4.belanet.co.za",
+        "BBSilo-Sector5.belanet.co.za",
+        "BNET-Ukulima-SEC1.belanet.co.za",
+        "BNET-Ukulima-SEC3.belanet.co.za",
+        "Bambelela-Sector1.belanet.co.za",
+        "Bambelela-Sector2.belanet.co.za",
+        "Bambelela-Tower.belanet.co.za",
+        "Becker-Sec1.belanet.co.za",
+        "Becker-Sec2.belanet.co.za",
+        "Becker-Sec3.belanet.co.za",
+        "Becker-Tower.belanet.co.za",
+        "Bingley-Silo-High Site",
+        "BnetOffice-Tower.belanet.co.za",
+        "Buyskop-Sector1.belanet.co.za",
+        "Buyskop-Sector2.belanet.co.za",
+        "Buyskop-Sector3.belanet.co.za",
+        "Buyskop-Sector4.belanet.co.za",
+        "Buyskop-Sector5.belanet.co.za",
+        "Buyskop-Sector6.belanet.co.za",
+        "Buyskop-Sector7.belanet.co.za",
+        "Buyskop-Tower-ClientRouter.belanet.co.za",
+        "Buyskop-Tower-MainRouter.belanet.co.za",
+        "CLIENT-Camo-Meat",
+        "CLIENT-Daybreak_diepputen",
+        "CLIENT-Daybreak_merionvlakte",
+        "CLIENT-Daybreak_worthing.belanet.co.za",
+        "CLIENT-De-Heus-Modimolle",
+        "CLIENT-ForeverResorts",
+        "CLIENT-Hannes-Wessels",
+        "CLIENT-KwapeleFoods",
+        "CLIENT-Letamo-to-Sunset",
+        "CLIENT-LordMilnerSchool.belanet.co.za",
+        "CLIENT-Numeri-Bela-Bela",
+        "CLIENT-OPS-MabalingweGate",
+        "CLIENT-RPF.belanet.co.za",
+        "CLIENT-SARPHC-Picnic1-Repeater",
+        "CLIENT-Shangri-La",
+        "CLIENT-Sondela",
+        "CLIENT-Sunset-to-Letamo",
+        "CLIENT-TjaartOosthuizen.belanet.co.za",
+        "CLIENT-TshepeGameFarm",
+        "CLIENT-VKB-BelaBela",
+        "CLIENT-VKB-Lehau",
+        "CLIENT-VKB-Modimolle",
+        "CLIENT-VKB-Pienaarsrivier",
+        "CLIENT-VKB-Settlers",
+        "CLIENT-WBPM-Office",
+        "CLIENT-Weesgerus",
+        "CLIENT-Willand-Hanover",
+        "CLIENT-Willand-Sydney",
+        "CLIENT-Willand-Wanfield",
+        "CLIENT-Zebula-Conference",
+        "ChesterMills-Sector1.belanet.co.za",
+        "ChesterMills-Sector2.belanet.co.za",
+        "ChesterMills-Sector3.belanet.co.za",
+        "ChesterMills-Sector4.belanet.co.za",
+        "ChesterMills-Tower.belanet.co.za",
+        "Current Network Status\nLast Updated: Thu Jan 8 15:13:23 SAST 2026\nUpdated every 90 seconds\nNagios® Core™ 4.5.9 - www.nagios.org\nLogged in as nagiosadmin\n\n\n\n\nView History For all hosts\nView Notifications For All Hosts\nView Host Status Detail For All Hosts",
+        "Elandsberg-Sector1.belanet.co.za",
+        "Elandsberg-Sector2.belanet.co.za",
+        "Elandsberg-Sector3.belanet.co.za",
+        "Elandsberg-Sector4.belanet.co.za",
+        "Elandsberg-Tower.belanet.co.za",
+        "FisheagleBay-Sector1.belanet.co.za",
+        "FisheagleBay-Sector2.belanet.co.za",
+        "FisheagleBay-Sector3.belanet.co.za",
+        "FisheagleBay-Tower.belanet.co.za",
+        "Google",
+        "Grobbies-Sector1.belanet.co.za",
+        "Grobbies-Sector2.belanet.co.za",
+        "Grobbies-Sector3.belanet.co.za",
+        "Grobbies-Sector4.belanet.co.za",
+        "Grobbies-Sector5.belanet.co.za",
+        "Grobbies-Sector6.belanet.co.za",
+        "Grobbies-Tower.belanet.co.za",
+        "HighSite-Silo-Lehau",
+        "IntabaIndle-Sector1.belanet.co.za",
+        "IntabaIndle-Sector2.belanet.co.za",
+        "IntabaIndle-Sector3.belanet.co.za",
+        "IntabaIndle-Tower.belanet.co.za",
+        "Integritus-Tower.belanet.co.za",
+        "Itaga-Sector1.belanet.co.za",
+        "Itaga-Sector2.belanet.co.za",
+        "Itaga-Sector3.belanet.co.za",
+        "Itaga-Sector4.belanet.co.za",
+        "Itaga-Tower.belanet.co.za",
+        "Jubaweni-Sector1.belanet.co.za",
+        "Jubaweni-Sector2.belanet.co.za",
+        "Jubaweni-Sector3.belanet.co.za",
+        "Ok\nWarning\nUnknown\nCritical\nPending\n\n\n301\n0\n0\n6\n0",
+        "PING",
+        "Up\nDown\nUnreachable\nPending\n\n\n311\n5\n0\n0"
+    ]
+}

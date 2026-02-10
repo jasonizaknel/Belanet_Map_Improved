@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-02-01T12:17:13.687Z",
+  "summary": {
+    "totalAgents": 3,
+    "totalTasksCompleted": 0,
+    "totalDistanceTraveled": 0,
+    "totalFuelUsed": 0,
+    "simulationDuration": 714240
+  },
+  "agentStats": [
+    {
+      "name": "Tech 1",
+      "tasksCompleted": 0,
+      "distanceTraveled": 0,
+      "fuelUsed": 0,
+      "skills": [
+        "wireless",
+        "voip"
+      ],
+      "remainingInventory": {
+        "router": 13,
+        "cable_cat6": 13,
+        "poe_injector": 12,
+        "radio_ubnt": 10,
+        "radio_mikrotik": 9
+      }
+    },
+    {
+      "name": "Tech 2",
+      "tasksCompleted": 0,
+      "distanceTraveled": 0,
+      "fuelUsed": 0,
+      "skills": [
+        "cctv",
+        "wireless"
+      ],
+      "remainingInventory": {
+        "router": 5,
+        "cable_cat6": 6,
+        "poe_injector": 10,
+        "radio_ubnt": 5,
+        "radio_mikrotik": 6
+      }
+    },
+    {
+      "name": "Tech 3",
+      "tasksCompleted": 0,
+      "distanceTraveled": 0,
+      "fuelUsed": 0,
+      "skills": [
+        "voip",
+        "wireless",
+        "cctv"
+      ],
+      "remainingInventory": {
+        "router": 13,
+        "cable_cat6": 7,
+        "poe_injector": 10,
+        "radio_ubnt": 13,
+        "radio_mikrotik": 9
+      }
+    }
+  ]
+}

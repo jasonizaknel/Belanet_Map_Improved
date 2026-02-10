@@ -1,0 +1,113 @@
+
+> belanet-tracker-server@1.0.0 start
+> node server.js
+
+[dotenv@17.2.3] injecting env (17) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[Server] Running at http://localhost:5505
+[WebSocket] WSS endpoint at ws://localhost:5505
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][CONFIG] Serving configuration to frontend
+[AUTH][SUCCESS] Authorized access to /api/administrators from ::ffff:127.0.0.1
+[API][SPLY][REQ] Fetching administrators from: https://splynx.bndns.co.za/api/2.0/admin/administration/administrators
+[Splynx] Task fetching is disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][SPLY][ERROR] Status 401: Unauthorized - Content: {"error":{"code":401,"internal_code":"UNAUTHORIZED","message":"Invalid authorization data!"}}
+[WebSocket] Client connected. Total clients: 1
+[WebSocket] First client connected, starting broadcast timers
+[Tracker Broadcast] Periodic refresh disabled via ENABLE_TRACCAR
+[Nagios Broadcast] Started with 60000ms interval
+[Tasks Broadcast] Periodic refresh disabled via ENABLE_SPLYNX_TASKS
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[WebSocket] Client disconnected. Total clients: 0
+[WebSocket] No clients connected, stopping broadcast timers
+[Broadcast] All timers stopped
+[API][CONFIG] Serving configuration to frontend
+[AUTH][SUCCESS] Authorized access to /api/administrators from ::ffff:127.0.0.1
+[API][SPLY][REQ] Fetching administrators from: https://splynx.bndns.co.za/api/2.0/admin/administration/administrators
+[Splynx] Task fetching is disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][SPLY][ERROR] Status 401: Unauthorized - Content: {"error":{"code":401,"internal_code":"UNAUTHORIZED","message":"Invalid authorization data!"}}
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[WebSocket] Client connected. Total clients: 1
+[WebSocket] First client connected, starting broadcast timers
+[Tracker Broadcast] Periodic refresh disabled via ENABLE_TRACCAR
+[Nagios Broadcast] Started with 60000ms interval
+[Tasks Broadcast] Periodic refresh disabled via ENABLE_SPLYNX_TASKS
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+Error broadcasting Nagios status: HTTP 401: Unauthorized
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[API][TRACCAR] Traccar requests disabled, serving cache if available
+[WebSocket] Client disconnected. Total clients: 0
+[WebSocket] No clients connected, stopping broadcast timers
+[Broadcast] All timers stopped
