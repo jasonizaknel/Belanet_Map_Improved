@@ -84,7 +84,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Wire environment API key detection and pass to `WeatherService`; expose controls for lat/lon
 - Manual verification checklist across screen sizes and browsers
 
-### [ ] Step: Performance and Polish
+### [x] Step: Performance and Polish
+<!-- chat-id: b04e27d5-fbe5-4103-94bd-53b84da300c7 -->
 - Optimize draw loop; reduce effect density on low FPS or when tab hidden; offscreen canvas composition
 - Validate responsiveness and crisp rendering at various DPR values
 - Add keyboard shortcuts (Esc, p, m, [, ]) and ensure non-interference with host app

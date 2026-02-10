@@ -48,7 +48,7 @@
       this._root=null;this._canvas=null;this._ctx=null;this._sidebar=null;this._resizeHandle=null;
       this._lat=lat;this._lon=lon;
       this._particles=[];this._lastTick=0;this._data=null;this._dpr= (typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1);
-      this._offTick=null;
+      this._offTick=null;this._dtEma=16.7;this._quality=1;this._hover=false;this._offBaseCanvas=null;this._offBaseCtx=null;this._lastBaseSnap=null;this._keyHandler=null;this._rain=null;
     }
 
     on(t,fn){return this._em.on(t,fn)}
@@ -147,6 +147,10 @@
       this._fetchData();
 
       window.addEventListener('resize',()=>this._resizeCanvas());
+      root.addEventListener('mouseenter',()=>{this._hover=true;});
+      root.addEventListener('mouseleave',()=>{this._hover=false;});
+      this._keyHandler=(e)=>{ if(e.defaultPrevented) return; if(e.ctrlKey||e.metaKey||e.altKey) return; const tag=(e.target&&e.target.tagName)||''; if(/INPUT|TEXTAREA|SELECT/.test(tag)) return; if(!this._hover && !(this._root&&this._root.contains(e.target))) return; const k=e.key; if(k==='Escape'){ root.style.display='none'; e.preventDefault(); return; } if(k==='p'||k==='P'){ this._state.pinned=!this._state.pinned; this._root.classList.toggle('pinned',this._state.pinned); pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned'; this._saveState(); this._em.emit(this._state.pinned?'pin':'unpin',{}); e.preventDefault(); return; } if(k==='m'||k==='M'){ const m=this._clock.mode==='realtime'?'simulation':'realtime'; this._clock.setMode(m); modeBtn.textContent=m==='realtime'?'Realtime':'Simulation'; badge.textContent=modeBtn.textContent; this._state.mode=m; this._saveState(); this._em.emit('mode',{mode:m}); e.preventDefault(); return; } if(k==='['||k===']'){ const delta=k===']'?0.5:-0.5; const r=clamp((this._clock.rate||1)+delta,0.5,10); this._clock.setRate(r); rateRange.value=String(this._clock.rate); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); e.preventDefault(); return; } };
+      doc.addEventListener('keydown',this._keyHandler);
       this._em.emit('mount',{});
       return this;
     }
@@ -154,6 +158,7 @@
     destroy(){
       if(!this._mounted) return;
       if(this._offTick) { this._offTick(); this._offTick=null; }
+      if(typeof document!=='undefined' && this._keyHandler){ document.removeEventListener('keydown', this._keyHandler); this._keyHandler=null; }
       if(this._root && this._root.parentNode) this._root.parentNode.removeChild(this._root);
       this._mounted=false; this._em.emit('unmount',{});
     }
@@ -161,7 +166,7 @@
     _attachClock(metaEl){
       const fmt=(ms)=>{const d=new Date(ms);const hh=String(d.getHours()).padStart(2,'0');const mm=String(d.getMinutes()).padStart(2,'0');const ss=String(d.getSeconds()).padStart(2,'0');return `${hh}:${mm}:${ss}`};
       if(this._offTick) this._offTick();
-      this._offTick=this._clock.on('tick', (e)=>{ this._lastTick=e.time; metaEl.textContent=(this._data && this._data.current? `${Math.round(this._data.current.temp)}° ${this._data.current.weather? this._data.current.weather.main: ''}`:'--')+` · ${e.mode==='realtime'?'RT':'SIM'} ${e.rate.toFixed(1)}x · ${fmt(e.time)}`; this._render(e.time); });
+      this._offTick=this._clock.on('tick', (e)=>{ this._lastTick=e.time; this._updateQuality(e.wallDt,e.hidden); metaEl.textContent=(this._data && this._data.current? `${Math.round(this._data.current.temp)}° ${this._data.current.weather? this._data.current.weather.main: ''}`:'--')+` · ${e.mode==='realtime'?'RT':'SIM'} ${e.rate.toFixed(1)}x · ${fmt(e.time)}`; this._render(e.time,e.hidden); });
       this._clock.start();
     }
 
@@ -172,7 +177,11 @@
     }
 
     _resizeCanvas(){
-      if(!this._canvas) return; const dpr=this._dpr; const w=this._root.clientWidth - 150; const h=this._root.clientHeight - 48 - 36; const cw=Math.max(1,w); const ch=Math.max(1,h); this._canvas.width=Math.floor(cw*dpr); this._canvas.height=Math.floor(ch*dpr); this._canvas.style.width=cw+'px'; this._canvas.style.height=ch+'px'; if(this._ctx) { this._ctx.setTransform(dpr,0,0,dpr,0,0); }
+      if(!this._canvas) return; const newDpr=(typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1); this._dpr=newDpr; const w=this._root.clientWidth - 150; const h=this._root.clientHeight - 48 - 36; const cw=Math.max(1,w); const ch=Math.max(1,h); const pxW=Math.floor(cw*this._dpr); const pxH=Math.floor(ch*this._dpr); this._canvas.width=pxW; this._canvas.height=pxH; this._canvas.style.width=cw+'px'; this._canvas.style.height=ch+'px'; if(this._ctx) { this._ctx.setTransform(this._dpr,0,0,this._dpr,0,0); }
+      if(typeof document!=='undefined'){
+        if(!this._offBaseCanvas){ this._offBaseCanvas=document.createElement('canvas'); this._offBaseCtx=this._offBaseCanvas.getContext('2d'); }
+        if(this._offBaseCanvas){ this._offBaseCanvas.width=pxW; this._offBaseCanvas.height=pxH; this._offBaseCanvas.style.width=cw+'px'; this._offBaseCanvas.style.height=ch+'px'; if(this._offBaseCtx){ this._offBaseCtx.setTransform(this._dpr,0,0,this._dpr,0,0); } this._lastBaseSnap=null; }
+      }
     }
 
     _interpHourly(ms){
@@ -193,17 +202,11 @@
       };
     }
 
-    _render(ms){
-      if(!this._ctx || !this._canvas) return;
-      const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr;
-      ctx.clearRect(0,0,w,h);
-      const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, humidity:40, clouds:20, pop:0.1, rain3h:0 };
-      if(this._state.layers.temperature){ this._drawTemperature(ctx,w,h,snap); }
-      if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); }
-      if(this._state.layers.humidity){ this._drawHumidity(ctx,w,h,snap); }
-      if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); }
-      if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); }
-    }
+    _updateQuality(wallDt, hidden){ const dt=Math.max(1, wallDt|0); this._dtEma=this._dtEma*0.9 + dt*0.1; const fps=1000/this._dtEma; let q=1; if(hidden) q=0.5; else if(fps<24) q=0.5; else if(fps<40) q=0.75; else q=1; this._quality=q; }
+
+    _renderBase(w,h,s){ if(!this._offBaseCtx || !this._offBaseCanvas) return; const snap={tb:Math.round(s.temp), hb:Math.round((s.humidity||0)/5)}; const prev=this._lastBaseSnap; if(prev && prev.tb===snap.tb && prev.hb===snap.hb) return; const c=this._offBaseCtx; c.clearRect(0,0,w,h); if(this._state.layers.temperature){ this._drawTemperature(c,w,h,s); } if(this._state.layers.humidity){ this._drawHumidity(c,w,h,s); } this._lastBaseSnap=snap; }
+
+    _render(ms, hidden){ if(!this._ctx || !this._canvas) return; const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr; ctx.clearRect(0,0,w,h); const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, humidity:40, clouds:20, pop:0.1, rain3h:0 }; this._renderBase(w,h,snap); if(this._offBaseCanvas){ ctx.drawImage(this._offBaseCanvas,0,0,w,h); } if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); } if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); } if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); } }
 
     _drawTemperature(ctx,w,h,s){
       const grad=ctx.createLinearGradient(0,0,w,h);
@@ -212,30 +215,19 @@
       ctx.fillStyle=grad; ctx.globalAlpha=0.35; ctx.fillRect(0,0,w,h); ctx.globalAlpha=1;
     }
 
-    _drawClouds(ctx,w,h,ms,s){
-      const t=ms*0.00005; ctx.save(); ctx.globalAlpha=clamp(s.clouds/100,0.1,0.85);
-      for(let k=0;k<2;k++){
-        const scale=k===0? 0.015: 0.03; const amp=k===0? 20: 12; ctx.beginPath();
-        for(let y=0;y<=h;y+=8){ for(let x=0;x<=w;x+=8){ const v=noise2d(x*scale+t*0.5, y*scale + t*0.3); const a=v*0.6+0.2; ctx.fillStyle=`rgba(226,232,240,${a})`; ctx.fillRect(x-4,y-4,8,8);} }
-      }
-      ctx.restore();
-    }
+    _drawClouds(ctx,w,h,ms,s){ const t=ms*0.00005; ctx.save(); const qa=this._quality; const alpha=clamp(s.clouds/100,0.1,0.85)*qa; ctx.globalAlpha=alpha; const step=Math.max(6, Math.round(8/qa)); const half=step*0.5; for(let k=0;k<2;k++){ const scale=k===0? 0.015: 0.03; for(let y=0;y<=h;y+=step){ for(let x=0;x<=w;x+=step){ const v=noise2d(x*scale+t*0.5, y*scale + t*0.3); const a=v*0.6+0.2; ctx.fillStyle=`rgba(226,232,240,${a})`; ctx.fillRect(x-half,y-half,step,step);} } } ctx.restore(); }
 
     _drawHumidity(ctx,w,h,s){
       const a=clamp((s.humidity||0)/100,0,1)*0.4; if(a<=0.01) return; const grad=ctx.createRadialGradient(w*0.5,h*0.5,10,w*0.5,h*0.5,Math.max(w,h)); grad.addColorStop(0,`rgba(148,163,184,${a*0.6})`); grad.addColorStop(1,`rgba(148,163,184,0)`); ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
     }
 
-    _drawWind(ctx,w,h,ms,s){
-      const n=40; const sp=clamp(s.wind_speed||0,0,20); const ang=(s.wind_deg||0)*Math.PI/180; const vx=Math.cos(ang), vy=Math.sin(ang);
-      if(!this._particles.length){ for(let i=0;i<n;i++){ this._particles.push({x:Math.random()*w, y:Math.random()*h, a:Math.random(), l:10+Math.random()*20}); } }
+    _drawWind(ctx,w,h,ms,s){ const sp=clamp(s.wind_speed||0,0,20); const ang=(s.wind_deg||0)*Math.PI/180; const vx=Math.cos(ang), vy=Math.sin(ang); const areaFactor=Math.max(0.6, Math.sqrt((w*h)/(360*260))); const n=Math.max(10, Math.floor(40*this._quality*areaFactor)); if(this._particles.length>n){ this._particles.length=n; } else if(this._particles.length<n){ for(let i=this._particles.length;i<n;i++){ this._particles.push({x:Math.random()*w, y:Math.random()*h, a:Math.random(), l:10+Math.random()*20}); } }
       ctx.save(); ctx.strokeStyle='rgba(125,211,252,0.7)'; ctx.lineWidth=1.2; ctx.globalCompositeOperation='lighter';
-      for(const p of this._particles){ const nx=noise2d(p.x*0.03, p.y*0.03 + ms*0.0002)-0.5; const ny=noise2d(p.y*0.03, p.x*0.03 + ms*0.0002)-0.5; const ax=vx*sp*0.5 + nx*4; const ay=vy*sp*0.5 + ny*4; const x2=p.x+ax, y2=p.y+ay; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(x2,y2); ctx.stroke(); p.x=x2; p.y=y2; p.l-=1; if(p.x<0||p.x>w||p.y<0||p.y>h||p.l<=0){ p.x=Math.random()*w; p.y=Math.random()*h; p.l=10+Math.random()*20; } }
+      for(const p of this._particles){ const nx=noise2d(p.x*0.03, p.y*0.03 + ms*0.0002)-0.5; const ny=noise2d(p.y*0.03, p.x*0.03 + ms*0.0002)-0.5; const ax=vx*sp*0.5 + nx*4*this._quality; const ay=vy*sp*0.5 + ny*4*this._quality; const x2=p.x+ax, y2=p.y+ay; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(x2,y2); ctx.stroke(); p.x=x2; p.y=y2; p.l-=1; if(p.x<0||p.x>w||p.y<0||p.y>h||p.l<=0){ p.x=Math.random()*w; p.y=Math.random()*h; p.l=10+Math.random()*20; } }
       ctx.restore();
     }
 
-    _drawPrecip(ctx,w,h,ms,s){
-      const density=clamp((s.pop||0),0,1) * (s.rain3h>0? 1: 0.5); if(density<=0.01) return; const count=Math.floor(80*density);
-      if(!this._rain) this._rain=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4}));
+    _drawPrecip(ctx,w,h,ms,s){ const density=clamp((s.pop||0),0,1) * (s.rain3h>0? 1: 0.5); if(density<=0.01){ this._rain=null; return; } const count=Math.max(5, Math.floor(80*density*this._quality)); if(!this._rain){ this._rain=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4})); } else if(this._rain.length!==count){ if(this._rain.length>count){ this._rain.length=count; } else { for(let i=this._rain.length;i<count;i++){ this._rain.push({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4}); } } }
       ctx.save(); ctx.strokeStyle='rgba(96,165,250,0.85)'; ctx.lineWidth=1; for(const d of this._rain){ ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+2,d.y+8); ctx.stroke(); d.x+=1; d.y+=d.v; if(d.x>w||d.y>h){ d.x=Math.random()*w; d.y=-10*Math.random(); } } ctx.restore();
     }
 
