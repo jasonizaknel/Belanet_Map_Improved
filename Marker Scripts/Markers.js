@@ -461,8 +461,8 @@ function updateWeatherLayers() {
         });
     }
 
-    // For now, we use precipitation as the default overlay
-    const type = 'precipitation_new';
+    // Use clouds as the default visual overlay (always visible)
+    const type = 'clouds_new';
     
     if (!AppState.weatherLayers[type]) {
         AppState.weatherLayers[type] = new google.maps.ImageMapType({
@@ -470,8 +470,8 @@ function updateWeatherLayers() {
                 return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}.png?appid=${apiKey}`;
             },
             tileSize: new google.maps.Size(256, 256),
-            name: "Precipitation",
-            opacity: 0.5
+            name: "Clouds",
+            opacity: 0.55
         });
         AppState.map.overlayMapTypes.push(AppState.weatherLayers[type]);
     }

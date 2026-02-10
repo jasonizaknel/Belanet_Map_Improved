@@ -71,7 +71,7 @@
       root.style.height=(this._state.height? Math.max(1,this._state.height-2): '')+'px';
       root.style.border='1px solid rgba(255,255,255,0.12)';
 
-      const header=doc.createElement('div'); header.className='weather-overlay__header';
+      const header=doc.createElement('div'); header.className='weather-overlay__header'; this._header=header;
       const title=doc.createElement('div'); title.className='weather-overlay__title'; title.textContent='Weather Overlay';
       const badge=doc.createElement('span'); badge.className='weather-overlay__badge'; badge.textContent=this._clock.mode==='realtime'?'Realtime':'Simulation'; title.appendChild(badge);
       const controls=doc.createElement('div'); controls.className='weather-overlay__controls';
@@ -104,7 +104,7 @@
         sidebar.appendChild(row);
       }
 
-      const footer=doc.createElement('div'); footer.className='weather-overlay__footer';
+      const footer=doc.createElement('div'); footer.className='weather-overlay__footer'; this._footer=footer;
       const clockBox=doc.createElement('div'); clockBox.className='weather-overlay__clock';
       const modeBtn=doc.createElement('button'); modeBtn.className='weather-overlay__mode'; modeBtn.textContent=this._clock.mode==='realtime'?'Realtime':'Simulation';
       const rateRange=doc.createElement('input'); rateRange.type='range'; rateRange.min='0.5'; rateRange.max='10'; rateRange.step='0.5'; rateRange.value=String(this._clock.rate||1); rateRange.className='weather-overlay__range';
@@ -187,7 +187,21 @@
     }
 
     _resizeCanvas(){
-      if(!this._canvas) return; const newDpr=(typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1); this._dpr=newDpr; const w=this._root.clientWidth - 150; const h=this._root.clientHeight - 48 - 36; const cw=Math.max(1,w); const ch=Math.max(1,h); const pxW=Math.floor(cw*this._dpr); const pxH=Math.floor(ch*this._dpr); this._canvas.width=pxW; this._canvas.height=pxH; this._canvas.style.width=cw+'px'; this._canvas.style.height=ch+'px'; if(this._ctx) { this._ctx.setTransform(this._dpr,0,0,this._dpr,0,0); }
+      if(!this._canvas) return;
+      const newDpr=(typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1);
+      this._dpr=newDpr;
+      const sbw = this._sidebar ? this._sidebar.clientWidth : 150;
+      const hh = this._header ? this._header.clientHeight : 48;
+      const fh = this._footer ? this._footer.clientHeight : 36;
+      const w = this._root.clientWidth - sbw;
+      const h = this._root.clientHeight - hh - fh;
+      const cw=Math.max(1,w);
+      const ch=Math.max(1,h);
+      const pxW=Math.floor(cw*this._dpr);
+      const pxH=Math.floor(ch*this._dpr);
+      this._canvas.width=pxW; this._canvas.height=pxH;
+      this._canvas.style.width=cw+'px'; this._canvas.style.height=ch+'px';
+      if(this._ctx) { this._ctx.setTransform(this._dpr,0,0,this._dpr,0,0); }
       if(typeof document!=='undefined'){
         if(!this._offBaseCanvas){ this._offBaseCanvas=document.createElement('canvas'); this._offBaseCtx=this._offBaseCanvas.getContext('2d'); }
         if(this._offBaseCanvas){ this._offBaseCanvas.width=pxW; this._offBaseCanvas.height=pxH; this._offBaseCanvas.style.width=cw+'px'; this._offBaseCanvas.style.height=ch+'px'; if(this._offBaseCtx){ this._offBaseCtx.setTransform(this._dpr,0,0,this._dpr,0,0); } this._lastBaseSnap=null; }
