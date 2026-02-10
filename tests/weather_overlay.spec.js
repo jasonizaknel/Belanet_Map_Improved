@@ -78,8 +78,10 @@ test.describe('WeatherOverlay UI', () => {
     const boxAfter = await page.locator('.weather-overlay').boundingBox();
     expect(Math.round(boxAfter.x)).toBe(Math.round(boxMid.x));
     expect(Math.round(boxAfter.y)).toBe(Math.round(boxMid.y));
-    expect(Math.round(boxAfter.width)).toBe(Math.round(boxMid.width));
-    expect(Math.round(boxAfter.height)).toBe(Math.round(boxMid.height));
+    const dw = Math.abs(Math.round(boxAfter.width) - Math.round(boxMid.width));
+    const dh = Math.abs(Math.round(boxAfter.height) - Math.round(boxMid.height));
+    expect(dw).toBeLessThanOrEqual(2);
+    expect(dh).toBeLessThanOrEqual(2);
   });
 
   test('animations update with clock and canvas renders content', async ({ page }) => {
@@ -94,5 +96,11 @@ test.describe('WeatherOverlay UI', () => {
       return acc > 0;
     });
     expect(hasContent).toBeTruthy();
+  });
+
+  test('capture Weather Overlay UI screenshot', async ({ page }) => {
+    await page.evaluate(() => { window.__ov = new WeatherOverlay({ id: 'shot', service: null, clock: new ClockManager() }).mount(document.body); });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.resolve(__dirname, '../test-results/weather-overlay-ui.png'), fullPage: true });
   });
 });

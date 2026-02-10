@@ -67,8 +67,9 @@
       root.className='weather-overlay'+(this._state.pinned?' pinned':'');
       root.style.left=this._state.left+'px';
       root.style.top=this._state.top+'px';
-      root.style.width=this._state.width+'px';
-      root.style.height=this._state.height+'px';
+      root.style.width=(this._state.width? Math.max(1,this._state.width-2): '')+'px';
+      root.style.height=(this._state.height? Math.max(1,this._state.height-2): '')+'px';
+      root.style.border='1px solid rgba(255,255,255,0.12)';
 
       const header=doc.createElement('div'); header.className='weather-overlay__header';
       const title=doc.createElement('div'); title.className='weather-overlay__title'; title.textContent='Weather Overlay';
@@ -117,12 +118,12 @@
       root.appendChild(header); const err=doc.createElement('div'); err.className='weather-overlay__error'; root.appendChild(err); root.appendChild(body); root.appendChild(footer); root.appendChild(resizeHandle); this._errEl=err;
 
       const startDrag=(e)=>{ if(e.button!==0)return; dragging=true; sx=e.clientX; sy=e.clientY; sl=parseFloat(root.style.left)||0; st=parseFloat(root.style.top)||0; header.style.cursor='grabbing'; e.preventDefault(); };
-      const onDrag=(e)=>{ if(!dragging)return; const dx=e.clientX-sx,dy=e.clientY-sy; const nl=clamp(sl+dx,0, (doc.documentElement.clientWidth-40)); const nt=clamp(st+dy,0,(doc.documentElement.clientHeight-40)); root.style.left=nl+'px'; root.style.top=nt+'px'; };
+      const onDrag=(e)=>{ if(!dragging)return; const dx=e.clientX-sx,dy=e.clientY-sy; const nl=clamp(sl+dx,0, (doc.documentElement.clientWidth-40)); const nt=clamp(st+dy,0,(doc.documentElement.clientHeight-40)); root.style.left=nl+'px'; root.style.top=nt+'px'; this._state.left=nl; this._state.top=nt; this._saveState(); };
       const endDrag=()=>{ if(!dragging)return; dragging=false; header.style.cursor='grab'; this._state.left=parseFloat(root.style.left)||this._state.left; this._state.top=parseFloat(root.style.top)||this._state.top; this._saveState(); this._em.emit('move',{left:this._state.left,top:this._state.top}); };
 
       const startResize=(e)=>{ if(e.button!==0)return; resizing=true; sx=e.clientX; sy=e.clientY; sw=root.clientWidth; sh=root.clientHeight; e.preventDefault(); };
-      const onResize=(e)=>{ if(!resizing)return; const dx=e.clientX-sx, dy=e.clientY-sy; const nw=Math.max(260, sw+dx); const nh=Math.max(180, sh+dy); root.style.width=nw+'px'; root.style.height=nh+'px'; this._resizeCanvas(); };
-      const endResize=()=>{ if(!resizing)return; resizing=false; this._state.width=root.clientWidth; this._state.height=root.clientHeight; this._saveState(); this._em.emit('resize',{width:this._state.width,height:this._state.height}); };
+      const onResize=(e)=>{ if(!resizing)return; const dx=e.clientX-sx, dy=e.clientY-sy; const nw=Math.max(260, sw+dx); const nh=Math.max(180, sh+dy); root.style.width=nw+'px'; root.style.height=nh+'px'; const r=root.getBoundingClientRect(); this._state.width=Math.round(r.width); this._state.height=Math.round(r.height); this._saveState(); this._resizeCanvas(); };
+      const endResize=()=>{ if(!resizing)return; resizing=false; const r=root.getBoundingClientRect(); this._state.width=Math.round(r.width); this._state.height=Math.round(r.height); this._saveState(); this._em.emit('resize',{width:this._state.width,height:this._state.height}); };
 
       let dragging=false,resizing=false,sx=0,sy=0,sl=0,st=0,sw=0,sh=0;
       header.addEventListener('mousedown',startDrag);
@@ -138,6 +139,7 @@
       rateRange.addEventListener('input',()=>{ const r=Number(rateRange.value)||1; this._clock.setRate(r); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); });
 
       parent=(parent||doc.body); parent.appendChild(root);
+      if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>{ root.style.left=this._state.left+'px'; root.style.top=this._state.top+'px'; if(this._state.width) root.style.width=Math.max(1,this._state.width-2)+'px'; if(this._state.height) root.style.height=Math.max(1,this._state.height-2)+'px'; }); }
 
       this._root=root; this._canvas=canvas; this._ctx=canvas.getContext('2d'); this._sidebar=sidebar; this._resizeHandle=resizeHandle;
       this._mounted=true;
