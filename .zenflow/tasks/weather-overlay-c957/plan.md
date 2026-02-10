@@ -90,7 +90,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Validate responsiveness and crisp rendering at various DPR values
 - Add keyboard shortcuts (Esc, p, m, [, ]) and ensure non-interference with host app
 
-### [ ] Step: Error Handling UX and Telemetry
+### [x] Step: Error Handling UX and Telemetry
+<!-- chat-id: ca1c5ea6-ddfb-4296-8574-b6bbbf028f6c -->
 - Surface categorized errors with actionable hints; fallback to cached data when available
 - Emit overlay/service events for host logging/analytics if present
 

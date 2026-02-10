@@ -23,6 +23,13 @@
     }
   }
 
+  class Emitter {
+    constructor(){ this._m=new Map(); }
+    on(t,fn){ if(!this._m.has(t)) this._m.set(t,new Set()); this._m.get(t).add(fn); return ()=>this.off(t,fn); }
+    off(t,fn){ const s=this._m.get(t); if(!s) return; s.delete(fn); if(s.size===0) this._m.delete(t); }
+    emit(t,v){ const s=this._m.get(t); if(!s) return; for(const fn of Array.from(s)){ try{ fn(v);}catch(_){}} }
+  }
+
   class WeatherServiceError extends Error {
     constructor(message, code, status) {
       super(message);
@@ -234,6 +241,7 @@
       this._storage = toStorage(storage);
       this._fetch = fetcher;
       this._mem = new Map();
+      this._em = new Emitter();
     }
 
     _ttlFor(kind) {
@@ -249,34 +257,39 @@
       return Date.now();
     }
 
+    on(t,fn){ return this._em.on(t,fn); }
+    off(t,fn){ return this._em.off(t,fn); }
+
     async _requestJson(url, { retries = 3, retryBase = 300 } = {}) {
       let lastErr;
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
+          this._em.emit('request',{url,attempt});
           const res = await this._fetch(url, { headers: { 'Accept': 'application/json' } });
           if (!res) throw new WeatherServiceError('No response', 'NETWORK');
+          this._em.emit('response',{url,status:res.status,ok:res.ok});
           if (res.ok) {
             return await res.json();
           }
           if (res.status === 401) {
-            throw new WeatherServiceError('Unauthorized (invalid API key)', 'UNAUTHENTICATED', 401);
+            const e=new WeatherServiceError('Unauthorized (invalid API key)', 'UNAUTHENTICATED', 401); this._em.emit('error',e); throw e;
           }
           if (res.status === 429) {
             if (attempt < retries) {
               await sleep(jitter(retryBase * Math.pow(2, attempt)));
               continue;
             }
-            throw new WeatherServiceError('Rate limited', 'RATE_LIMIT', 429);
+            const e=new WeatherServiceError('Rate limited', 'RATE_LIMIT', 429); this._em.emit('error',e); throw e;
           }
           if (res.status >= 500) {
             if (attempt < retries) {
               await sleep(jitter(retryBase * Math.pow(2, attempt)));
               continue;
             }
-            throw new WeatherServiceError(`Server error ${res.status}`, 'SERVER', res.status);
+            const e=new WeatherServiceError(`Server error ${res.status}`, 'SERVER', res.status); this._em.emit('error',e); throw e;
           }
           const text = await res.text().catch(() => '');
-          throw new WeatherServiceError(`HTTP ${res.status}: ${text || 'Unknown error'}`,'HTTP', res.status);
+          const e=new WeatherServiceError(`HTTP ${res.status}: ${text || 'Unknown error'}`,'HTTP', res.status); this._em.emit('error',e); throw e;
         } catch (err) {
           lastErr = err;
           if (err instanceof WeatherServiceError && ['UNAUTHENTICATED','RATE_LIMIT','SERVER','HTTP'].includes(err.code)) {
@@ -286,7 +299,7 @@
             await sleep(jitter(retryBase * Math.pow(2, attempt)));
             continue;
           }
-          throw new WeatherServiceError(err && err.message ? err.message : 'Network error', 'NETWORK');
+          const e=new WeatherServiceError(err && err.message ? err.message : 'Network error', 'NETWORK'); this._em.emit('error',e); throw e;
         }
       }
       throw lastErr || new WeatherServiceError('Unknown error', 'UNKNOWN');
@@ -327,11 +340,14 @@
       existing.refreshing = true;
       this._mem.set(memKey, existing);
       try {
+        this._em.emit('revalidate_start',{key,url});
         const json = await this._requestJson(url);
         const norm = this._normalize(json);
         const entry = { ts: this._now(), data: norm };
         this._cacheSet(kind, key, entry);
-      } catch (_) {
+        this._em.emit('revalidate_success',{key,ts:entry.ts});
+      } catch (e) {
+        this._em.emit('revalidate_error',{key,error:e});
       } finally {
         const cur = this._mem.get(memKey) || {};
         cur.refreshing = false;
@@ -351,8 +367,10 @@
       };
     }
 
+    _keyFor(params){ return `${params.lat.toFixed(3)},${params.lon.toFixed(3)}:${this.units}:${this.lang}:ex=minutely,alerts`; }
+
     async fetchOneCall(params) {
-      const key = `${params.lat.toFixed(3)},${params.lon.toFixed(3)}:${this.units}:${this.lang}:ex=minutely,alerts`;
+      const key = this._keyFor(params);
       const exclude = 'minutely,alerts';
       const url = this._composeUrl({ ...params, exclude });
       const kind = 'onecall';
@@ -364,6 +382,7 @@
 
       const now = this._now();
       if (entry) {
+        this._em.emit('cache_hit',{key,ts:entry.ts});
         const age = now - entry.ts;
         const freshForAny = age < Math.min(ttlCurrent, ttlHourly, ttlDaily);
         const result = { ...entry.data, units: this.units, lang: this.lang, _meta: { ts: entry.ts, stale: !freshForAny, source: 'cache' } };
@@ -371,13 +390,24 @@
           Promise.resolve().then(() => this._revalidate(kind, key, url));
         }
         return result;
+      } else {
+        this._em.emit('cache_miss',{key});
       }
 
-      const json = await this._requestJson(url);
-      const norm = this._normalize(json);
-      const newEntry = { ts: now, data: norm };
-      this._cacheSet(kind, key, newEntry);
-      return { ...norm, units: this.units, lang: this.lang, _meta: { ts: now, stale: false, source: 'network' } };
+      try{
+        const json = await this._requestJson(url);
+        const norm = this._normalize(json);
+        const newEntry = { ts: now, data: norm };
+        this._cacheSet(kind, key, newEntry);
+        return { ...norm, units: this.units, lang: this.lang, _meta: { ts: now, stale: false, source: 'network' } };
+      } catch(e){
+        const fallback=this._cacheGet(kind,key);
+        if(fallback){
+          this._em.emit('fallback_cache',{key});
+          return { ...fallback.data, units:this.units, lang:this.lang, _meta:{ ts:fallback.ts, stale:true, source:'cache' } };
+        }
+        throw e;
+      }
     }
 
     async getCurrent(lat, lon) {
@@ -400,6 +430,8 @@
       const list = resampleHourlyTo3h(data.hourly);
       return { list, lat: data.lat, lon: data.lon, units: this.units, _meta: data._meta };
     }
+
+    getCachedOneCall(params){ const key=this._keyFor(params); const entry=this._cacheGet('onecall',key); if(!entry) return null; return { ...entry.data, units:this.units, lang:this.lang, _meta:{ ts:entry.ts, stale:true, source:'cache' } }; }
   }
 
   WeatherService.InMemoryStorage = InMemoryStorage;

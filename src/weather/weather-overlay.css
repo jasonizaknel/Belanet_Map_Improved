@@ -7,6 +7,10 @@
 .weather-overlay__btn{appearance:none;border:none;background:rgba(255,255,255,0.08);color:#cbd5e1;padding:6px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s ease,transform .1s ease}
 .weather-overlay__btn:hover{background:rgba(255,255,255,0.16)}
 .weather-overlay__btn:active{transform:scale(0.96)}
+.weather-overlay__error{display:none;margin:6px 10px 0 10px;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.08)}
+.weather-overlay__error.is-warn{background:rgba(245,158,11,0.15);color:#fde68a;border-color:rgba(245,158,11,0.35)}
+.weather-overlay__error.is-err{background:rgba(239,68,68,0.18);color:#fecaca;border-color:rgba(239,68,68,0.4)}
+.weather-overlay__error small{opacity:.8;font-weight:500}
 .weather-overlay__body{position:relative;flex:1;display:grid;grid-template-columns:1fr auto}
 .weather-overlay__canvas-wrap{position:relative}
 .weather-overlay__canvas{width:100%;height:100%;display:block}

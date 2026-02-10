@@ -48,7 +48,7 @@
       this._root=null;this._canvas=null;this._ctx=null;this._sidebar=null;this._resizeHandle=null;
       this._lat=lat;this._lon=lon;
       this._particles=[];this._lastTick=0;this._data=null;this._dpr= (typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1);
-      this._offTick=null;this._dtEma=16.7;this._quality=1;this._hover=false;this._offBaseCanvas=null;this._offBaseCtx=null;this._lastBaseSnap=null;this._keyHandler=null;this._rain=null;
+      this._offTick=null;this._dtEma=16.7;this._quality=1;this._hover=false;this._offBaseCanvas=null;this._offBaseCtx=null;this._lastBaseSnap=null;this._keyHandler=null;this._rain=null;this._errEl=null;this._offSvc=null;
     }
 
     on(t,fn){return this._em.on(t,fn)}
@@ -114,7 +114,7 @@
       const resizeHandle=doc.createElement('div'); resizeHandle.className='weather-overlay__resize';
 
       body.appendChild(canvasWrap); body.appendChild(sidebar);
-      root.appendChild(header); root.appendChild(body); root.appendChild(footer); root.appendChild(resizeHandle);
+      root.appendChild(header); const err=doc.createElement('div'); err.className='weather-overlay__error'; root.appendChild(err); root.appendChild(body); root.appendChild(footer); root.appendChild(resizeHandle); this._errEl=err;
 
       const startDrag=(e)=>{ if(e.button!==0)return; dragging=true; sx=e.clientX; sy=e.clientY; sl=parseFloat(root.style.left)||0; st=parseFloat(root.style.top)||0; header.style.cursor='grabbing'; e.preventDefault(); };
       const onDrag=(e)=>{ if(!dragging)return; const dx=e.clientX-sx,dy=e.clientY-sy; const nl=clamp(sl+dx,0, (doc.documentElement.clientWidth-40)); const nt=clamp(st+dy,0,(doc.documentElement.clientHeight-40)); root.style.left=nl+'px'; root.style.top=nt+'px'; };
@@ -141,6 +141,7 @@
 
       this._root=root; this._canvas=canvas; this._ctx=canvas.getContext('2d'); this._sidebar=sidebar; this._resizeHandle=resizeHandle;
       this._mounted=true;
+      if(this._svc && typeof this._svc.on==='function'){ const evs=['request','response','error','revalidate_start','revalidate_success','revalidate_error','cache_hit','cache_miss','fallback_cache']; const offs=[]; for(const ev of evs){ offs.push(this._svc.on(ev,(p)=>this._em.emit('service',{event:ev,payload:p}))); } this._offSvc=()=>{ for(const off of offs){ try{ off(); }catch(_){ } } }; }
 
       this._resizeCanvas();
       this._attachClock(meta);
@@ -158,6 +159,7 @@
     destroy(){
       if(!this._mounted) return;
       if(this._offTick) { this._offTick(); this._offTick=null; }
+      if(this._offSvc){ try{ this._offSvc(); }catch(_){ } this._offSvc=null; }
       if(typeof document!=='undefined' && this._keyHandler){ document.removeEventListener('keydown', this._keyHandler); this._keyHandler=null; }
       if(this._root && this._root.parentNode) this._root.parentNode.removeChild(this._root);
       this._mounted=false; this._em.emit('unmount',{});
@@ -170,10 +172,16 @@
       this._clock.start();
     }
 
+    _formatError(err,usedCache){ const c=(err&&err.code)||'UNKNOWN'; let msg=''; let lvl='err'; if(c==='UNAUTHENTICATED'){ msg='OpenWeather API key is invalid. Configure a valid key.'; lvl='err'; } else if(c==='RATE_LIMIT'){ msg='OpenWeather rate limit reached. Retrying later.'; lvl='warn'; } else if(c==='NETWORK'){ msg='Network error or offline. Will retry automatically.'; lvl='warn'; } else if(c==='SERVER'){ msg='Weather service unavailable (5xx).'; lvl='warn'; } else if(c==='HTTP'){ msg='Request failed.'; lvl='warn'; } else { msg='Unexpected error.'; lvl='warn'; } if(usedCache) msg+=' Using cached data.'; return {text:msg,level:lvl}; }
+
+    _showError(text,level){ if(!this._errEl) return; if(!text){ this._errEl.style.display='none'; this._errEl.textContent=''; this._errEl.classList.remove('is-warn','is-err'); return; } this._errEl.textContent=text; this._errEl.classList.remove('is-warn','is-err'); this._errEl.classList.add(level==='warn'?'is-warn':'is-err'); this._errEl.style.display='block'; }
+
     async _fetchData(){
       if(!this._svc) return;
-      try{ this._data= await this._svc.fetchOneCall({lat:this._lat,lon:this._lon}); }
-      catch(err){ this._em.emit('error',{error:err}); }
+      this._showError(null);
+      this._em.emit('telemetry',{type:'fetch',phase:'start'});
+      try{ const d= await this._svc.fetchOneCall({lat:this._lat,lon:this._lon}); this._data=d; this._em.emit('telemetry',{type:'fetch',phase:'success',source:d._meta&&d._meta.source,stale:!!(d._meta&&d._meta.stale)}); }
+      catch(err){ let used=false; if(this._svc&&typeof this._svc.getCachedOneCall==='function'){ const c=this._svc.getCachedOneCall({lat:this._lat,lon:this._lon}); if(c){ this._data=c; used=true; this._em.emit('telemetry',{type:'fetch',phase:'cached_fallback'}); } } const f=this._formatError(err,used); this._showError(f.text,f.level); this._em.emit('error',{error:err,cached:used}); }
     }
 
     _resizeCanvas(){
