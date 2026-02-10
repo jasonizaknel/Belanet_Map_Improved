@@ -95,5 +95,6 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Surface categorized errors with actionable hints; fallback to cached data when available
 - Emit overlay/service events for host logging/analytics if present
 
-### [ ] Step: Final Report
+### [x] Step: Final Report
+<!-- chat-id: 1bdec1fd-b2d8-4775-9e7d-8eab9927d579 -->
 - Write `{@artifacts_path}/report.md` detailing implementation, tests, and notable issues
