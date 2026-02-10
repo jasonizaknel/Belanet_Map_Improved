@@ -716,6 +716,9 @@
 <!-- FIXED: Added missing Searchbar.js script -->
 <script defer src="User Interface/Searchbar.js"></script>
 <script defer src="User Interface/OperationalDashboard.js"></script>
+<script defer src="src/weather/ClockManager.js"></script>
+<script defer src="src/weather/WeatherService.js"></script>
+<script defer src="src/weather/WeatherOverlay.js"></script>
 
 <script>
     // Initialize Lucide icons
@@ -757,6 +760,102 @@
 
     // Initialize map loading
     loadGoogleMaps();
+</script>
+
+<script>
+(function(){
+  document.addEventListener('DOMContentLoaded', async function(){
+    let cfg = window.AppConfig;
+    if (!cfg) {
+      try {
+        const r = await fetch('/api/config');
+        cfg = await r.json();
+        window.AppConfig = cfg;
+      } catch (_){ cfg = {}; }
+    }
+    const key = cfg && cfg.openWeatherKey;
+    const hasKey = !!key;
+    const btn = document.getElementById('toggleWeatherBtn');
+    let service = null, clock = null, overlay = null, visible = false;
+    function currentLatLon(){
+      if (window.AppState && AppState.map) {
+        const c = AppState.map.getCenter();
+        if (c) return { lat: c.lat(), lon: c.lng() };
+      }
+      return { lat: -25.0, lon: 28.0 };
+    }
+    function mountOverlay(opts){
+      if (!hasKey) return;
+      if (!service) service = new WeatherService({ apiKey: key, ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
+      if (!clock) clock = new ClockManager();
+      const ll = opts && opts.lat != null ? { lat: opts.lat, lon: opts.lon } : currentLatLon();
+      overlay = new WeatherOverlay({ service, clock, lat: ll.lat, lon: ll.lon, id: 'map' });
+      overlay.mount(document.body);
+      visible = true;
+      window.__WeatherOverlay = overlay;
+    }
+    function show(){
+      if (!overlay) { mountOverlay(); return; }
+      if (overlay._root) overlay._root.style.display = '';
+      visible = true;
+    }
+    function hide(){
+      if (overlay && overlay._root) overlay._root.style.display = 'none';
+      visible = false;
+    }
+    function toggle(){
+      if (!hasKey) return;
+      if (!overlay || !visible) show(); else hide();
+    }
+    if (btn) btn.addEventListener('click', toggle);
+    const pg = document.getElementById('playgroundTab');
+    if (pg) {
+      const sec = document.createElement('div');
+      sec.className = 'tab-section';
+      const label = document.createElement('label');
+      label.className = 'section-label';
+      label.textContent = 'Weather Overlay';
+      const row = document.createElement('div');
+      row.style.display = 'grid';
+      row.style.gridTemplateColumns = '1fr 1fr auto auto';
+      row.style.gap = '8px';
+      const latInput = document.createElement('input');
+      latInput.type = 'number';
+      latInput.step = '0.0001';
+      latInput.placeholder = 'Latitude';
+      const lonInput = document.createElement('input');
+      lonInput.type = 'number';
+      lonInput.step = '0.0001';
+      lonInput.placeholder = 'Longitude';
+      const useCenterBtn = document.createElement('button');
+      useCenterBtn.className = 'filter-button-small';
+      useCenterBtn.textContent = 'Use Map Center';
+      const applyBtn = document.createElement('button');
+      applyBtn.className = 'filter-button-small';
+      applyBtn.textContent = 'Apply';
+      row.appendChild(latInput); row.appendChild(lonInput); row.appendChild(useCenterBtn); row.appendChild(applyBtn);
+      sec.appendChild(label); sec.appendChild(row);
+      pg.appendChild(sec);
+      const setFromCenter = function(){ const ll = currentLatLon(); latInput.value = String(ll.lat.toFixed(4)); lonInput.value = String(ll.lon.toFixed(4)); };
+      useCenterBtn.addEventListener('click', function(){ setFromCenter(); if (!overlay || !visible) toggle(); });
+      applyBtn.addEventListener('click', function(){
+        const lat = parseFloat(latInput.value); const lon = parseFloat(lonInput.value);
+        if (!isFinite(lat) || !isFinite(lon)) return;
+        if (!overlay) { mountOverlay({ lat, lon }); return; }
+        overlay.destroy();
+        overlay = null;
+        mountOverlay({ lat, lon });
+        if (!visible) show();
+      });
+      setFromCenter();
+    }
+    window.addEventListener('configLoaded', function(e){
+      if (!hasKey && e && e.detail && e.detail.openWeatherKey) {
+        window.AppConfig = e.detail;
+      }
+    });
+  });
+})();
 </script>
 
 </body>

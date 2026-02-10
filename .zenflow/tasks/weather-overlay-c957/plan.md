@@ -78,7 +78,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Unit tests: mount/unmount smoke, event wiring, state persistence; minimal render assertions
 - Manual verification: interactions, layer toggles, animation responsiveness
 
-### [ ] Step: Integration and Demo Harness
+### [x] Step: Integration and Demo Harness
+<!-- chat-id: 5260472f-16e3-4f0c-bc83-2902a3c950d8 -->
 - Integrate into existing page (e.g., `map.html`) if present; otherwise add `public/weather-demo.html` to mount and exercise overlay
 - Wire environment API key detection and pass to `WeatherService`; expose controls for lat/lon
 - Manual verification checklist across screen sizes and browsers
