@@ -81,7 +81,7 @@
       header.appendChild(title); header.appendChild(controls);
 
       const body=doc.createElement('div'); body.className='weather-overlay__body';
-      const canvasWrap=doc.createElement('div'); canvasWrap.className='weather-overlay__canvas-wrap';
+      const canvasWrap=doc.createElement('div'); canvasWrap.className='weather-overlay__canvas-wrap'; this._canvasWrap=canvasWrap;
       const canvas=doc.createElement('canvas'); canvas.className='weather-overlay__canvas'; canvasWrap.appendChild(canvas);
       const sidebar=doc.createElement('div'); sidebar.className='weather-overlay__sidebar';
 
@@ -191,13 +191,8 @@
       if(!this._canvas) return;
       const newDpr=(typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1);
       this._dpr=newDpr;
-      const sbw = this._sidebar ? this._sidebar.clientWidth : 150;
-      const hh = this._header ? this._header.clientHeight : 48;
-      const fh = this._footer ? this._footer.clientHeight : 36;
-      const w = this._root.clientWidth - sbw;
-      const h = this._root.clientHeight - hh - fh;
-      const cw=Math.max(1,w);
-      const ch=Math.max(1,h);
+      const cw = this._canvasWrap ? Math.max(1, this._canvasWrap.clientWidth) : Math.max(1, this._root.clientWidth - (this._sidebar?this._sidebar.clientWidth:150));
+      const ch = this._canvasWrap ? Math.max(1, this._canvasWrap.clientHeight) : Math.max(1, this._root.clientHeight - (this._header?this._header.clientHeight:48) - (this._footer?this._footer.clientHeight:36));
       const pxW=Math.floor(cw*this._dpr);
       const pxH=Math.floor(ch*this._dpr);
       this._canvas.width=pxW; this._canvas.height=pxH;

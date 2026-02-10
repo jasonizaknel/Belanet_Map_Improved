@@ -14,6 +14,7 @@ The **Belanet Map Improved** project is a sophisticated network management and v
 - **Logic**: [./Marker Scripts/](./Marker%20Scripts/) (Map interactions & Simulation)
 - **UI Components**: [./User Interface/](./User%20Interface/) (Sidebars & Dashboards)
 - **State**: [./state.js](./state.js) (Global application state)
+- **Weather Modules**: [./src/weather/](./src/weather/) → `WeatherService.js`, `ClockManager.js`, `WeatherOverlay.js`, `weather-overlay.css`
 
 ## Language & Runtime
 **Language**: JavaScript (Node.js & Browser)  
@@ -45,17 +46,18 @@ The **Belanet Map Improved** project is a sophisticated network management and v
 - **broadcastTasks** (Line 903): Broadcasts Splynx task updates.
 
 ## Frontend Logic: [./Marker Scripts/Markers.js](./Marker%20Scripts/Markers.js)
-- **loadServiceLinks** (Line 111): Established connections between customers and towers.
-- **loadData** (Line 179): Orchestrates the loading of all data sources.
-- **getCustomerIcon** (Line 258): Generates dynamic SVG markers based on task counts (anger levels).
-- **renderTrackerMarkers** (Line 353): Renders moving technician markers.
-- **connectTrackerWebSocket** (Line 439): Establishes WebSocket connection for real-time data.
-- **renderServiceLinks** (Line 586): Draws and animates polylines connecting customers to highsites.
-- **processNagiosStatus** (Line 643): Aggregates Nagios data into host-level status summaries.
-- **getTowerStatusColor** (Line 694): Determines tower visual state (Red/Orange/Green).
-- **renderTowers** (Line 809): Renders status-aware tower markers with animated SVGs.
-- **updateCustomerMarkerVisibility** (Line 1019): Filtering engine for marker visibility.
-- **mapTasksToCustomers** (Line 1460): Maps global tasks to customer objects for UI display.
+- **loadServiceLinks** (~Line 111): Establishes connections between customers and towers
+- **loadData** (~Line 179): Orchestrates the loading of all data sources and initializes map overlays
+- **updateWeatherLayers** (~Line 440): Attaches/removes OpenWeather tile overlays; now uses MVCArray-safe removal and defaults to `clouds_new`
+- **getCustomerIcon** (~Line 258): Generates dynamic SVG markers based on task counts (anger levels)
+- **renderTrackerMarkers** (~Line 353): Renders moving technician markers
+- **connectTrackerWebSocket** (~Line 439): Establishes WebSocket connection for real-time data
+- **renderServiceLinks** (~Line 586): Draws and animates polylines connecting customers to highsites
+- **processNagiosStatus** (~Line 643): Aggregates Nagios data into host-level status summaries
+- **getTowerStatusColor** (~Line 694): Determines tower visual state (Red/Orange/Green)
+- **renderTowers** (~Line 809): Renders status-aware tower markers with animated SVGs
+- **updateCustomerMarkerVisibility** (~Line 1019): Filtering engine for marker visibility
+- **mapTasksToCustomers** (~Line 1460): Maps global tasks to customer objects for UI display
 
 ## Frontend Logic: [./Marker Scripts/Simulation.js](./Marker%20Scripts/Simulation.js)
 - **assignTaskToAgent** (Line 1337): Handles manual task assignment in simulation.
