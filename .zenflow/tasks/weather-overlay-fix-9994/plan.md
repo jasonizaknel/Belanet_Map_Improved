@@ -18,7 +18,8 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Technical Specification
+### [x] Step: Technical Specification
+<!-- chat-id: f27e4ae7-20f1-4049-a67c-ea38b9cf8e34 -->
 
 Assess the task's difficulty, as underestimating it leads to poor outcomes.
 - easy: Straightforward implementation, trivial bug fix or feature
@@ -52,16 +53,39 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Implementation
+### [ ] Step: Unify Weather Toggle (Single Source of Truth)
+- Remove extra `#toggleWeatherBtn` handler in [./map.html](./map.html)
+- Extend `toggleWeather()` in [./Marker Scripts/Markers.js](./Marker%20Scripts/Markers.js) to mount/show and hide/destroy `WeatherOverlay`
+- On load, normalize from `AppState.visibility.weather` and reflect button state
+- Verification: Button class syncs with overlay visibility; no inverted behavior
 
-Implement the task according to the technical specification and general engineering best practices.
+### [ ] Step: Remove Overlay Close Paths & Move Clock
+- In [./src/weather/WeatherOverlay.js](./src/weather/WeatherOverlay.js): remove close button and `Escape` hide logic
+- Remove clock UI from overlay; add fixed bottom-right clock in [./map.html](./map.html) with minimal CSS
+- Verification: Overlay can only be closed via Weather button; clock visible bottom-right
 
-1. Break the task into steps where possible.
-2. Implement the required changes in the codebase
-3. If relevant, write unit tests alongside each change.
-4. Run relevant tests and linters in the end of each step.
-5. Perform basic manual verification if applicable.
-6. After completion, write a report to `{@artifacts_path}/report.md` describing:
-   - What was implemented
-   - How the solution was tested
-   - The biggest issues or challenges encountered
+### [ ] Step: Stabilize Overlay Resize & Layout
+- In [./src/weather/weather-overlay.css](./src/weather/weather-overlay.css): add `box-sizing: border-box`, `min-width: 0; min-height: 0` on grid children
+- In [./src/weather/WeatherOverlay.js](./src/weather/WeatherOverlay.js): remove width/height `-2px` restores; ensure DPR-safe canvas sizing; throttle resize updates if needed
+- Verification: Smooth resize, no jitter/overflow; position persists across reload
+
+### [ ] Step: Migrate Server to One Call API 3.0
+- Update [./server.js](./server.js) `/api/weather` to use `https://api.openweathermap.org/data/3.0/onecall` with `exclude=minutely,alerts&units=metric`
+- Keep 10–15m cache TTL; remove 2.5 fallback
+- Verification: Endpoint returns One Call 3.0 shape; logs show cache hits; tests green
+
+### [ ] Step: Enable All Weather Tile Layers
+- In [./Marker Scripts/Markers.js](./Marker%20Scripts/Markers.js): update `updateWeatherLayers()` to support `clouds_new`, `precipitation_new`, `rain_new`, `snow_new`, `temp_new`, `wind_new`, `pressure_new`
+- Default selection to `clouds_new`, `precipitation_new`, `temp_new`; ensure safe removal from `overlayMapTypes`
+- Verification: Tiles render and animate as available; no silent failures
+
+### [ ] Step: API Call Optimization
+- Ensure `toggleWeather()` never triggers One Call fetch directly; rely on `WeatherService` caching and server cache
+- Confirm no duplicate calls on toggles; share location/time windows where applicable
+- Verification: Request counts remain low during normal use; spot-check via logs
+
+### [ ] Step: E2E Tests & Screenshots
+- Request ENV vars before running: `OPENWEATHER_API_KEY`, `GOOGLE_MAPS_KEY`
+- Add Playwright flows to toggle overlay, test resize stability, and confirm tiles (Temperature, Precipitation, Rain, Snow)
+- Capture screenshots of overlay and tile layers; store under `tests/test-results/`
+- Verification: All assertions pass; screenshots generated
