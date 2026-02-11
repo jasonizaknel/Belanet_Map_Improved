@@ -142,7 +142,15 @@
       rateRange.addEventListener('input',()=>{ const r=Number(rateRange.value)||1; this._clock.setRate(r); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); });
 
       parent=(parent||doc.body); parent.appendChild(root);
-      if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>{ root.style.left=this._state.left+'px'; root.style.top=this._state.top+'px'; if(this._state.width) root.style.width=Math.max(1,this._state.width)+'px'; if(this._state.height) root.style.height=Math.max(1,this._state.height)+'px'; }); }
+      if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>{ root.style.left=this._state.left+'px'; root.style.top=this._state.top+'px'; if(this._state.width) root.style.width=Math.max(1,this._state.width)+'px'; if(this._state.height) root.style.height=Math.max(1,this._state.height)+'px';
+        const vw = doc.documentElement.clientWidth || window.innerWidth || 1280;
+        const vh = doc.documentElement.clientHeight || window.innerHeight || 720;
+        const rb = root.getBoundingClientRect();
+        let nl = Math.min(Math.max(parseFloat(root.style.left)||0, 0), Math.max(0, vw - Math.max(200, rb.width||360) - 10));
+        let nt = Math.min(Math.max(parseFloat(root.style.top)||0, 0), Math.max(0, vh - Math.max(150, rb.height||260) - 10));
+        if (rb.left > vw || rb.top > vh || rb.right < 0 || rb.bottom < 0) { nl = 80; nt = 80; }
+        root.style.left = nl + 'px'; root.style.top = nt + 'px'; this._state.left = nl; this._state.top = nt; this._saveState();
+      }); }
 
       this._root=root; this._canvas=canvas; this._ctx=canvas.getContext('2d'); this._sidebar=sidebar; this._resizeHandle=resizeHandle;
       this._mounted=true;
