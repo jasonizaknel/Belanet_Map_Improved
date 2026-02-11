@@ -79,7 +79,15 @@ let weatherCache = {
 
 const coordWeatherCache = new Map();
 
-// ADDED: Cache for Splynx UI session
+// ADDED: API call tracking for OneCall API 3
+const apiCallStats = {
+  callsUsed: 0,
+  callLimit: 500,
+  startTime: Date.now(),
+  resetTime: Date.now(),
+};
+
+// ADDED: Load API stats from storage if available
 let splynxSessionCache = {
   cookie: null,
   lastLogin: 0
@@ -810,16 +818,61 @@ app.get('/api/onecall', async (req, res) => {
     const ttl = 10*60*1000;
     const cached = coordWeatherCache.get(key);
     if (cached && (now - cached.ts) < ttl) return res.json(cached.data);
+    
+    // Check if API call limit reached
+    if (apiCallStats.callsUsed >= apiCallStats.callLimit) {
+      return res.status(429).json({ error: 'OneCall API 3 call limit reached', callsUsed: apiCallStats.callsUsed, limit: apiCallStats.callLimit });
+    }
+    
     const url = 'https://api.openweathermap.org/data/3.0/onecall';
     const params = { lat: qlat, lon: qlon, exclude: 'minutely,alerts', units: 'metric', appid: OPENWEATHER_API_KEY };
     const resp = await axios.get(url, { params, timeout: 10000 });
     const data = resp.data;
+    
+    // Increment API call count
+    apiCallStats.callsUsed += 1;
+    console.log(`[API Stats] OneCall API 3 call made. Total: ${apiCallStats.callsUsed} / ${apiCallStats.callLimit}`);
+    
     coordWeatherCache.set(key, { ts: now, data });
     res.json(data);
   } catch (e) {
     if (e.response && e.response.status) return res.status(e.response.status).json({ error: 'Upstream error' });
     res.status(500).json({ error: 'Failed to fetch onecall' });
   }
+});
+
+// ADDED: Get current API call statistics
+app.get('/api/weather/stats', (req, res) => {
+  res.json({
+    callsUsed: apiCallStats.callsUsed,
+    limit: apiCallStats.callLimit,
+    startTime: apiCallStats.startTime,
+    resetTime: apiCallStats.resetTime,
+  });
+});
+
+// ADDED: Set API call limit
+app.post('/api/weather/stats/limit', express.json(), (req, res) => {
+  const { limit } = req.body;
+  const newLimit = Math.max(1, parseInt(limit, 10) || 500);
+  apiCallStats.callLimit = newLimit;
+  console.log(`[API Stats] Call limit updated to ${newLimit}`);
+  res.json({
+    callsUsed: apiCallStats.callsUsed,
+    limit: apiCallStats.callLimit,
+  });
+});
+
+// ADDED: Reset API call counter
+app.post('/api/weather/stats/reset', (req, res) => {
+  apiCallStats.callsUsed = 0;
+  apiCallStats.resetTime = Date.now();
+  console.log('[API Stats] Call counter reset');
+  res.json({
+    callsUsed: 0,
+    limit: apiCallStats.callLimit,
+    resetTime: apiCallStats.resetTime,
+  });
 });
 
 // ADDED: Assign tasks to a technician and add a comment

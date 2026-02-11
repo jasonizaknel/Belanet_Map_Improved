@@ -325,7 +325,7 @@ window.initMap = async function () { // CHANGED: must be global for Google callb
             AppState.weatherHover.lastKey = '';
             AppState.weatherHover.inFlight = false;
             AppState.weatherHover.timer = null;
-            AppState.weatherHover.listener = AppState.map.addListener('mousemove', function(e){
+            AppState.weatherHover.listener = AppState.map.addListener('click', function(e){
                 if (!AppState.visibility.weather) return;
                 if (!e || !e.latLng) return;
                 const lat = e.latLng.lat();
@@ -1519,7 +1519,7 @@ async function toggleWeather() {
             AppState.weatherHover.lastKey = '';
             AppState.weatherHover.inFlight = false;
             AppState.weatherHover.timer = null;
-            AppState.weatherHover.listener = AppState.map.addListener('mousemove', function(e){
+            AppState.weatherHover.listener = AppState.map.addListener('click', function(e){
                 if (!AppState.visibility.weather) return;
                 if (!e || !e.latLng) return;
                 const lat = e.latLng.lat();

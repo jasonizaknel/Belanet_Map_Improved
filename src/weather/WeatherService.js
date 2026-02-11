@@ -244,6 +244,9 @@
       this._fetch = fetcher;
       this._mem = new Map();
       this._em = new Emitter();
+      this._apiCallsUsed = 0;
+      this._apiCallLimit = 500;
+      this._loadApiCallStats();
     }
 
     _ttlFor(kind) {
@@ -261,6 +264,65 @@
 
     on(t,fn){ return this._em.on(t,fn); }
     off(t,fn){ return this._em.off(t,fn); }
+
+    getApiCallsUsed() {
+      return this._apiCallsUsed;
+    }
+
+    getApiCallLimit() {
+      return this._apiCallLimit;
+    }
+
+    setApiCallLimit(limit) {
+      const newLimit = Math.max(1, parseInt(limit, 10) || 500);
+      this._apiCallLimit = newLimit;
+      this._em.emit('api_call_limit_changed', { limit: newLimit });
+    }
+
+    isApiCallLimitReached() {
+      return this._apiCallsUsed >= this._apiCallLimit;
+    }
+
+    _incrementApiCallCount() {
+      this._apiCallsUsed += 1;
+      this._saveApiCallStats();
+      this._em.emit('api_call_count_changed', { callsUsed: this._apiCallsUsed, limit: this._apiCallLimit });
+      if (this.isApiCallLimitReached()) {
+        this._em.emit('api_call_limit_reached', { callsUsed: this._apiCallsUsed, limit: this._apiCallLimit });
+      }
+    }
+
+    resetApiCallCount() {
+      this._apiCallsUsed = 0;
+      this._saveApiCallStats();
+      this._em.emit('api_call_count_reset', { callsUsed: 0, limit: this._apiCallLimit });
+    }
+
+    _saveApiCallStats() {
+      const stats = { callsUsed: this._apiCallsUsed, limit: this._apiCallLimit };
+      try {
+        this._storage.setItem('WeatherService:api_call_stats', JSON.stringify(stats));
+      } catch (_) {
+        // Silently fail if storage is unavailable
+      }
+    }
+
+    _loadApiCallStats() {
+      try {
+        const raw = this._storage.getItem('WeatherService:api_call_stats');
+        if (raw) {
+          const stats = JSON.parse(raw);
+          if (typeof stats.callsUsed === 'number') {
+            this._apiCallsUsed = stats.callsUsed;
+          }
+          if (typeof stats.limit === 'number') {
+            this._apiCallLimit = stats.limit;
+          }
+        }
+      } catch (_) {
+        // Silently fail if parsing fails
+      }
+    }
 
     async _requestJson(url, { retries = 3, retryBase = 300 } = {}) {
       let lastErr;
@@ -408,6 +470,7 @@
       try {
         this._em.emit('revalidate_start',{key,url});
         const json = await this._requestJson(url);
+        this._incrementApiCallCount();
         const norm = this._normalize(json);
         const entry = { ts: this._now(), data: norm };
         this._cacheSet(kind, key, entry);
@@ -436,6 +499,12 @@
     _keyFor(params){ return `${params.lat.toFixed(3)},${params.lon.toFixed(3)}:${this.units}:${this.lang}:ex=minutely,alerts`; }
 
     async fetchOneCall(params) {
+      if (this.isApiCallLimitReached()) {
+        const e = new WeatherServiceError(`OneCall API 3 call limit reached (${this._apiCallLimit} calls)`, 'LIMIT_REACHED');
+        this._em.emit('error', e);
+        throw e;
+      }
+
       const key = this._keyFor(params);
       const exclude = 'minutely,alerts';
       const url = this._composeUrl({ ...params, exclude });
@@ -464,6 +533,7 @@
         let json;
         try {
           json = await this._requestJson(url);
+          this._incrementApiCallCount();
         } catch (e) {
           if (e && e.code === 'UNAUTHENTICATED') {
             if (typeof this.baseUrl === 'string' && this.baseUrl.includes('/3.0/onecall')) {

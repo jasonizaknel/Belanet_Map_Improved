@@ -48,7 +48,7 @@
       this._root=null;this._canvas=null;this._ctx=null;this._sidebar=null;this._resizeHandle=null;
       this._lat=lat;this._lon=lon;
       this._particles=[];this._lastTick=0;this._data=null;this._dpr= (typeof devicePixelRatio!=='undefined'? Math.max(1,Math.min(3,devicePixelRatio)) : 1);
-      this._offTick=null;this._dtEma=16.7;this._quality=1;this._hover=false;this._offBaseCanvas=null;this._offBaseCtx=null;this._lastBaseSnap=null;this._keyHandler=null;this._rain=null;this._errEl=null;this._offSvc=null;
+      this._offTick=null;this._dtEma=16.7;this._quality=1;this._hover=false;this._offBaseCanvas=null;this._offBaseCtx=null;this._lastBaseSnap=null;this._keyHandler=null;this._rain=null;this._errEl=null;this._offSvc=null;this._apiStatsDisplay=null;this._apiStatsPoll=null;
     }
 
     on(t,fn){return this._em.on(t,fn)}
@@ -105,6 +105,28 @@
         sidebar.appendChild(row);
       }
 
+      const apiSec=doc.createElement('div'); apiSec.className='weather-overlay__section';
+      const apiTitle=doc.createElement('div'); apiTitle.className='weather-overlay__section-title'; apiTitle.textContent='OneCall API 3';
+      apiSec.appendChild(apiTitle);
+      const callsDisplay=doc.createElement('div'); callsDisplay.style.padding='6px 0'; callsDisplay.style.fontSize='12px'; callsDisplay.style.color='#ccc';
+      const callsLabel=doc.createElement('div'); callsLabel.textContent='Calls used:'; callsLabel.style.marginBottom='4px';
+      const callsValue=doc.createElement('div'); callsValue.textContent='0 / 500'; callsValue.style.fontSize='14px'; callsValue.style.fontWeight='700'; callsValue.style.marginBottom='8px';
+      callsDisplay.appendChild(callsLabel); callsDisplay.appendChild(callsValue);
+      apiSec.appendChild(callsDisplay);
+      const limitRow=doc.createElement('label'); limitRow.className='weather-toggle'; limitRow.style.marginBottom='8px';
+      const limitLabel=doc.createElement('span'); limitLabel.className='weather-toggle__label'; limitLabel.textContent='Call Limit:'; limitLabel.style.maxWidth='100%';
+      limitRow.appendChild(limitLabel);
+      const limitInput=doc.createElement('input'); limitInput.type='number'; limitInput.min='1'; limitInput.max='10000'; limitInput.value='500'; limitInput.style.width='60px'; limitInput.style.padding='4px'; limitInput.style.marginTop='4px'; limitInput.style.marginLeft='0'; limitInput.style.fontSize='12px';
+      limitRow.appendChild(limitInput);
+      limitInput.addEventListener('change',()=>{ const val=parseInt(limitInput.value,10); if(val>0){ limitInput.dataset.editing='true'; fetch('/api/weather/stats/limit', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:val})}).then(r=>r.json()).then(_=>{delete limitInput.dataset.editing;this._updateApiStats();}).catch(e=>{delete limitInput.dataset.editing;console.error('Failed to set limit:',e);this._updateApiStats();}); if(this._svc&&typeof this._svc.setApiCallLimit==='function'){this._svc.setApiCallLimit(val);} } });
+      apiSec.appendChild(limitRow);
+      const resetBtn=doc.createElement('button'); resetBtn.className='weather-overlay__btn'; resetBtn.style.width='100%'; resetBtn.style.padding='4px 8px'; resetBtn.style.fontSize='11px'; resetBtn.style.marginTop='4px'; resetBtn.textContent='Reset Counter';
+      resetBtn.addEventListener('click',()=>{ fetch('/api/weather/stats/reset', {method:'POST'}).then(r=>r.json()).then(_=>{this._updateApiStats();}).catch(e=>{console.error('Failed to reset:',e);this._updateApiStats();}); if(this._svc&&typeof this._svc.resetApiCallCount==='function'){this._svc.resetApiCallCount();} });
+      apiSec.appendChild(resetBtn);
+      sidebar.appendChild(apiSec);
+      this._apiStatsDisplay={callsValue,limitInput,callsDisplay};
+      this._updateApiStats();
+
       const footer=doc.createElement('div'); footer.className='weather-overlay__footer'; footer.style.display='none'; this._footer=footer;
       const clockBox=doc.createElement('div'); clockBox.className='weather-overlay__clock';
       const modeBtn=doc.createElement('button'); modeBtn.className='weather-overlay__mode'; modeBtn.textContent=this._clock.mode==='realtime'?'Realtime':'Simulation';
@@ -152,7 +174,7 @@
 
       this._root=root; this._canvas=canvas; this._ctx=canvas.getContext('2d'); this._sidebar=sidebar; this._resizeHandle=resizeHandle;
       this._mounted=true;
-      if(this._svc && typeof this._svc.on==='function'){ const evs=['request','response','error','revalidate_start','revalidate_success','revalidate_error','cache_hit','cache_miss','fallback_cache']; const offs=[]; for(const ev of evs){ offs.push(this._svc.on(ev,(p)=>this._em.emit('service',{event:ev,payload:p}))); } this._offSvc=()=>{ for(const off of offs){ try{ off(); }catch(_){ } } }; }
+      if(this._svc && typeof this._svc.on==='function'){ const evs=['request','response','error','revalidate_start','revalidate_success','revalidate_error','cache_hit','cache_miss','fallback_cache','api_call_count_changed','api_call_limit_changed','api_call_limit_reached','api_call_count_reset']; const offs=[]; for(const ev of evs){ offs.push(this._svc.on(ev,(p)=>{ this._em.emit('service',{event:ev,payload:p}); if(ev.startsWith('api_call_')){ this._updateApiStats(); } })); } this._offSvc=()=>{ for(const off of offs){ try{ off(); }catch(_){ } } }; }
 
       this._resizeCanvas();
       if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>this._resizeCanvas()); }
@@ -163,6 +185,11 @@
       window.addEventListener('resize',()=>this._scheduleResizeCanvas());
       root.addEventListener('mouseenter',()=>{this._hover=true;});
       root.addEventListener('mouseleave',()=>{this._hover=false;});
+      
+      if (typeof setInterval !== 'undefined') {
+        this._apiStatsPoll = setInterval(() => this._updateApiStats(), 1000);
+      }
+      
       this._keyHandler=(e)=>{ if(e.defaultPrevented) return; if(e.ctrlKey||e.metaKey||e.altKey) return; const tag=(e.target&&e.target.tagName)||''; if(/INPUT|TEXTAREA|SELECT/.test(tag)) return; if(!this._hover && !(this._root&&this._root.contains(e.target))) return; const k=e.key; if(k==='p'||k==='P'){ this._state.pinned=!this._state.pinned; this._root.classList.toggle('pinned',this._state.pinned); pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned'; this._saveState(); this._em.emit(this._state.pinned?'pin':'unpin',{}); e.preventDefault(); return; } if(k==='m'||k==='M'){ const m=this._clock.mode==='realtime'?'simulation':'realtime'; this._clock.setMode(m); modeBtn.textContent=m==='realtime'?'Realtime':'Simulation'; badge.textContent=modeBtn.textContent; this._state.mode=m; this._saveState(); this._em.emit('mode',{mode:m}); e.preventDefault(); return; } if(k==='['||k===']'){ const delta=k===']'?0.5:-0.5; const r=clamp((this._clock.rate||1)+delta,0.5,10); this._clock.setRate(r); rateRange.value=String(this._clock.rate); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); e.preventDefault(); return; } };
       doc.addEventListener('keydown',this._keyHandler);
       this._em.emit('mount',{});
@@ -171,6 +198,7 @@
 
     destroy(){
       if(!this._mounted) return;
+      if(this._apiStatsPoll) { clearInterval(this._apiStatsPoll); this._apiStatsPoll=null; }
       if(this._offTick) { this._offTick(); this._offTick=null; }
       if(this._offSvc){ try{ this._offSvc(); }catch(_){ } this._offSvc=null; }
       if(typeof document!=='undefined' && this._keyHandler){ document.removeEventListener('keydown', this._keyHandler); this._keyHandler=null; }
@@ -185,9 +213,54 @@
       this._clock.start();
     }
 
-    _formatError(err,usedCache){ const c=(err&&err.code)||'UNKNOWN'; let msg=''; let lvl='err'; if(c==='UNAUTHENTICATED'){ msg='OpenWeather API key is invalid. Configure a valid key.'; lvl='err'; } else if(c==='RATE_LIMIT'){ msg='OpenWeather rate limit reached. Retrying later.'; lvl='warn'; } else if(c==='NETWORK'){ msg='Network error or offline. Will retry automatically.'; lvl='warn'; } else if(c==='SERVER'){ msg='Weather service unavailable (5xx).'; lvl='warn'; } else if(c==='HTTP'){ msg='Request failed.'; lvl='warn'; } else { msg='Unexpected error.'; lvl='warn'; } if(usedCache) msg+=' Using cached data.'; return {text:msg,level:lvl}; }
+    _formatError(err,usedCache){ const c=(err&&err.code)||'UNKNOWN'; let msg=''; let lvl='err'; if(c==='UNAUTHENTICATED'){ msg='OpenWeather API key is invalid. Configure a valid key.'; lvl='err'; } else if(c==='RATE_LIMIT'){ msg='OpenWeather rate limit reached. Retrying later.'; lvl='warn'; } else if(c==='LIMIT_REACHED'){ msg='OneCall API 3 call limit reached. Adjust limit or reset counter.'; lvl='err'; } else if(c==='NETWORK'){ msg='Network error or offline. Will retry automatically.'; lvl='warn'; } else if(c==='SERVER'){ msg='Weather service unavailable (5xx).'; lvl='warn'; } else if(c==='HTTP'){ msg='Request failed.'; lvl='warn'; } else { msg='Unexpected error.'; lvl='warn'; } if(usedCache) msg+=' Using cached data.'; return {text:msg,level:lvl}; }
 
     _showError(text,level){ if(!this._errEl) return; if(!text){ this._errEl.style.display='none'; this._errEl.textContent=''; this._errEl.classList.remove('is-warn','is-err'); return; } this._errEl.textContent=text; this._errEl.classList.remove('is-warn','is-err'); this._errEl.classList.add(level==='warn'?'is-warn':'is-err'); this._errEl.style.display='block'; }
+
+    _updateApiStats() {
+      if (!this._apiStatsDisplay) return;
+      
+      // Try to fetch server-side stats first
+      fetch('/api/weather/stats')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            const callsUsed = data.callsUsed || 0;
+            const limit = data.limit || 500;
+            const isLimited = callsUsed >= limit;
+            
+            if (this._apiStatsDisplay.callsValue) {
+              this._apiStatsDisplay.callsValue.textContent = `${callsUsed} / ${limit}`;
+              this._apiStatsDisplay.callsValue.style.color = isLimited ? '#ff6b6b' : '#ccc';
+            }
+            if (this._apiStatsDisplay.limitInput && !this._apiStatsDisplay.limitInput.dataset.editing) {
+              this._apiStatsDisplay.limitInput.value = String(limit);
+            }
+            if (this._apiStatsDisplay.callsDisplay) {
+              this._apiStatsDisplay.callsDisplay.style.opacity = isLimited ? '0.7' : '1';
+            }
+          }
+        })
+        .catch(() => {
+          // Fallback to client-side stats if server endpoint fails
+          if (this._svc) {
+            const callsUsed = (typeof this._svc.getApiCallsUsed === 'function') ? this._svc.getApiCallsUsed() : 0;
+            const limit = (typeof this._svc.getApiCallLimit === 'function') ? this._svc.getApiCallLimit() : 500;
+            const isLimited = (typeof this._svc.isApiCallLimitReached === 'function') ? this._svc.isApiCallLimitReached() : false;
+            
+            if (this._apiStatsDisplay.callsValue) {
+              this._apiStatsDisplay.callsValue.textContent = `${callsUsed} / ${limit}`;
+              this._apiStatsDisplay.callsValue.style.color = isLimited ? '#ff6b6b' : '#ccc';
+            }
+            if (this._apiStatsDisplay.limitInput) {
+              this._apiStatsDisplay.limitInput.value = String(limit);
+            }
+            if (this._apiStatsDisplay.callsDisplay) {
+              this._apiStatsDisplay.callsDisplay.style.opacity = isLimited ? '0.7' : '1';
+            }
+          }
+        });
+    }
 
     async _fetchData(){
       if(!this._svc) return;
