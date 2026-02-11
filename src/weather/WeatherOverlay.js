@@ -69,20 +69,18 @@
       root.style.top=this._state.top+'px';
       root.style.width=(this._state.width? Math.max(1,this._state.width): '')+'px';
       root.style.height=(this._state.height? Math.max(1,this._state.height): '')+'px';
-      root.style.border='1px solid rgba(255,255,255,0.12)';
 
       const header=doc.createElement('div'); header.className='weather-overlay__header'; this._header=header;
       const title=doc.createElement('div'); title.className='weather-overlay__title'; title.textContent='Weather Overlay';
       const badge=doc.createElement('span'); badge.className='weather-overlay__badge'; badge.textContent=this._clock.mode==='realtime'?'Realtime':'Simulation'; title.appendChild(badge);
       const controls=doc.createElement('div'); controls.className='weather-overlay__controls';
       const pinBtn=doc.createElement('button'); pinBtn.className='weather-overlay__btn'; pinBtn.title='Pin/Unpin'; pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned';
-      const closeBtn=doc.createElement('button'); closeBtn.className='weather-overlay__btn'; closeBtn.title='Hide'; closeBtn.textContent='×';
       controls.appendChild(pinBtn);
       header.appendChild(title); header.appendChild(controls);
 
       const body=doc.createElement('div'); body.className='weather-overlay__body';
       const canvasWrap=doc.createElement('div'); canvasWrap.className='weather-overlay__canvas-wrap'; this._canvasWrap=canvasWrap;
-      const canvas=doc.createElement('canvas'); canvas.className='weather-overlay__canvas'; canvas.style.display='none'; canvasWrap.appendChild(canvas);
+      const canvas=doc.createElement('canvas'); canvas.className='weather-overlay__canvas'; canvasWrap.appendChild(canvas);
       const uiWrap=doc.createElement('div'); uiWrap.style.position='absolute'; uiWrap.style.inset='0'; uiWrap.style.display='flex'; uiWrap.style.flexDirection='column'; uiWrap.style.gap='8px'; uiWrap.style.padding='10px';
       const legends=doc.createElement('div'); legends.className='wo-legends'; legends.style.display='flex'; legends.style.flexDirection='column'; legends.style.gap='8px';
       const hover=doc.createElement('div'); hover.className='wo-hover'; hover.style.alignSelf='flex-start'; hover.style.background='rgba(2,6,23,0.45)'; hover.style.color='#fff'; hover.style.border='1px solid rgba(255,255,255,0.08)'; hover.style.borderRadius='8px'; hover.style.fontSize='11px'; hover.style.padding='6px 8px'; hover.textContent='';
@@ -242,7 +240,7 @@
 
     _updateQuality(wallDt, hidden){ const dt=Math.max(1, wallDt|0); this._dtEma=this._dtEma*0.9 + dt*0.1; const fps=1000/this._dtEma; let q=1; if(hidden) q=0.5; else if(fps<24) q=0.5; else if(fps<40) q=0.75; else q=1; this._quality=q; }
 
-    _renderBase(w,h,s){ if(!this._offBaseCtx || !this._offBaseCanvas) return; const snap={tb:Math.round(s.temp)}; const prev=this._lastBaseSnap; if(prev && prev.tb===snap.tb) return; const c=this._offBaseCtx; c.clearRect(0,0,w,h); if(this._state.layers.temperature){ this._drawTemperature(c,w,h,s); } this._lastBaseSnap=snap; }
+    _renderBase(w,h,s){ if(!this._offBaseCtx || !this._offBaseCanvas) return; const snap={tb:Math.round(s.temp)}; const prev=this._lastBaseSnap; if(prev && prev.tb===snap.tb) return; const c=this._offBaseCtx; c.clearRect(0,0,w,h); }
 
     _render(ms, hidden){ if(!this._ctx || !this._canvas) return; const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr; ctx.clearRect(0,0,w,h); const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, clouds:20, pop:0.1, rain3h:0 }; this._renderBase(w,h,snap); if(this._offBaseCanvas){ ctx.drawImage(this._offBaseCanvas,0,0,w,h); } if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); } if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); } if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); } }
 
@@ -253,23 +251,23 @@
       ctx.fillStyle=grad; ctx.globalAlpha=0.35; ctx.fillRect(0,0,w,h); ctx.globalAlpha=1;
     }
 
-    _drawClouds(ctx,w,h,ms,s){ const t=ms*0.00005; ctx.save(); const qa=this._quality; const alpha=clamp(s.clouds/100,0.1,0.85)*qa; ctx.globalAlpha=alpha; const step=Math.max(6, Math.round(8/qa)); const half=step*0.5; for(let k=0;k<2;k++){ const scale=k===0? 0.015: 0.03; for(let y=0;y<=h;y+=step){ for(let x=0;x<=w;x+=step){ const v=noise2d(x*scale+t*0.5, y*scale + t*0.3); const a=v*0.6+0.2; ctx.fillStyle=`rgba(226,232,240,${a})`; ctx.fillRect(x-half,y-half,step,step);} } } ctx.restore(); }
+    _drawClouds(ctx,w,h,ms,s){ const t=ms*0.00005; ctx.save(); const qa=this._quality; const alpha=clamp(s.clouds/100,0.3,1.0)*qa; ctx.globalAlpha=alpha; const step=Math.max(6, Math.round(8/qa)); const half=step*0.5; for(let k=0;k<2;k++){ const scale=k===0? 0.015: 0.03; for(let y=0;y<=h;y+=step){ for(let x=0;x<=w;x+=step){ const v=noise2d(x*scale+t*0.5, y*scale + t*0.3); const a=v*0.6+0.2; ctx.fillStyle=`rgba(200,210,240,${a})`; ctx.fillRect(x-half,y-half,step,step);} } } ctx.restore(); }
 
 
 
     _drawWind(ctx,w,h,ms,s){ const sp=clamp(s.wind_speed||0,0,20); const ang=(s.wind_deg||0)*Math.PI/180; const vx=Math.cos(ang), vy=Math.sin(ang); const areaFactor=Math.max(0.6, Math.sqrt((w*h)/(360*260))); const n=Math.max(10, Math.floor(40*this._quality*areaFactor)); if(this._particles.length>n){ this._particles.length=n; } else if(this._particles.length<n){ for(let i=this._particles.length;i<n;i++){ this._particles.push({x:Math.random()*w, y:Math.random()*h, a:Math.random(), l:10+Math.random()*20}); } }
-      ctx.save(); ctx.strokeStyle='rgba(125,211,252,0.7)'; ctx.lineWidth=1.2; ctx.globalCompositeOperation='lighter';
+      ctx.save(); ctx.strokeStyle='rgba(80,200,255,1.0)'; ctx.lineWidth=2; ctx.globalCompositeOperation='lighter';
       for(const p of this._particles){ const nx=noise2d(p.x*0.03, p.y*0.03 + ms*0.0002)-0.5; const ny=noise2d(p.y*0.03, p.x*0.03 + ms*0.0002)-0.5; const ax=vx*sp*0.5 + nx*4*this._quality; const ay=vy*sp*0.5 + ny*4*this._quality; const x2=p.x+ax, y2=p.y+ay; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(x2,y2); ctx.stroke(); p.x=x2; p.y=y2; p.l-=1; if(p.x<0||p.x>w||p.y<0||p.y>h||p.l<=0){ p.x=Math.random()*w; p.y=Math.random()*h; p.l=10+Math.random()*20; } }
       ctx.restore();
     }
 
     _drawPrecip(ctx,w,h,ms,s){ const density=clamp((s.pop||0),0,1) * (s.rain3h>0? 1: 0.5); if(density<=0.01){ this._rain=null; return; } const count=Math.max(5, Math.floor(80*density*this._quality)); if(!this._rain){ this._rain=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4})); } else if(this._rain.length!==count){ if(this._rain.length>count){ this._rain.length=count; } else { for(let i=this._rain.length;i<count;i++){ this._rain.push({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4}); } } }
-      ctx.save(); ctx.strokeStyle='rgba(96,165,250,0.85)'; ctx.lineWidth=1; for(const d of this._rain){ ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+2,d.y+8); ctx.stroke(); d.x+=1; d.y+=d.v; if(d.x>w||d.y>h){ d.x=Math.random()*w; d.y=-10*Math.random(); } } ctx.restore();
+      ctx.save(); ctx.strokeStyle='rgba(50,160,255,1.0)'; ctx.lineWidth=1.5; for(const d of this._rain){ ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+2,d.y+8); ctx.stroke(); d.x+=1; d.y+=d.v; if(d.x>w||d.y>h){ d.x=Math.random()*w; d.y=-10*Math.random(); } } ctx.restore();
     }
 
     _loadState(overrides){
       const raw=this._storage.getItem(this._stateKey()); let s=null; try{ s= raw? JSON.parse(raw): null; }catch(_){}
-      const base={ left:80, top:80, width:360, height:260, pinned:false, mode:'realtime', rate:1, layers:{ temperature:true, precipitation:false, wind:true, clouds:true } };
+      const base={ left:80, top:80, width:360, height:260, pinned:false, mode:'realtime', rate:1, layers:{ temperature:false, precipitation:false, wind:true, clouds:false } };
       const out=Object.assign({}, base, s||{}, overrides||{});
       if(this._clock && out.mode && this._clock.mode!==out.mode) this._clock.setMode(out.mode);
       if(this._clock && typeof out.rate==='number') this._clock.setRate(out.rate);
@@ -278,7 +276,6 @@
 
     _saveState(){ try{ this._storage.setItem(this._stateKey(), JSON.stringify(this._state)); }catch(_){}}
     _stateKey(){ return `WeatherOverlay:state:${this._id}`; }
-  }
 
     _renderLegends(){ if(!this._legendWrap) return; while(this._legendWrap.firstChild){ this._legendWrap.removeChild(this._legendWrap.firstChild);} const layers=this._state.layers||{}; const defs=[{k:'temperature',title:'Temperature (°C)',grad:'linear-gradient(90deg,#1e3a8a,#22d3ee,#f59e0b,#ef4444)',labels:['-10','0','10','20','30+']},{k:'precipitation',title:'Precipitation (mm/3h)',grad:'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)',labels:['0','2','5','10','20+']},{k:'wind',title:'Wind (m/s)',grad:'linear-gradient(90deg,#d1fae5,#34d399,#059669,#065f46)',labels:['0','5','10','15','20+']},{k:'clouds',title:'Clouds (%)',grad:'linear-gradient(90deg,rgba(203,213,225,0.2),#cbd5e1,#475569)',labels:['0','25','50','75','100']}]; defs.filter(d=>layers[d.k]).forEach(d=>{ const box=document.createElement('div'); box.style.background='rgba(15,23,42,0.55)'; box.style.border='1px solid rgba(255,255,255,0.08)'; box.style.borderRadius='10px'; box.style.padding='8px'; const h=document.createElement('div'); h.textContent=d.title; h.style.fontWeight='700'; h.style.fontSize='11px'; h.style.marginBottom='6px'; const bar=document.createElement('div'); bar.style.width='100%'; bar.style.height='10px'; bar.style.borderRadius='6px'; bar.style.background=d.grad; bar.style.marginBottom='4px'; const row=document.createElement('div'); row.style.opacity='.8'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.fontSize='10px'; d.labels.forEach(t=>{ const s=document.createElement('span'); s.textContent=t; row.appendChild(s); }); box.appendChild(h); box.appendChild(bar); box.appendChild(row); this._legendWrap.appendChild(box); }); }
 

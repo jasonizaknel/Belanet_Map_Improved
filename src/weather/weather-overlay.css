@@ -1,31 +1,36 @@
 /* Weather Overlay Styles */
-.weather-overlay *{box-sizing:inherit}
-.weather-overlay{position:fixed;top:80px;left:80px;min-width:260px;min-height:180px;width:360px;height:260px;background:rgba(17,24,39,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,0.35);color:#e5e7eb;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;z-index:10000;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;}
+.weather-overlay *{box-sizing:inherit;outline:none !important}
+.weather-overlay{position:fixed;top:80px;left:80px;min-width:260px;min-height:180px;width:360px;height:260px;background:rgba(17,24,39,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,0.35);color:#e5e7eb;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;z-index:10000;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;outline:none !important}
 .weather-overlay.pinned{box-shadow:0 14px 30px rgba(59,130,246,0.35);border-color:rgba(59,130,246,0.45)}
 .weather-overlay__header{cursor:grab;user-select:none;-webkit-user-select:none;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border-bottom:1px solid rgba(255,255,255,0.08)}
 .weather-overlay__title{font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c7d2fe;display:flex;align-items:center;gap:8px}
 .weather-overlay__controls{display:flex;align-items:center;gap:8px}
-.weather-overlay__btn{appearance:none;border:none;background:rgba(255,255,255,0.08);color:#cbd5e1;padding:6px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s ease,transform .1s ease}
+.weather-overlay__btn{appearance:none;border:none;background:rgba(255,255,255,0.08);color:#cbd5e1;padding:6px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s ease,transform .1s ease;outline:none !important}
 .weather-overlay__btn:hover{background:rgba(255,255,255,0.16)}
 .weather-overlay__btn:active{transform:scale(0.96)}
+.weather-overlay__btn:focus{outline:none !important;box-shadow:none !important}
 .weather-overlay__error{display:none;margin:6px 10px 0 10px;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.08)}
 .weather-overlay__error.is-warn{background:rgba(245,158,11,0.15);color:#fde68a;border-color:rgba(245,158,11,0.35)}
 .weather-overlay__error.is-err{background:rgba(239,68,68,0.18);color:#fecaca;border-color:rgba(239,68,68,0.4)}
 .weather-overlay__error small{opacity:.8;font-weight:500}
 .weather-overlay__body{position:relative;flex:1;display:grid;grid-template-columns:1fr auto;min-width:0;min-height:0}
 .weather-overlay__canvas-wrap{position:relative;min-width:0;min-height:0;overflow:hidden}
-.weather-overlay__canvas{width:100%;height:100%;display:block}
+.weather-overlay__canvas{width:100%;height:100%;display:block;outline:none !important;border:none !important}
 .weather-overlay__sidebar{width:150px;border-left:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
 .weather-overlay__section{display:flex;flex-direction:column;gap:6px}
 .weather-overlay__section-title{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;font-weight:700}
 .weather-toggle{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:6px}
-.weather-toggle input{appearance:none;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,0.25);display:inline-block;position:relative;background:transparent;cursor:pointer}
+.weather-toggle input{appearance:none;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,0.25);display:inline-block;position:relative;background:transparent;cursor:pointer;outline:none !important}
+.weather-toggle input:focus{outline:none !important;box-shadow:none !important}
 .weather-toggle input:checked{background:#60a5fa;border-color:transparent}
 .weather-toggle__label{font-size:12px;color:#e5e7eb;flex:1}
 .weather-overlay__footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-top:1px solid rgba(255,255,255,0.08);background:linear-gradient(0deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))}
 .weather-overlay__clock{display:flex;align-items:center;gap:8px}
-.weather-overlay__mode{appearance:none;border:none;background:rgba(59,130,246,0.18);color:#bfdbfe;padding:6px 8px;border-radius:9px;cursor:pointer}
-.weather-overlay__range{flex:1}
+.weather-overlay__mode{appearance:none;border:none;background:rgba(59,130,246,0.18);color:#bfdbfe;padding:6px 8px;border-radius:9px;cursor:pointer;outline:none !important}
+.weather-overlay__mode:focus{outline:none !important;box-shadow:none !important}
+.weather-overlay__range{flex:1;outline:none !important}
+.weather-overlay__range:focus{outline:none !important;box-shadow:none !important}
 .weather-overlay__resize{position:absolute;right:6px;bottom:6px;width:14px;height:14px;border-right:2px solid rgba(203,213,225,0.7);border-bottom:2px solid rgba(203,213,225,0.7);border-radius:0 0 3px 0;cursor:nwse-resize;opacity:.8}
 .weather-overlay__badge{display:inline-flex;align-items:center;gap:6px;background:rgba(2,6,23,0.45);padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.08);font-weight:600;font-size:11px;color:#dbeafe}
+.wo-hover{background:rgba(2,6,23,0.65);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:6px 8px;font-size:11px;color:#fff;z-index:10001;pointer-events:none;display:block}
 @media (max-width:720px){.weather-overlay{left:10px;top:10px;width:calc(100vw - 20px);height:260px;border-radius:12px}}
