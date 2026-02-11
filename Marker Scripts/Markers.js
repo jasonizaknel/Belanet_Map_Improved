@@ -470,7 +470,19 @@ function updateWeatherLayers() {
     const apiKey = window.AppConfig ? window.AppConfig.openWeatherKey : null;
     if (!AppState.map || !google || !google.maps) return;
 
-    const layerTypes = ['precipitation_new', 'clouds_new', 'temp_new'];
+    // Supported Weather Maps 1.0 layers
+    const supportedLayers = [
+        'clouds_new',
+        'precipitation_new',
+        'rain_new',
+        'snow_new',
+        'temp_new',
+        'wind_new',
+        'pressure_new'
+    ];
+
+    // Default visible layers
+    const defaultLayers = ['clouds_new', 'precipitation_new', 'temp_new'];
 
     // Clear existing weather layers safely from overlayMapTypes (MVCArray)
     for (const key of Object.keys(AppState.weatherLayers)) {
@@ -495,20 +507,35 @@ function updateWeatherLayers() {
         });
     }
 
-    // Default to a visible, low-noise layer
-    const type = 'clouds_new';
+    // Create ImageMapTypes for supported layers (store but only add defaults)
+    const layerMeta = {
+        'clouds_new': { name: 'Clouds', opacity: 0.55 },
+        'precipitation_new': { name: 'Precipitation', opacity: 0.6 },
+        'rain_new': { name: 'Rain', opacity: 0.6 },
+        'snow_new': { name: 'Snow', opacity: 0.6 },
+        'temp_new': { name: 'Temperature', opacity: 0.4 },
+        'wind_new': { name: 'Wind', opacity: 0.5 },
+        'pressure_new': { name: 'Pressure', opacity: 0.5 }
+    };
 
-    const imageMapType = new google.maps.ImageMapType({
-        getTileUrl: function(coord, zoom) {
-            return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}.png?appid=${apiKey}`;
-        },
-        tileSize: new google.maps.Size(256, 256),
-        name: 'Clouds',
-        opacity: 0.55
+    supportedLayers.forEach((type) => {
+        const meta = layerMeta[type] || { name: type, opacity: 0.6 };
+        const imageMapType = new google.maps.ImageMapType({
+            getTileUrl: function(coord, zoom) {
+                return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}.png?appid=${apiKey}`;
+            },
+            tileSize: new google.maps.Size(256, 256),
+            name: meta.name,
+            opacity: meta.opacity
+        });
+        AppState.weatherLayers[type] = imageMapType;
     });
 
-    AppState.weatherLayers[type] = imageMapType;
-    AppState.map.overlayMapTypes.push(imageMapType);
+    // Push default layers in defined order
+    defaultLayers.forEach((type) => {
+        const overlay = AppState.weatherLayers[type];
+        if (overlay) AppState.map.overlayMapTypes.push(overlay);
+    });
 }
 
 // ADDED: Animate polyline drawing from start to end

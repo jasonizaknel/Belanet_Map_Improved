@@ -78,7 +78,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Keep 10–15m cache TTL; remove 2.5 fallback
 - Verification: Endpoint returns One Call 3.0 shape; logs show cache hits; tests green
 
-### [ ] Step: Enable All Weather Tile Layers
+### [x] Step: Enable All Weather Tile Layers
+<!-- chat-id: e2398755-ad39-4a87-acbe-b30ce0dc51a2 -->
 - In [./Marker Scripts/Markers.js](./Marker%20Scripts/Markers.js): update `updateWeatherLayers()` to support `clouds_new`, `precipitation_new`, `rain_new`, `snow_new`, `temp_new`, `wind_new`, `pressure_new`
 - Default selection to `clouds_new`, `precipitation_new`, `temp_new`; ensure safe removal from `overlayMapTypes`
 - Verification: Tiles render and animate as available; no silent failures
