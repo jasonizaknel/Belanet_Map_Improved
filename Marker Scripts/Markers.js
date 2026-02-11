@@ -283,7 +283,10 @@ async function loadData() {
 // MAP INITIALIZATION
 // =====================
 
-window.initMap = function () { // CHANGED: must be global for Google callback
+async function __loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=()=>res(true); s.onerror=()=>rej(new Error('failed '+src)); document.head.appendChild(s); }); }
+async function __ensureWeatherLibs(){ try{ if (typeof ClockManager==='undefined') await __loadScript('/src/weather/ClockManager.js'); if (typeof WeatherService==='undefined') await __loadScript('/src/weather/WeatherService.js'); if (typeof WeatherOverlay==='undefined') await __loadScript('/src/weather/WeatherOverlay.js'); } catch(_){} }
+
+window.initMap = async function () { // CHANGED: must be global for Google callback
     AppState.map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: -25.0, lng: 28.0 },
         zoom: 8
@@ -298,16 +301,17 @@ window.initMap = function () { // CHANGED: must be global for Google callback
     updateWeatherLayers();
 
     if (AppState.visibility && AppState.visibility.weather) {
+        await __ensureWeatherLibs();
         const cfg = window.AppConfig || {};
         const key = cfg.openWeatherKey;
-        if (key && typeof WeatherOverlay !== 'undefined' && typeof WeatherService !== 'undefined' && typeof ClockManager !== 'undefined') {
+        if (typeof WeatherOverlay !== 'undefined' && typeof ClockManager !== 'undefined') {
             const c = AppState.map ? AppState.map.getCenter() : null;
             const lat = c ? c.lat() : -25.0;
             const lon = c ? c.lng() : 28.0;
             if (window.__WeatherOverlay && window.__WeatherOverlay._root) {
                 window.__WeatherOverlay._root.style.display = '';
             } else {
-                const svc = getWeatherServiceInstance();
+                const svc = (typeof WeatherService !== 'undefined' && key) ? getWeatherServiceInstance() : null;
                 const clk = new ClockManager();
                 const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
                 ov.on('layerchange', function(){ updateWeatherLayers(); });
@@ -1484,7 +1488,7 @@ function toggleTrackers() {
 }
 
 // ADDED: Toggle visibility of weather
-function toggleWeather() {
+async function toggleWeather() {
     AppState.visibility.weather = !AppState.visibility.weather;
     saveVisibility();
     const wb = document.getElementById('toggleWeatherBtn');
@@ -1493,14 +1497,15 @@ function toggleWeather() {
         const cfg = window.AppConfig || {};
         const key = cfg.openWeatherKey;
         updateWeatherLayers();
-        if (key && typeof WeatherOverlay !== 'undefined' && typeof WeatherService !== 'undefined' && typeof ClockManager !== 'undefined') {
+        await __ensureWeatherLibs();
+        if (typeof WeatherOverlay !== 'undefined' && typeof ClockManager !== 'undefined') {
             const c = AppState.map ? AppState.map.getCenter() : null;
             const lat = c ? c.lat() : -25.0;
             const lon = c ? c.lng() : 28.0;
             if (window.__WeatherOverlay && window.__WeatherOverlay._root) {
                 window.__WeatherOverlay._root.style.display = '';
             } else {
-                const svc = getWeatherServiceInstance();
+                const svc = (typeof WeatherService !== 'undefined' && key) ? getWeatherServiceInstance() : null;
                 const clk = new ClockManager();
                 const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
                 ov.on('layerchange', function(){ updateWeatherLayers(); });

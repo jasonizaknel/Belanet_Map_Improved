@@ -93,8 +93,8 @@ function initFilterButtons() {
   }
 
   if (weatherBtn) {
-    weatherBtn.addEventListener("click", () => {
-      toggleWeather();
+    weatherBtn.addEventListener("click", async () => {
+      await toggleWeather();
       weatherBtn.classList.toggle("active", AppState.visibility.weather);
     });
   }
