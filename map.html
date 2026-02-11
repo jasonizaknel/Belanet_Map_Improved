@@ -321,6 +321,22 @@
 
     <div id="map"></div>
 
+    <div id="globalClock" style="position: fixed; right: 16px; bottom: 16px; background: rgba(15,23,42,0.8); color: white; padding: 8px 12px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; z-index: 1000; border: 1px solid rgba(255,255,255,0.12);">--:--:--</div>
+
+    <script>
+      (function(){
+        var el = document.getElementById('globalClock');
+        if(!el) return;
+        function pad(n){ return String(n).padStart(2,'0'); }
+        function tick(){
+          var d = new Date();
+          el.textContent = pad(d.getHours())+':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+        }
+        tick();
+        setInterval(tick, 1000);
+      })();
+    </script>
+
     <button id="centerOfficeBtn" title="Center on Office">
         <i data-lucide="home"></i>
     </button>

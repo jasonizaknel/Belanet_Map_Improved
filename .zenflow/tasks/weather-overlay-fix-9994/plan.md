@@ -60,7 +60,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - On load, normalize from `AppState.visibility.weather` and reflect button state
 - Verification: Button class syncs with overlay visibility; no inverted behavior
 
-### [ ] Step: Remove Overlay Close Paths & Move Clock
+### [x] Step: Remove Overlay Close Paths & Move Clock
+<!-- chat-id: 5ed5edbc-59d9-4b54-8dc2-716c685bea3a -->
 - In [./src/weather/WeatherOverlay.js](./src/weather/WeatherOverlay.js): remove close button and `Escape` hide logic
 - Remove clock UI from overlay; add fixed bottom-right clock in [./map.html](./map.html) with minimal CSS
 - Verification: Overlay can only be closed via Weather button; clock visible bottom-right

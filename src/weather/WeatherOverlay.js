@@ -77,7 +77,7 @@
       const controls=doc.createElement('div'); controls.className='weather-overlay__controls';
       const pinBtn=doc.createElement('button'); pinBtn.className='weather-overlay__btn'; pinBtn.title='Pin/Unpin'; pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned';
       const closeBtn=doc.createElement('button'); closeBtn.className='weather-overlay__btn'; closeBtn.title='Hide'; closeBtn.textContent='×';
-      controls.appendChild(pinBtn); controls.appendChild(closeBtn);
+      controls.appendChild(pinBtn);
       header.appendChild(title); header.appendChild(controls);
 
       const body=doc.createElement('div'); body.className='weather-overlay__body';
@@ -104,7 +104,7 @@
         sidebar.appendChild(row);
       }
 
-      const footer=doc.createElement('div'); footer.className='weather-overlay__footer'; this._footer=footer;
+      const footer=doc.createElement('div'); footer.className='weather-overlay__footer'; footer.style.display='none'; this._footer=footer;
       const clockBox=doc.createElement('div'); clockBox.className='weather-overlay__clock';
       const modeBtn=doc.createElement('button'); modeBtn.className='weather-overlay__mode'; modeBtn.textContent=this._clock.mode==='realtime'?'Realtime':'Simulation';
       const rateRange=doc.createElement('input'); rateRange.type='range'; rateRange.min='0.5'; rateRange.max='10'; rateRange.step='0.5'; rateRange.value=String(this._clock.rate||1); rateRange.className='weather-overlay__range';
@@ -134,7 +134,7 @@
       doc.addEventListener('mouseup',endResize);
 
       pinBtn.addEventListener('click',()=>{ this._state.pinned=!this._state.pinned; root.classList.toggle('pinned',this._state.pinned); pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned'; this._saveState(); this._em.emit(this._state.pinned?'pin':'unpin',{}); });
-      closeBtn.addEventListener('click',()=>{ root.style.display='none'; });
+      
       modeBtn.addEventListener('click',()=>{ const m=this._clock.mode==='realtime'?'simulation':'realtime'; this._clock.setMode(m); modeBtn.textContent=m==='realtime'?'Realtime':'Simulation'; badge.textContent=modeBtn.textContent; this._state.mode=m; this._saveState(); this._em.emit('mode',{mode:m}); });
       rateRange.addEventListener('input',()=>{ const r=Number(rateRange.value)||1; this._clock.setRate(r); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); });
 
@@ -153,7 +153,7 @@
       window.addEventListener('resize',()=>this._resizeCanvas());
       root.addEventListener('mouseenter',()=>{this._hover=true;});
       root.addEventListener('mouseleave',()=>{this._hover=false;});
-      this._keyHandler=(e)=>{ if(e.defaultPrevented) return; if(e.ctrlKey||e.metaKey||e.altKey) return; const tag=(e.target&&e.target.tagName)||''; if(/INPUT|TEXTAREA|SELECT/.test(tag)) return; if(!this._hover && !(this._root&&this._root.contains(e.target))) return; const k=e.key; if(k==='Escape'){ root.style.display='none'; e.preventDefault(); return; } if(k==='p'||k==='P'){ this._state.pinned=!this._state.pinned; this._root.classList.toggle('pinned',this._state.pinned); pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned'; this._saveState(); this._em.emit(this._state.pinned?'pin':'unpin',{}); e.preventDefault(); return; } if(k==='m'||k==='M'){ const m=this._clock.mode==='realtime'?'simulation':'realtime'; this._clock.setMode(m); modeBtn.textContent=m==='realtime'?'Realtime':'Simulation'; badge.textContent=modeBtn.textContent; this._state.mode=m; this._saveState(); this._em.emit('mode',{mode:m}); e.preventDefault(); return; } if(k==='['||k===']'){ const delta=k===']'?0.5:-0.5; const r=clamp((this._clock.rate||1)+delta,0.5,10); this._clock.setRate(r); rateRange.value=String(this._clock.rate); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); e.preventDefault(); return; } };
+      this._keyHandler=(e)=>{ if(e.defaultPrevented) return; if(e.ctrlKey||e.metaKey||e.altKey) return; const tag=(e.target&&e.target.tagName)||''; if(/INPUT|TEXTAREA|SELECT/.test(tag)) return; if(!this._hover && !(this._root&&this._root.contains(e.target))) return; const k=e.key; if(k==='p'||k==='P'){ this._state.pinned=!this._state.pinned; this._root.classList.toggle('pinned',this._state.pinned); pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned'; this._saveState(); this._em.emit(this._state.pinned?'pin':'unpin',{}); e.preventDefault(); return; } if(k==='m'||k==='M'){ const m=this._clock.mode==='realtime'?'simulation':'realtime'; this._clock.setMode(m); modeBtn.textContent=m==='realtime'?'Realtime':'Simulation'; badge.textContent=modeBtn.textContent; this._state.mode=m; this._saveState(); this._em.emit('mode',{mode:m}); e.preventDefault(); return; } if(k==='['||k===']'){ const delta=k===']'?0.5:-0.5; const r=clamp((this._clock.rate||1)+delta,0.5,10); this._clock.setRate(r); rateRange.value=String(this._clock.rate); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); e.preventDefault(); return; } };
       doc.addEventListener('keydown',this._keyHandler);
       this._em.emit('mount',{});
       return this;
