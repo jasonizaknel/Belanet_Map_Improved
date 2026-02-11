@@ -315,43 +315,34 @@
 
     _renderBase(w,h,s){ if(!this._offBaseCtx || !this._offBaseCanvas) return; const snap={tb:Math.round(s.temp)}; const prev=this._lastBaseSnap; if(prev && prev.tb===snap.tb) return; const c=this._offBaseCtx; c.clearRect(0,0,w,h); }
 
-    _render(ms, hidden){ if(!this._ctx || !this._canvas) return; const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr; ctx.clearRect(0,0,w,h); const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, clouds:20, pop:0.1, rain3h:0 }; this._renderBase(w,h,snap); if(this._offBaseCanvas){ ctx.drawImage(this._offBaseCanvas,0,0,w,h); } if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); } if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); } if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); } }
+    _render(ms, hidden){ if(!this._ctx || !this._canvas) return; const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr; ctx.clearRect(0,0,w,h); const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, clouds:20, pop:0.1, rain3h:0 }; this._renderBase(w,h,snap); if(this._offBaseCanvas){ ctx.drawImage(this._offBaseCanvas,0,0,w,h); } if(this._state.layers.temperature){ this._drawTemperature(ctx,w,h,snap); } if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); } if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); } if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); } }
 
     _drawTemperature(ctx,w,h,s){
-      const grad=ctx.createLinearGradient(0,0,w,h);
-      const lerpC=(a,b,t)=>[Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)];
-      const rgbToStr=(r)=>`rgba(${r[0]},${r[1]},${r[2]},1)`;
-      const stops=[[-30,[30,58,138]],[0,[34,211,238]],[20,[245,158,11]],[40,[239,68,68]]];
-      const pick=(temp)=>{
-        const t=clamp(temp,-30,40);
-        const k=(t+30)/70;
-        if(k<=0.33){ const p=k/0.33; return rgbToStr(lerpC(stops[0][1],stops[1][1],p)); }
-        if(k<=0.66){ const p=(k-0.33)/0.33; return rgbToStr(lerpC(stops[1][1],stops[2][1],p)); }
-        const p=(k-0.66)/0.34; return rgbToStr(lerpC(stops[2][1],stops[3][1],p));
-      };
-      grad.addColorStop(0,pick(s.temp+12));
-      grad.addColorStop(0.5,pick(s.temp));
-      grad.addColorStop(1,pick(s.temp-12));
-      ctx.fillStyle=grad; ctx.globalAlpha=0.65; ctx.fillRect(0,0,w,h); ctx.globalAlpha=1;
+      // Temperature canvas rendering intentionally disabled here.
+      // Map tile overlays (temp_new) provide the temperature visualization.
+      return;
     }
 
-    _drawClouds(ctx,w,h,ms,s){ const t=ms*0.00005; ctx.save(); const qa=this._quality; const alpha=clamp(s.clouds/100,0.3,1.0)*qa; ctx.globalAlpha=alpha; const step=Math.max(6, Math.round(8/qa)); const half=step*0.5; for(let k=0;k<2;k++){ const scale=k===0? 0.015: 0.03; for(let y=0;y<=h;y+=step){ for(let x=0;x<=w;x+=step){ const v=noise2d(x*scale+t*0.5, y*scale + t*0.3); const a=v*0.6+0.2; ctx.fillStyle=`rgba(200,210,240,${a})`; ctx.fillRect(x-half,y-half,step,step);} } } ctx.restore(); }
-
-
-
-    _drawWind(ctx,w,h,ms,s){ const sp=clamp(s.wind_speed||0,0,20); const ang=(s.wind_deg||0)*Math.PI/180; const vx=Math.cos(ang), vy=Math.sin(ang); const areaFactor=Math.max(0.6, Math.sqrt((w*h)/(360*260))); const n=Math.max(10, Math.floor(40*this._quality*areaFactor)); if(this._particles.length>n){ this._particles.length=n; } else if(this._particles.length<n){ for(let i=this._particles.length;i<n;i++){ this._particles.push({x:Math.random()*w, y:Math.random()*h, a:Math.random(), l:10+Math.random()*20}); } }
-      ctx.save(); ctx.strokeStyle='rgba(80,200,255,1.0)'; ctx.lineWidth=2; ctx.globalCompositeOperation='lighter';
-      for(const p of this._particles){ const nx=noise2d(p.x*0.03, p.y*0.03 + ms*0.0002)-0.5; const ny=noise2d(p.y*0.03, p.x*0.03 + ms*0.0002)-0.5; const ax=vx*sp*0.5 + nx*4*this._quality; const ay=vy*sp*0.5 + ny*4*this._quality; const x2=p.x+ax, y2=p.y+ay; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(x2,y2); ctx.stroke(); p.x=x2; p.y=y2; p.l-=1; if(p.x<0||p.x>w||p.y<0||p.y>h||p.l<=0){ p.x=Math.random()*w; p.y=Math.random()*h; p.l=10+Math.random()*20; } }
-      ctx.restore();
+    _drawClouds(ctx,w,h,ms,s){
+      // Disabled: clouds are rendered via map tile overlays (clouds_new)
+      return;
     }
 
-    _drawPrecip(ctx,w,h,ms,s){ const density=clamp((s.pop||0),0,1) * (s.rain3h>0? 1: 0.5); if(density<=0.01){ this._rain=null; return; } const count=Math.max(5, Math.floor(80*density*this._quality)); if(!this._rain){ this._rain=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4})); } else if(this._rain.length!==count){ if(this._rain.length>count){ this._rain.length=count; } else { for(let i=this._rain.length;i<count;i++){ this._rain.push({x:Math.random()*w,y:Math.random()*h, v:2+Math.random()*4}); } } }
-      ctx.save(); ctx.strokeStyle='rgba(50,160,255,1.0)'; ctx.lineWidth=1.5; for(const d of this._rain){ ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+2,d.y+8); ctx.stroke(); d.x+=1; d.y+=d.v; if(d.x>w||d.y>h){ d.x=Math.random()*w; d.y=-10*Math.random(); } } ctx.restore();
+
+
+    _drawWind(ctx,w,h,ms,s){
+      // Disabled: wind visualization handled by map tiles (wind_new) or omitted
+      return;
+    }
+
+    _drawPrecip(ctx,w,h,ms,s){
+      // Disabled: precipitation tiles (precipitation_new/rain_new/snow_new) provide visuals
+      return;
     }
 
     _loadState(overrides){
       const raw=this._storage.getItem(this._stateKey()); let s=null; try{ s= raw? JSON.parse(raw): null; }catch(_){}
-      const base={ left:80, top:80, width:360, height:260, pinned:false, mode:'realtime', rate:1, layers:{ temperature:false, precipitation:false, wind:true, clouds:false } };
+      const base={ left:80, top:80, width:640, height:480, pinned:false, mode:'realtime', rate:1, layers:{ temperature:false, precipitation:false, wind:true, clouds:false } };
       const out=Object.assign({}, base, s||{}, overrides||{});
       if(this._clock && out.mode && this._clock.mode!==out.mode) this._clock.setMode(out.mode);
       if(this._clock && typeof out.rate==='number') this._clock.setRate(out.rate);
@@ -361,7 +352,7 @@
     _saveState(){ try{ this._storage.setItem(this._stateKey(), JSON.stringify(this._state)); }catch(_){}}
     _stateKey(){ return `WeatherOverlay:state:${this._id}`; }
 
-    _renderLegends(){ if(!this._legendWrap) return; while(this._legendWrap.firstChild){ this._legendWrap.removeChild(this._legendWrap.firstChild);} const layers=this._state.layers||{}; const defs=[{k:'temperature',title:'Temperature (°C)',grad:'linear-gradient(90deg,#1e3a8a,#22d3ee,#f59e0b,#ef4444)',labels:['-20','0','10','20','40+']},{k:'precipitation',title:'Precipitation (mm/3h)',grad:'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)',labels:['0','2','5','10','20+']},{k:'wind',title:'Wind (m/s)',grad:'linear-gradient(90deg,#50c8ff,#34d399,#059669,#065f46)',labels:['0','5','10','15','20+']},{k:'clouds',title:'Clouds (%)',grad:'linear-gradient(90deg,rgba(200,210,240,0.2),#cbd5e1,#475569)',labels:['0','25','50','75','100']}]; defs.filter(d=>layers[d.k]).forEach(d=>{ const box=document.createElement('div'); box.style.background='rgba(15,23,42,0.55)'; box.style.border='1px solid rgba(255,255,255,0.08)'; box.style.borderRadius='10px'; box.style.padding='8px'; const h=document.createElement('div'); h.textContent=d.title; h.style.fontWeight='700'; h.style.fontSize='11px'; h.style.marginBottom='6px'; const bar=document.createElement('div'); bar.style.width='100%'; bar.style.height='10px'; bar.style.borderRadius='6px'; bar.style.background=d.grad; bar.style.marginBottom='4px'; const row=document.createElement('div'); row.style.opacity='.8'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.fontSize='10px'; d.labels.forEach(t=>{ const s=document.createElement('span'); s.textContent=t; row.appendChild(s); }); box.appendChild(h); box.appendChild(bar); box.appendChild(row); this._legendWrap.appendChild(box); }); }
+    _renderLegends(){ if(!this._legendWrap) return; while(this._legendWrap.firstChild){ this._legendWrap.removeChild(this._legendWrap.firstChild);} const layers=this._state.layers||{}; const defs=[{k:'temperature',title:'Temperature (°C)',grad:'linear-gradient(90deg,#0a2a8c,#00c8ff,#ff8c00,#ff2828)',labels:['-5','5','20','35']},{k:'precipitation',title:'Precipitation (mm/3h)',grad:'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)',labels:['0','2','5','10','20+']},{k:'wind',title:'Wind (m/s)',grad:'linear-gradient(90deg,#50c8ff,#34d399,#059669,#065f46)',labels:['0','5','10','15','20+']},{k:'clouds',title:'Clouds (%)',grad:'linear-gradient(90deg,rgba(200,210,240,0.2),#cbd5e1,#475569)',labels:['0','25','50','75','100']}]; defs.filter(d=>layers[d.k]).forEach(d=>{ const box=document.createElement('div'); box.style.background='rgba(15,23,42,0.55)'; box.style.border='1px solid rgba(255,255,255,0.08)'; box.style.borderRadius='10px'; box.style.padding='8px'; const h=document.createElement('div'); h.textContent=d.title; h.style.fontWeight='700'; h.style.fontSize='11px'; h.style.marginBottom='6px'; const bar=document.createElement('div'); bar.style.width='100%'; bar.style.height='10px'; bar.style.borderRadius='6px'; bar.style.background=d.grad; bar.style.marginBottom='4px'; const row=document.createElement('div'); row.style.opacity='.8'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.fontSize='10px'; d.labels.forEach(t=>{ const s=document.createElement('span'); s.textContent=t; row.appendChild(s); }); box.appendChild(h); box.appendChild(bar); box.appendChild(row); this._legendWrap.appendChild(box); }); }
 
     setHoverContent(text){ if(this._hoverEl){ this._hoverEl.textContent=String(text||''); } }
   }

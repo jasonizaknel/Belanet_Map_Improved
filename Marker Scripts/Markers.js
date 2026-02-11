@@ -552,18 +552,20 @@ function updateWeatherLayers() {
         'precipitation_new': { name: 'Precipitation', opacity: 0.6 },
         'rain_new': { name: 'Rain', opacity: 0.6 },
         'snow_new': { name: 'Snow', opacity: 0.6 },
-        'temp_new': { name: 'Temperature', opacity: 0.4 },
+        'temp_new': { name: 'Temperature', opacity: 1.0 },
         'wind_new': { name: 'Wind', opacity: 0.5 },
         'pressure_new': { name: 'Pressure', opacity: 0.5 }
     };
 
     supportedLayers.forEach((type) => {
         const meta = layerMeta[type] || { name: type, opacity: 0.6 };
+        const useHighDpr = (typeof window !== 'undefined' && window.devicePixelRatio && window.devicePixelRatio > 1);
         const imageMapType = new google.maps.ImageMapType({
             getTileUrl: function(coord, zoom) {
-                return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}.png?appid=${apiKey}`;
+                const scaleSuffix = useHighDpr ? '@2x' : '';
+                return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}${scaleSuffix}.png?appid=${apiKey}`;
             },
-            tileSize: new google.maps.Size(256, 256),
+            tileSize: new google.maps.Size(useHighDpr ? 512 : 256, useHighDpr ? 512 : 256),
             name: meta.name,
             opacity: meta.opacity
         });

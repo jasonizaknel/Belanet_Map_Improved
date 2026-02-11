@@ -86,8 +86,39 @@ const apiCallStats = {
   startTime: Date.now(),
   resetTime: Date.now(),
 };
-
 // ADDED: Load API stats from storage if available
+const API_STATS_FILE = path.join(__dirname, 'Data', 'weather-api-stats.json');
+
+function _loadApiCallStatsFromDisk() {
+  try {
+    if (fs.existsSync(API_STATS_FILE)) {
+      const raw = fs.readFileSync(API_STATS_FILE, 'utf8');
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === 'object') {
+        apiCallStats.callsUsed = Number.isFinite(obj.callsUsed) ? obj.callsUsed : apiCallStats.callsUsed;
+        apiCallStats.callLimit = Number.isFinite(obj.callLimit) ? obj.callLimit : apiCallStats.callLimit;
+        apiCallStats.startTime = obj.startTime || apiCallStats.startTime;
+        apiCallStats.resetTime = obj.resetTime || apiCallStats.resetTime;
+        console.log('[API Stats] Loaded stats from disk:', apiCallStats.callsUsed, '/', apiCallStats.callLimit);
+      }
+    }
+  } catch (e) {
+    console.warn('[API Stats] Failed to load stats from disk', e && e.message);
+  }
+}
+
+function _saveApiCallStatsToDisk() {
+  try {
+    const dir = path.dirname(API_STATS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(API_STATS_FILE, JSON.stringify(apiCallStats, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('[API Stats] Failed to save stats to disk', e && e.message);
+  }
+}
+
+_loadApiCallStatsFromDisk();
+
 let splynxSessionCache = {
   cookie: null,
   lastLogin: 0
@@ -831,7 +862,9 @@ app.get('/api/onecall', async (req, res) => {
     
     // Increment API call count
     apiCallStats.callsUsed += 1;
+    apiCallStats.startTime = apiCallStats.startTime || Date.now();
     console.log(`[API Stats] OneCall API 3 call made. Total: ${apiCallStats.callsUsed} / ${apiCallStats.callLimit}`);
+    _saveApiCallStatsToDisk();
     
     coordWeatherCache.set(key, { ts: now, data });
     res.json(data);
@@ -857,6 +890,7 @@ app.post('/api/weather/stats/limit', express.json(), (req, res) => {
   const newLimit = Math.max(1, parseInt(limit, 10) || 500);
   apiCallStats.callLimit = newLimit;
   console.log(`[API Stats] Call limit updated to ${newLimit}`);
+  _saveApiCallStatsToDisk();
   res.json({
     callsUsed: apiCallStats.callsUsed,
     limit: apiCallStats.callLimit,
@@ -868,6 +902,7 @@ app.post('/api/weather/stats/reset', (req, res) => {
   apiCallStats.callsUsed = 0;
   apiCallStats.resetTime = Date.now();
   console.log('[API Stats] Call counter reset');
+  _saveApiCallStatsToDisk();
   res.json({
     callsUsed: 0,
     limit: apiCallStats.callLimit,
