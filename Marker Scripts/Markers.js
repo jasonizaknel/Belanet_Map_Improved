@@ -310,9 +310,61 @@ window.initMap = function () { // CHANGED: must be global for Google callback
                 const svc = getWeatherServiceInstance();
                 const clk = new ClockManager();
                 const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
+                ov.on('layerchange', function(){ updateWeatherLayers(); });
+                ov.on('mount', function(){ updateWeatherLayers(); });
                 ov.mount(document.body);
                 window.__WeatherOverlay = ov;
             }
+        }
+        if (!AppState.weatherHover) AppState.weatherHover = {};
+        if (!AppState.weatherHover.listener && AppState.map) {
+            AppState.weatherHover.lastKey = '';
+            AppState.weatherHover.inFlight = false;
+            AppState.weatherHover.timer = null;
+            AppState.weatherHover.listener = AppState.map.addListener('mousemove', function(e){
+                if (!AppState.visibility.weather) return;
+                if (!e || !e.latLng) return;
+                const lat = e.latLng.lat();
+                const lon = e.latLng.lng();
+                const key = lat.toFixed(2)+','+lon.toFixed(2);
+                if (AppState.weatherHover.lastKey === key) return;
+                AppState.weatherHover.lastKey = key;
+                if (AppState.weatherHover.timer) clearTimeout(AppState.weatherHover.timer);
+                AppState.weatherHover.timer = setTimeout(async function(){
+                    if (AppState.weatherHover.inFlight) return;
+                    AppState.weatherHover.inFlight = true;
+                    try{
+                        const res = await fetch(`/api/onecall?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            const cur = data && data.current ? data.current : null;
+                            if (cur) {
+                                let r = 0;
+                                if (cur.rain && (cur.rain['1h'] || cur.rain['3h'])) r = cur.rain['1h'] || cur.rain['3h'] || 0;
+                                const boxId = 'weatherHoverInfo';
+                                let el = document.getElementById(boxId);
+                                if (!el) {
+                                    el = document.createElement('div');
+                                    el.id = boxId;
+                                    el.style.position = 'fixed';
+                                    el.style.left = '16px';
+                                    el.style.top = '16px';
+                                    el.style.padding = '6px 8px';
+                                    el.style.background = 'rgba(15,23,42,0.8)';
+                                    el.style.color = '#fff';
+                                    el.style.border = '1px solid rgba(255,255,255,0.12)';
+                                    el.style.borderRadius = '8px';
+                                    el.style.fontSize = '11px';
+                                    el.style.zIndex = '1000';
+                                    document.body.appendChild(el);
+                                }
+                                el.innerHTML = `${lat.toFixed(3)}, ${lon.toFixed(3)} · ${Math.round(cur.temp)}°C · ${cur.wind_speed != null ? cur.wind_speed.toFixed(1) : '0'} m/s · ${r} mm`;
+                            }
+                        }
+                    } catch(_e){}
+                    finally{ AppState.weatherHover.inFlight = false; }
+                }, 800);
+            });
         }
         startWeatherRefresh();
     } else {
@@ -480,7 +532,6 @@ function updateWeatherLayers() {
     const apiKey = window.AppConfig ? window.AppConfig.openWeatherKey : null;
     if (!AppState.map || !google || !google.maps) return;
 
-    // Supported Weather Maps 1.0 layers
     const supportedLayers = [
         'clouds_new',
         'precipitation_new',
@@ -491,10 +542,8 @@ function updateWeatherLayers() {
         'pressure_new'
     ];
 
-    // Default visible layers
-    const defaultLayers = ['clouds_new', 'precipitation_new', 'temp_new'];
+    const defaultLayers = ['clouds_new'];
 
-    // Clear existing weather layers safely from overlayMapTypes (MVCArray)
     for (const key of Object.keys(AppState.weatherLayers)) {
         const overlay = AppState.weatherLayers[key];
         if (!overlay) continue;
@@ -509,15 +558,6 @@ function updateWeatherLayers() {
 
     if (!AppState.visibility.weather || !apiKey) return;
 
-    if (AppState.weatherData.current) {
-        console.log('[Weather] Current conditions:', {
-            temp: AppState.weatherData.current.temp + '°C',
-            weather: AppState.weatherData.current.weather,
-            description: AppState.weatherData.current.description
-        });
-    }
-
-    // Create ImageMapTypes for supported layers (store but only add defaults)
     const layerMeta = {
         'clouds_new': { name: 'Clouds', opacity: 0.55 },
         'precipitation_new': { name: 'Precipitation', opacity: 0.6 },
@@ -541,11 +581,56 @@ function updateWeatherLayers() {
         AppState.weatherLayers[type] = imageMapType;
     });
 
-    // Push default layers in defined order
-    defaultLayers.forEach((type) => {
+    let selected = defaultLayers.slice();
+    if (window.__WeatherOverlay && window.__WeatherOverlay._state && window.__WeatherOverlay._state.layers) {
+        const m = {
+            temperature: 'temp_new',
+            precipitation: 'precipitation_new',
+            wind: 'wind_new',
+            clouds: 'clouds_new'
+        };
+        selected = Object.keys(window.__WeatherOverlay._state.layers)
+            .filter((k) => window.__WeatherOverlay._state.layers[k])
+            .map((k) => m[k])
+            .filter((v) => !!v);
+        if (!selected.length) selected = defaultLayers.slice();
+    }
+
+    const overlays = AppState.map.overlayMapTypes;
+    selected.forEach((type) => {
         const overlay = AppState.weatherLayers[type];
-        if (overlay) AppState.map.overlayMapTypes.push(overlay);
+        if (overlay) overlays.push(overlay);
     });
+
+    if (!document.getElementById('weatherLegend')) {
+        const el = document.createElement('div');
+        el.id = 'weatherLegend';
+        el.style.position = 'fixed';
+        el.style.left = '16px';
+        el.style.bottom = '16px';
+        el.style.padding = '8px 10px';
+        el.style.background = 'rgba(15,23,42,0.8)';
+        el.style.color = '#fff';
+        el.style.border = '1px solid rgba(255,255,255,0.12)';
+        el.style.borderRadius = '8px';
+        el.style.fontSize = '11px';
+        el.style.zIndex = '1000';
+        document.body.appendChild(el);
+    }
+    const legend = document.getElementById('weatherLegend');
+    const primary = selected[0] || '';
+    let title = 'Clouds';
+    let grad = 'linear-gradient(90deg,#94a3b8,#334155)';
+    let labels = '';
+    if (primary === 'temp_new') { title = 'Temperature (°C)'; grad = 'linear-gradient(90deg,#1e3a8a,#22d3ee,#f59e0b,#ef4444)'; labels = '-10 0 10 20 30+'; }
+    else if (primary === 'precipitation_new') { title = 'Precipitation (mm/3h)'; grad = 'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)'; labels = '0 2 5 10 20+'; }
+    else if (primary === 'wind_new') { title = 'Wind (m/s)'; grad = 'linear-gradient(90deg,#d1fae5,#34d399,#059669,#065f46)'; labels = '0 5 10 15 20+'; }
+    else if (primary === 'clouds_new') { title = 'Clouds (%)'; grad = 'linear-gradient(90deg,rgba(203,213,225,0.2),#cbd5e1,#475569)'; labels = '0 25 50 75 100'; }
+    legend.innerHTML = `
+      <div style="font-weight:700;margin-bottom:6px;">${title}</div>
+      <div style="width:200px;height:10px;border-radius:6px;background:${grad};margin-bottom:4px;"></div>
+      <div style="opacity:.8;display:flex;justify-content:space-between;width:200px;">${labels.split(' ').map(x=>`<span>${x}</span>`).join('')}</div>
+    `;
 }
 
 // ADDED: Animate polyline drawing from start to end
@@ -1461,13 +1546,71 @@ function toggleWeather() {
                 const svc = getWeatherServiceInstance();
                 const clk = new ClockManager();
                 const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
+                ov.on('layerchange', function(){ updateWeatherLayers(); });
+                ov.on('mount', function(){ updateWeatherLayers(); });
                 ov.mount(document.body);
                 window.__WeatherOverlay = ov;
             }
         }
+        if (!AppState.weatherHover) AppState.weatherHover = {};
+        if (!AppState.weatherHover.listener && AppState.map) {
+            AppState.weatherHover.lastKey = '';
+            AppState.weatherHover.inFlight = false;
+            AppState.weatherHover.timer = null;
+            AppState.weatherHover.listener = AppState.map.addListener('mousemove', function(e){
+                if (!AppState.visibility.weather) return;
+                if (!e || !e.latLng) return;
+                const lat = e.latLng.lat();
+                const lon = e.latLng.lng();
+                const key = lat.toFixed(2)+','+lon.toFixed(2);
+                if (AppState.weatherHover.lastKey === key) return;
+                AppState.weatherHover.lastKey = key;
+                if (AppState.weatherHover.timer) clearTimeout(AppState.weatherHover.timer);
+                AppState.weatherHover.timer = setTimeout(async function(){
+                    if (AppState.weatherHover.inFlight) return;
+                    AppState.weatherHover.inFlight = true;
+                    try{
+                        const res = await fetch(`/api/onecall?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            const cur = data && data.current ? data.current : null;
+                            if (cur) {
+                                let r = 0;
+                                if (cur.rain && (cur.rain['1h'] || cur.rain['3h'])) r = cur.rain['1h'] || cur.rain['3h'] || 0;
+                                const boxId = 'weatherHoverInfo';
+                                let el = document.getElementById(boxId);
+                                if (!el) {
+                                    el = document.createElement('div');
+                                    el.id = boxId;
+                                    el.style.position = 'fixed';
+                                    el.style.left = '16px';
+                                    el.style.top = '16px';
+                                    el.style.padding = '6px 8px';
+                                    el.style.background = 'rgba(15,23,42,0.8)';
+                                    el.style.color = '#fff';
+                                    el.style.border = '1px solid rgba(255,255,255,0.12)';
+                                    el.style.borderRadius = '8px';
+                                    el.style.fontSize = '11px';
+                                    el.style.zIndex = '1000';
+                                    document.body.appendChild(el);
+                                }
+                                el.innerHTML = `${lat.toFixed(3)}, ${lon.toFixed(3)} · ${Math.round(cur.temp)}°C · ${cur.wind_speed != null ? cur.wind_speed.toFixed(1) : '0'} m/s · ${r} mm`;
+                            }
+                        }
+                    } catch(_e){}
+                    finally{ AppState.weatherHover.inFlight = false; }
+                }, 800);
+            });
+        }
         startWeatherRefresh();
     } else {
         updateWeatherLayers();
+        if (AppState.weatherHover && AppState.weatherHover.listener) {
+            google.maps.event.removeListener(AppState.weatherHover.listener);
+            AppState.weatherHover.listener = null;
+        }
+        const hi = document.getElementById('weatherHoverInfo');
+        if (hi) hi.remove();
         if (window.__WeatherOverlay && typeof window.__WeatherOverlay.destroy === 'function') {
             window.__WeatherOverlay.destroy();
             window.__WeatherOverlay = null;

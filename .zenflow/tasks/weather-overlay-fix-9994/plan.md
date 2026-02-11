@@ -96,3 +96,14 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Add Playwright flows to toggle overlay, test resize stability, and confirm tiles (Temperature, Precipitation, Rain, Snow)
 - Capture screenshots of overlay and tile layers; store under `tests/test-results/`
 - Verification: All assertions pass; screenshots generated
+
+### [x] Step: Fix
+<!-- chat-id: 19174c67-7e71-42fc-875c-10f065425539 -->
+
+The Weather Overlay Dashboard does not correspond to the layers seen. Activating the dashboard appears to activate all layers simulataneously, regardless of selection. 
+
+Additionally, the overlay should include a scale to better interpret the tile overlays colors, as well as displaying the exact details (Temperature, precipitation, wind speed, ect) of the location where the mouse is hovering.
+
+Please take a screenshot of each layer to verify that it is being displayed correctly, without overlap.
+
+The unified clock also appears to be hidden behind the "home" button that centres in on the office - please move it slightly to the left so it is always visible.

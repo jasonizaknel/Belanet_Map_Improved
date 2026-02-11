@@ -77,6 +77,8 @@ let weatherCache = {
   lastFetch: 0
 };
 
+const coordWeatherCache = new Map();
+
 // ADDED: Cache for Splynx UI session
 let splynxSessionCache = {
   cookie: null,
@@ -792,6 +794,31 @@ app.get("/api/weather", async (req, res) => {
       error: "Weather fetch failed", 
       details: error.message 
     });
+  }
+});
+
+app.get('/api/onecall', async (req, res) => {
+  try{
+    const lat = parseFloat(req.query.lat);
+    const lon = parseFloat(req.query.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(400).json({ error: 'Missing lat/lon' });
+    if (!OPENWEATHER_API_KEY) return res.status(503).json({ error: 'Weather service not configured' });
+    const qlat = Math.round(lat*100)/100;
+    const qlon = Math.round(lon*100)/100;
+    const key = qlat.toFixed(2)+','+qlon.toFixed(2);
+    const now = Date.now();
+    const ttl = 10*60*1000;
+    const cached = coordWeatherCache.get(key);
+    if (cached && (now - cached.ts) < ttl) return res.json(cached.data);
+    const url = 'https://api.openweathermap.org/data/3.0/onecall';
+    const params = { lat: qlat, lon: qlon, exclude: 'minutely,alerts', units: 'metric', appid: OPENWEATHER_API_KEY };
+    const resp = await axios.get(url, { params, timeout: 10000 });
+    const data = resp.data;
+    coordWeatherCache.set(key, { ts: now, data });
+    res.json(data);
+  } catch (e) {
+    if (e.response && e.response.status) return res.status(e.response.status).json({ error: 'Upstream error' });
+    res.status(500).json({ error: 'Failed to fetch onecall' });
   }
 });
 
