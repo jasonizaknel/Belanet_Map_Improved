@@ -67,8 +67,8 @@
       root.className='weather-overlay'+(this._state.pinned?' pinned':'');
       root.style.left=this._state.left+'px';
       root.style.top=this._state.top+'px';
-      root.style.width=(this._state.width? Math.max(1,this._state.width-2): '')+'px';
-      root.style.height=(this._state.height? Math.max(1,this._state.height-2): '')+'px';
+      root.style.width=(this._state.width? Math.max(1,this._state.width): '')+'px';
+      root.style.height=(this._state.height? Math.max(1,this._state.height): '')+'px';
       root.style.border='1px solid rgba(255,255,255,0.12)';
 
       const header=doc.createElement('div'); header.className='weather-overlay__header'; this._header=header;
@@ -122,7 +122,7 @@
       const endDrag=()=>{ if(!dragging)return; dragging=false; header.style.cursor='grab'; this._state.left=parseFloat(root.style.left)||this._state.left; this._state.top=parseFloat(root.style.top)||this._state.top; this._saveState(); this._em.emit('move',{left:this._state.left,top:this._state.top}); };
 
       const startResize=(e)=>{ if(e.button!==0)return; resizing=true; sx=e.clientX; sy=e.clientY; sw=root.clientWidth; sh=root.clientHeight; e.preventDefault(); };
-      const onResize=(e)=>{ if(!resizing)return; const dx=e.clientX-sx, dy=e.clientY-sy; const nw=Math.max(260, sw+dx); const nh=Math.max(180, sh+dy); root.style.width=nw+'px'; root.style.height=nh+'px'; const r=root.getBoundingClientRect(); this._state.width=Math.round(r.width); this._state.height=Math.round(r.height); this._saveState(); this._resizeCanvas(); };
+      const onResize=(e)=>{ if(!resizing)return; const dx=e.clientX-sx, dy=e.clientY-sy; const nw=Math.max(260, sw+dx); const nh=Math.max(180, sh+dy); root.style.width=nw+'px'; root.style.height=nh+'px'; const r=root.getBoundingClientRect(); this._state.width=Math.round(r.width); this._state.height=Math.round(r.height); this._saveState(); this._scheduleResizeCanvas(); };
       const endResize=()=>{ if(!resizing)return; resizing=false; const r=root.getBoundingClientRect(); this._state.width=Math.round(r.width); this._state.height=Math.round(r.height); this._saveState(); this._em.emit('resize',{width:this._state.width,height:this._state.height}); };
 
       let dragging=false,resizing=false,sx=0,sy=0,sl=0,st=0,sw=0,sh=0;
@@ -139,7 +139,7 @@
       rateRange.addEventListener('input',()=>{ const r=Number(rateRange.value)||1; this._clock.setRate(r); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); });
 
       parent=(parent||doc.body); parent.appendChild(root);
-      if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>{ root.style.left=this._state.left+'px'; root.style.top=this._state.top+'px'; if(this._state.width) root.style.width=Math.max(1,this._state.width-2)+'px'; if(this._state.height) root.style.height=Math.max(1,this._state.height-2)+'px'; }); }
+      if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>{ root.style.left=this._state.left+'px'; root.style.top=this._state.top+'px'; if(this._state.width) root.style.width=Math.max(1,this._state.width)+'px'; if(this._state.height) root.style.height=Math.max(1,this._state.height)+'px'; }); }
 
       this._root=root; this._canvas=canvas; this._ctx=canvas.getContext('2d'); this._sidebar=sidebar; this._resizeHandle=resizeHandle;
       this._mounted=true;
@@ -150,7 +150,7 @@
       this._attachClock(meta);
       this._fetchData();
 
-      window.addEventListener('resize',()=>this._resizeCanvas());
+      window.addEventListener('resize',()=>this._scheduleResizeCanvas());
       root.addEventListener('mouseenter',()=>{this._hover=true;});
       root.addEventListener('mouseleave',()=>{this._hover=false;});
       this._keyHandler=(e)=>{ if(e.defaultPrevented) return; if(e.ctrlKey||e.metaKey||e.altKey) return; const tag=(e.target&&e.target.tagName)||''; if(/INPUT|TEXTAREA|SELECT/.test(tag)) return; if(!this._hover && !(this._root&&this._root.contains(e.target))) return; const k=e.key; if(k==='p'||k==='P'){ this._state.pinned=!this._state.pinned; this._root.classList.toggle('pinned',this._state.pinned); pinBtn.textContent=this._state.pinned?'Pinned':'Unpinned'; this._saveState(); this._em.emit(this._state.pinned?'pin':'unpin',{}); e.preventDefault(); return; } if(k==='m'||k==='M'){ const m=this._clock.mode==='realtime'?'simulation':'realtime'; this._clock.setMode(m); modeBtn.textContent=m==='realtime'?'Realtime':'Simulation'; badge.textContent=modeBtn.textContent; this._state.mode=m; this._saveState(); this._em.emit('mode',{mode:m}); e.preventDefault(); return; } if(k==='['||k===']'){ const delta=k===']'?0.5:-0.5; const r=clamp((this._clock.rate||1)+delta,0.5,10); this._clock.setRate(r); rateRange.value=String(this._clock.rate); this._state.rate=this._clock.rate; this._saveState(); this._em.emit('rate',{rate:this._clock.rate}); e.preventDefault(); return; } };
@@ -185,6 +185,12 @@
       this._em.emit('telemetry',{type:'fetch',phase:'start'});
       try{ const d= await this._svc.fetchOneCall({lat:this._lat,lon:this._lon}); this._data=d; this._em.emit('telemetry',{type:'fetch',phase:'success',source:d._meta&&d._meta.source,stale:!!(d._meta&&d._meta.stale)}); }
       catch(err){ let used=false; if(this._svc&&typeof this._svc.getCachedOneCall==='function'){ const c=this._svc.getCachedOneCall({lat:this._lat,lon:this._lon}); if(c){ this._data=c; used=true; this._em.emit('telemetry',{type:'fetch',phase:'cached_fallback'}); } } const f=this._formatError(err,used); this._showError(f.text,f.level); this._em.emit('error',{error:err,cached:used}); }
+    }
+
+    _scheduleResizeCanvas(){
+      if(this._resizeRq) return;
+      const cb=()=>{ this._resizeRq=null; this._resizeCanvas(); };
+      if (typeof requestAnimationFrame!=='undefined') { this._resizeRq=requestAnimationFrame(cb); } else { this._resizeRq=setTimeout(cb,16); }
     }
 
     _resizeCanvas(){

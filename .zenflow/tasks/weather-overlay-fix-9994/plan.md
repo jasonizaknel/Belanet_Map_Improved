@@ -66,7 +66,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Remove clock UI from overlay; add fixed bottom-right clock in [./map.html](./map.html) with minimal CSS
 - Verification: Overlay can only be closed via Weather button; clock visible bottom-right
 
-### [ ] Step: Stabilize Overlay Resize & Layout
+### [x] Step: Stabilize Overlay Resize & Layout
+<!-- chat-id: bcfde5cd-acca-4ce6-be33-413e90af65a2 -->
 - In [./src/weather/weather-overlay.css](./src/weather/weather-overlay.css): add `box-sizing: border-box`, `min-width: 0; min-height: 0` on grid children
 - In [./src/weather/WeatherOverlay.js](./src/weather/WeatherOverlay.js): remove width/height `-2px` restores; ensure DPR-safe canvas sizing; throttle resize updates if needed
 - Verification: Smooth resize, no jitter/overflow; position persists across reload
