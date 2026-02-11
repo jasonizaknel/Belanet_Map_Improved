@@ -341,24 +341,9 @@ window.initMap = function () { // CHANGED: must be global for Google callback
                             if (cur) {
                                 let r = 0;
                                 if (cur.rain && (cur.rain['1h'] || cur.rain['3h'])) r = cur.rain['1h'] || cur.rain['3h'] || 0;
-                                const boxId = 'weatherHoverInfo';
-                                let el = document.getElementById(boxId);
-                                if (!el) {
-                                    el = document.createElement('div');
-                                    el.id = boxId;
-                                    el.style.position = 'fixed';
-                                    el.style.left = '16px';
-                                    el.style.top = '16px';
-                                    el.style.padding = '6px 8px';
-                                    el.style.background = 'rgba(15,23,42,0.8)';
-                                    el.style.color = '#fff';
-                                    el.style.border = '1px solid rgba(255,255,255,0.12)';
-                                    el.style.borderRadius = '8px';
-                                    el.style.fontSize = '11px';
-                                    el.style.zIndex = '1000';
-                                    document.body.appendChild(el);
+                                if (window.__WeatherOverlay && typeof window.__WeatherOverlay.setHoverContent === 'function') {
+                                    window.__WeatherOverlay.setHoverContent(`${lat.toFixed(3)}, ${lon.toFixed(3)} · ${Math.round(cur.temp)}°C · ${cur.wind_speed != null ? cur.wind_speed.toFixed(1) : '0'} m/s · ${r} mm`);
                                 }
-                                el.innerHTML = `${lat.toFixed(3)}, ${lon.toFixed(3)} · ${Math.round(cur.temp)}°C · ${cur.wind_speed != null ? cur.wind_speed.toFixed(1) : '0'} m/s · ${r} mm`;
                             }
                         }
                     } catch(_e){}
@@ -602,35 +587,7 @@ function updateWeatherLayers() {
         if (overlay) overlays.push(overlay);
     });
 
-    if (!document.getElementById('weatherLegend')) {
-        const el = document.createElement('div');
-        el.id = 'weatherLegend';
-        el.style.position = 'fixed';
-        el.style.left = '16px';
-        el.style.bottom = '16px';
-        el.style.padding = '8px 10px';
-        el.style.background = 'rgba(15,23,42,0.8)';
-        el.style.color = '#fff';
-        el.style.border = '1px solid rgba(255,255,255,0.12)';
-        el.style.borderRadius = '8px';
-        el.style.fontSize = '11px';
-        el.style.zIndex = '1000';
-        document.body.appendChild(el);
-    }
-    const legend = document.getElementById('weatherLegend');
-    const primary = selected[0] || '';
-    let title = 'Clouds';
-    let grad = 'linear-gradient(90deg,#94a3b8,#334155)';
-    let labels = '';
-    if (primary === 'temp_new') { title = 'Temperature (°C)'; grad = 'linear-gradient(90deg,#1e3a8a,#22d3ee,#f59e0b,#ef4444)'; labels = '-10 0 10 20 30+'; }
-    else if (primary === 'precipitation_new') { title = 'Precipitation (mm/3h)'; grad = 'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)'; labels = '0 2 5 10 20+'; }
-    else if (primary === 'wind_new') { title = 'Wind (m/s)'; grad = 'linear-gradient(90deg,#d1fae5,#34d399,#059669,#065f46)'; labels = '0 5 10 15 20+'; }
-    else if (primary === 'clouds_new') { title = 'Clouds (%)'; grad = 'linear-gradient(90deg,rgba(203,213,225,0.2),#cbd5e1,#475569)'; labels = '0 25 50 75 100'; }
-    legend.innerHTML = `
-      <div style="font-weight:700;margin-bottom:6px;">${title}</div>
-      <div style="width:200px;height:10px;border-radius:6px;background:${grad};margin-bottom:4px;"></div>
-      <div style="opacity:.8;display:flex;justify-content:space-between;width:200px;">${labels.split(' ').map(x=>`<span>${x}</span>`).join('')}</div>
-    `;
+    // Legends now rendered inside WeatherOverlay; nothing to render here.
 }
 
 // ADDED: Animate polyline drawing from start to end
@@ -1577,24 +1534,9 @@ function toggleWeather() {
                             if (cur) {
                                 let r = 0;
                                 if (cur.rain && (cur.rain['1h'] || cur.rain['3h'])) r = cur.rain['1h'] || cur.rain['3h'] || 0;
-                                const boxId = 'weatherHoverInfo';
-                                let el = document.getElementById(boxId);
-                                if (!el) {
-                                    el = document.createElement('div');
-                                    el.id = boxId;
-                                    el.style.position = 'fixed';
-                                    el.style.left = '16px';
-                                    el.style.top = '16px';
-                                    el.style.padding = '6px 8px';
-                                    el.style.background = 'rgba(15,23,42,0.8)';
-                                    el.style.color = '#fff';
-                                    el.style.border = '1px solid rgba(255,255,255,0.12)';
-                                    el.style.borderRadius = '8px';
-                                    el.style.fontSize = '11px';
-                                    el.style.zIndex = '1000';
-                                    document.body.appendChild(el);
+                                if (window.__WeatherOverlay && typeof window.__WeatherOverlay.setHoverContent === 'function') {
+                                    window.__WeatherOverlay.setHoverContent(`${lat.toFixed(3)}, ${lon.toFixed(3)} · ${Math.round(cur.temp)}°C · ${cur.wind_speed != null ? cur.wind_speed.toFixed(1) : '0'} m/s · ${r} mm`);
                                 }
-                                el.innerHTML = `${lat.toFixed(3)}, ${lon.toFixed(3)} · ${Math.round(cur.temp)}°C · ${cur.wind_speed != null ? cur.wind_speed.toFixed(1) : '0'} m/s · ${r} mm`;
                             }
                         }
                     } catch(_e){}
@@ -1609,8 +1551,7 @@ function toggleWeather() {
             google.maps.event.removeListener(AppState.weatherHover.listener);
             AppState.weatherHover.listener = null;
         }
-        const hi = document.getElementById('weatherHoverInfo');
-        if (hi) hi.remove();
+        // no external hover box to clean up; lives inside WeatherOverlay now
         if (window.__WeatherOverlay && typeof window.__WeatherOverlay.destroy === 'function') {
             window.__WeatherOverlay.destroy();
             window.__WeatherOverlay = null;

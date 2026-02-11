@@ -82,7 +82,11 @@
 
       const body=doc.createElement('div'); body.className='weather-overlay__body';
       const canvasWrap=doc.createElement('div'); canvasWrap.className='weather-overlay__canvas-wrap'; this._canvasWrap=canvasWrap;
-      const canvas=doc.createElement('canvas'); canvas.className='weather-overlay__canvas'; canvasWrap.appendChild(canvas);
+      const canvas=doc.createElement('canvas'); canvas.className='weather-overlay__canvas'; canvas.style.display='none'; canvasWrap.appendChild(canvas);
+      const uiWrap=doc.createElement('div'); uiWrap.style.position='absolute'; uiWrap.style.inset='0'; uiWrap.style.display='flex'; uiWrap.style.flexDirection='column'; uiWrap.style.gap='8px'; uiWrap.style.padding='10px';
+      const legends=doc.createElement('div'); legends.className='wo-legends'; legends.style.display='flex'; legends.style.flexDirection='column'; legends.style.gap='8px';
+      const hover=doc.createElement('div'); hover.className='wo-hover'; hover.style.alignSelf='flex-start'; hover.style.background='rgba(2,6,23,0.45)'; hover.style.color='#fff'; hover.style.border='1px solid rgba(255,255,255,0.08)'; hover.style.borderRadius='8px'; hover.style.fontSize='11px'; hover.style.padding='6px 8px'; hover.textContent='';
+      uiWrap.appendChild(hover); uiWrap.appendChild(legends); canvasWrap.appendChild(uiWrap); this._legendWrap=legends; this._hoverEl=hover;
       const sidebar=doc.createElement('div'); sidebar.className='weather-overlay__sidebar';
 
       const layersSec=doc.createElement('div'); layersSec.className='weather-overlay__section';
@@ -92,7 +96,6 @@
         {key:'temperature',label:'Temperature'},
         {key:'precipitation',label:'Precipitation'},
         {key:'wind',label:'Wind'},
-        {key:'humidity',label:'Humidity'},
         {key:'clouds',label:'Clouds'},
       ];
       for(const def of layerDefs){
@@ -100,7 +103,7 @@
         const cb=doc.createElement('input'); cb.type='checkbox'; cb.checked=!!this._state.layers[def.key];
         const span=doc.createElement('span'); span.className='weather-toggle__label'; span.textContent=def.label;
         row.appendChild(cb); row.appendChild(span);
-        cb.addEventListener('change',()=>{ this._state.layers[def.key]=!!cb.checked; this._saveState(); this._em.emit('layerchange',{key:def.key,enabled:cb.checked}); });
+        cb.addEventListener('change',()=>{ this._state.layers[def.key]=!!cb.checked; this._saveState(); this._renderLegends(); this._em.emit('layerchange',{key:def.key,enabled:cb.checked}); });
         sidebar.appendChild(row);
       }
 
@@ -148,7 +151,7 @@
       this._resizeCanvas();
       if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>this._resizeCanvas()); }
       this._attachClock(meta);
-      this._fetchData();
+      this._renderLegends();
 
       window.addEventListener('resize',()=>this._scheduleResizeCanvas());
       root.addEventListener('mouseenter',()=>{this._hover=true;});
@@ -230,9 +233,9 @@
 
     _updateQuality(wallDt, hidden){ const dt=Math.max(1, wallDt|0); this._dtEma=this._dtEma*0.9 + dt*0.1; const fps=1000/this._dtEma; let q=1; if(hidden) q=0.5; else if(fps<24) q=0.5; else if(fps<40) q=0.75; else q=1; this._quality=q; }
 
-    _renderBase(w,h,s){ if(!this._offBaseCtx || !this._offBaseCanvas) return; const snap={tb:Math.round(s.temp), hb:Math.round((s.humidity||0)/5)}; const prev=this._lastBaseSnap; if(prev && prev.tb===snap.tb && prev.hb===snap.hb) return; const c=this._offBaseCtx; c.clearRect(0,0,w,h); if(this._state.layers.temperature){ this._drawTemperature(c,w,h,s); } if(this._state.layers.humidity){ this._drawHumidity(c,w,h,s); } this._lastBaseSnap=snap; }
+    _renderBase(w,h,s){ if(!this._offBaseCtx || !this._offBaseCanvas) return; const snap={tb:Math.round(s.temp)}; const prev=this._lastBaseSnap; if(prev && prev.tb===snap.tb) return; const c=this._offBaseCtx; c.clearRect(0,0,w,h); if(this._state.layers.temperature){ this._drawTemperature(c,w,h,s); } this._lastBaseSnap=snap; }
 
-    _render(ms, hidden){ if(!this._ctx || !this._canvas) return; const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr; ctx.clearRect(0,0,w,h); const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, humidity:40, clouds:20, pop:0.1, rain3h:0 }; this._renderBase(w,h,snap); if(this._offBaseCanvas){ ctx.drawImage(this._offBaseCanvas,0,0,w,h); } if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); } if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); } if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); } }
+    _render(ms, hidden){ if(!this._ctx || !this._canvas) return; const ctx=this._ctx; const w=this._canvas.width/this._dpr; const h=this._canvas.height/this._dpr; ctx.clearRect(0,0,w,h); const snap=this._interpHourly(ms) || { temp:20, wind_speed:1, wind_deg:90, clouds:20, pop:0.1, rain3h:0 }; this._renderBase(w,h,snap); if(this._offBaseCanvas){ ctx.drawImage(this._offBaseCanvas,0,0,w,h); } if(this._state.layers.clouds){ this._drawClouds(ctx,w,h,ms,snap); } if(this._state.layers.wind){ this._drawWind(ctx,w,h,ms,snap); } if(this._state.layers.precipitation){ this._drawPrecip(ctx,w,h,ms,snap); } }
 
     _drawTemperature(ctx,w,h,s){
       const grad=ctx.createLinearGradient(0,0,w,h);
@@ -243,9 +246,7 @@
 
     _drawClouds(ctx,w,h,ms,s){ const t=ms*0.00005; ctx.save(); const qa=this._quality; const alpha=clamp(s.clouds/100,0.1,0.85)*qa; ctx.globalAlpha=alpha; const step=Math.max(6, Math.round(8/qa)); const half=step*0.5; for(let k=0;k<2;k++){ const scale=k===0? 0.015: 0.03; for(let y=0;y<=h;y+=step){ for(let x=0;x<=w;x+=step){ const v=noise2d(x*scale+t*0.5, y*scale + t*0.3); const a=v*0.6+0.2; ctx.fillStyle=`rgba(226,232,240,${a})`; ctx.fillRect(x-half,y-half,step,step);} } } ctx.restore(); }
 
-    _drawHumidity(ctx,w,h,s){
-      const a=clamp((s.humidity||0)/100,0,1)*0.4; if(a<=0.01) return; const grad=ctx.createRadialGradient(w*0.5,h*0.5,10,w*0.5,h*0.5,Math.max(w,h)); grad.addColorStop(0,`rgba(148,163,184,${a*0.6})`); grad.addColorStop(1,`rgba(148,163,184,0)`); ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
-    }
+
 
     _drawWind(ctx,w,h,ms,s){ const sp=clamp(s.wind_speed||0,0,20); const ang=(s.wind_deg||0)*Math.PI/180; const vx=Math.cos(ang), vy=Math.sin(ang); const areaFactor=Math.max(0.6, Math.sqrt((w*h)/(360*260))); const n=Math.max(10, Math.floor(40*this._quality*areaFactor)); if(this._particles.length>n){ this._particles.length=n; } else if(this._particles.length<n){ for(let i=this._particles.length;i<n;i++){ this._particles.push({x:Math.random()*w, y:Math.random()*h, a:Math.random(), l:10+Math.random()*20}); } }
       ctx.save(); ctx.strokeStyle='rgba(125,211,252,0.7)'; ctx.lineWidth=1.2; ctx.globalCompositeOperation='lighter';
@@ -259,7 +260,7 @@
 
     _loadState(overrides){
       const raw=this._storage.getItem(this._stateKey()); let s=null; try{ s= raw? JSON.parse(raw): null; }catch(_){}
-      const base={ left:80, top:80, width:360, height:260, pinned:false, mode:'realtime', rate:1, layers:{ temperature:true, precipitation:false, wind:true, humidity:false, clouds:true } };
+      const base={ left:80, top:80, width:360, height:260, pinned:false, mode:'realtime', rate:1, layers:{ temperature:true, precipitation:false, wind:true, clouds:true } };
       const out=Object.assign({}, base, s||{}, overrides||{});
       if(this._clock && out.mode && this._clock.mode!==out.mode) this._clock.setMode(out.mode);
       if(this._clock && typeof out.rate==='number') this._clock.setRate(out.rate);
@@ -268,6 +269,11 @@
 
     _saveState(){ try{ this._storage.setItem(this._stateKey(), JSON.stringify(this._state)); }catch(_){}}
     _stateKey(){ return `WeatherOverlay:state:${this._id}`; }
+  }
+
+    _renderLegends(){ if(!this._legendWrap) return; while(this._legendWrap.firstChild){ this._legendWrap.removeChild(this._legendWrap.firstChild);} const layers=this._state.layers||{}; const defs=[{k:'temperature',title:'Temperature (°C)',grad:'linear-gradient(90deg,#1e3a8a,#22d3ee,#f59e0b,#ef4444)',labels:['-10','0','10','20','30+']},{k:'precipitation',title:'Precipitation (mm/3h)',grad:'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)',labels:['0','2','5','10','20+']},{k:'wind',title:'Wind (m/s)',grad:'linear-gradient(90deg,#d1fae5,#34d399,#059669,#065f46)',labels:['0','5','10','15','20+']},{k:'clouds',title:'Clouds (%)',grad:'linear-gradient(90deg,rgba(203,213,225,0.2),#cbd5e1,#475569)',labels:['0','25','50','75','100']}]; defs.filter(d=>layers[d.k]).forEach(d=>{ const box=document.createElement('div'); box.style.background='rgba(15,23,42,0.55)'; box.style.border='1px solid rgba(255,255,255,0.08)'; box.style.borderRadius='10px'; box.style.padding='8px'; const h=document.createElement('div'); h.textContent=d.title; h.style.fontWeight='700'; h.style.fontSize='11px'; h.style.marginBottom='6px'; const bar=document.createElement('div'); bar.style.width='100%'; bar.style.height='10px'; bar.style.borderRadius='6px'; bar.style.background=d.grad; bar.style.marginBottom='4px'; const row=document.createElement('div'); row.style.opacity='.8'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.fontSize='10px'; d.labels.forEach(t=>{ const s=document.createElement('span'); s.textContent=t; row.appendChild(s); }); box.appendChild(h); box.appendChild(bar); box.appendChild(row); this._legendWrap.appendChild(box); }); }
+
+    setHoverContent(text){ if(this._hoverEl){ this._hoverEl.textContent=String(text||''); } }
   }
 
   return WeatherOverlay;

@@ -84,18 +84,19 @@ test.describe('WeatherOverlay UI', () => {
     expect(dh).toBeLessThanOrEqual(2);
   });
 
-  test('animations update with clock and canvas renders content', async ({ page }) => {
-    await page.evaluate(() => { window.__ov = new WeatherOverlay({ id: 'anim', service: null, clock: new ClockManager({ mode: 'simulation', rate: 5 }) }).mount(document.body); });
-    await page.waitForTimeout(200);
-    const hasContent = await page.evaluate(() => {
-      const cv = document.querySelector('.weather-overlay canvas');
-      const ctx = cv.getContext('2d');
-      const w = cv.width, h = cv.height;
-      const data = ctx.getImageData(0, 0, Math.min(20,w), Math.min(20,h)).data;
-      let acc = 0; for (let i = 0; i < data.length; i+=4) { acc += data[i] + data[i+1] + data[i+2]; }
-      return acc > 0;
-    });
-    expect(hasContent).toBeTruthy();
+  test('legends render for active layers and hover content updates', async ({ page }) => {
+    await page.evaluate(() => { localStorage.clear(); });
+    await page.evaluate(() => { window.__ov = new WeatherOverlay({ id: 'animless', service: null, clock: new ClockManager() }).mount(document.body); });
+    // Enable temperature and wind
+    const toggles = page.locator('.weather-overlay .weather-toggle input');
+    await toggles.nth(0).check();
+    await toggles.nth(2).check();
+    await page.waitForTimeout(150);
+    // Expect at least two legend boxes
+    await expect(page.locator('.weather-overlay .wo-legends > div')).toHaveCount(2);
+    // Update hover content via API
+    await page.evaluate(() => { if (window.__ov && typeof window.__ov.setHoverContent === 'function') window.__ov.setHoverContent('hover: 1,1 · 24°C · 3.2 m/s · 0 mm'); });
+    await expect(page.locator('.weather-overlay .wo-hover')).toContainText('24°C');
   });
 
   test('capture Weather Overlay UI screenshot', async ({ page }) => {
