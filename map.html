@@ -802,7 +802,7 @@
     }
     function mountOverlay(opts){
       if (!hasKey) return;
-      if (!service) service = new WeatherService({ apiKey: key, ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
+      if (!service) service = new WeatherService({ apiKey: key, baseUrl: '/api/weather', ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
       if (!clock) clock = new ClockManager();
       const ll = opts && opts.lat != null ? { lat: opts.lat, lon: opts.lon } : currentLatLon();
       overlay = new WeatherOverlay({ service, clock, lat: ll.lat, lon: ll.lon, id: 'map' });

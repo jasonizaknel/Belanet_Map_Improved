@@ -84,7 +84,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Default selection to `clouds_new`, `precipitation_new`, `temp_new`; ensure safe removal from `overlayMapTypes`
 - Verification: Tiles render and animate as available; no silent failures
 
-### [ ] Step: API Call Optimization
+### [x] Step: API Call Optimization
+<!-- chat-id: e5d048a5-146f-4d57-ba85-75a9ac6eccc0 -->
 - Ensure `toggleWeather()` never triggers One Call fetch directly; rely on `WeatherService` caching and server cache
 - Confirm no duplicate calls on toggles; share location/time windows where applicable
 - Verification: Request counts remain low during normal use; spot-check via logs
