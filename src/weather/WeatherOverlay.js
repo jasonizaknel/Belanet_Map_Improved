@@ -152,6 +152,7 @@
       if (typeof requestAnimationFrame!=='undefined') { requestAnimationFrame(()=>this._resizeCanvas()); }
       this._attachClock(meta);
       this._renderLegends();
+      this._fetchData();
 
       window.addEventListener('resize',()=>this._scheduleResizeCanvas());
       root.addEventListener('mouseenter',()=>{this._hover=true;});
