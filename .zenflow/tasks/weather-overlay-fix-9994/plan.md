@@ -91,6 +91,7 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - Verification: Request counts remain low during normal use; spot-check via logs
 
 ### [ ] Step: E2E Tests & Screenshots
+<!-- chat-id: 55dcd3af-cbc8-42c8-aab2-5b857dee42ad -->
 - Request ENV vars before running: `OPENWEATHER_API_KEY`, `GOOGLE_MAPS_KEY`
 - Add Playwright flows to toggle overlay, test resize stability, and confirm tiles (Temperature, Precipitation, Rain, Snow)
 - Capture screenshots of overlay and tile layers; store under `tests/test-results/`
