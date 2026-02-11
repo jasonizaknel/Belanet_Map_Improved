@@ -287,6 +287,35 @@ window.initMap = function () { // CHANGED: must be global for Google callback
     // ADDED: Initialize weather layers if active
     updateWeatherLayers();
 
+    if (AppState.visibility && AppState.visibility.weather) {
+        const cfg = window.AppConfig || {};
+        const key = cfg.openWeatherKey;
+        if (key && typeof WeatherOverlay !== 'undefined' && typeof WeatherService !== 'undefined' && typeof ClockManager !== 'undefined') {
+            const c = AppState.map ? AppState.map.getCenter() : null;
+            const lat = c ? c.lat() : -25.0;
+            const lon = c ? c.lng() : 28.0;
+            if (window.__WeatherOverlay && window.__WeatherOverlay._root) {
+                window.__WeatherOverlay._root.style.display = '';
+            } else {
+                const svc = new WeatherService({ apiKey: key, ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
+                const clk = new ClockManager();
+                const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
+                ov.mount(document.body);
+                window.__WeatherOverlay = ov;
+            }
+        }
+        startWeatherRefresh();
+    } else {
+        if (window.__WeatherOverlay && typeof window.__WeatherOverlay.destroy === 'function') {
+            window.__WeatherOverlay.destroy();
+            window.__WeatherOverlay = null;
+        }
+        stopWeatherRefresh();
+    }
+
+    const wb = document.getElementById('toggleWeatherBtn');
+    if (wb) wb.classList.toggle('active', !!(AppState.visibility && AppState.visibility.weather));
+
     if (AppState.dataLoaded) renderMarkers(); // CHANGED: render if data already loaded
 };
 
@@ -1379,11 +1408,33 @@ function toggleTrackers() {
 function toggleWeather() {
     AppState.visibility.weather = !AppState.visibility.weather;
     saveVisibility();
-    updateWeatherLayers();
-    
+    const wb = document.getElementById('toggleWeatherBtn');
+    if (wb) wb.classList.toggle('active', AppState.visibility.weather);
     if (AppState.visibility.weather) {
+        const cfg = window.AppConfig || {};
+        const key = cfg.openWeatherKey;
+        updateWeatherLayers();
+        if (key && typeof WeatherOverlay !== 'undefined' && typeof WeatherService !== 'undefined' && typeof ClockManager !== 'undefined') {
+            const c = AppState.map ? AppState.map.getCenter() : null;
+            const lat = c ? c.lat() : -25.0;
+            const lon = c ? c.lng() : 28.0;
+            if (window.__WeatherOverlay && window.__WeatherOverlay._root) {
+                window.__WeatherOverlay._root.style.display = '';
+            } else {
+                const svc = new WeatherService({ apiKey: key, ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
+                const clk = new ClockManager();
+                const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
+                ov.mount(document.body);
+                window.__WeatherOverlay = ov;
+            }
+        }
         startWeatherRefresh();
     } else {
+        updateWeatherLayers();
+        if (window.__WeatherOverlay && typeof window.__WeatherOverlay.destroy === 'function') {
+            window.__WeatherOverlay.destroy();
+            window.__WeatherOverlay = null;
+        }
         stopWeatherRefresh();
     }
 }

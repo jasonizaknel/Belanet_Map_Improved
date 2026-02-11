@@ -53,7 +53,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Unify Weather Toggle (Single Source of Truth)
+### [x] Step: Unify Weather Toggle (Single Source of Truth)
+<!-- chat-id: 75d973cf-175c-4a54-b88f-5750b820d3cf -->
 - Remove extra `#toggleWeatherBtn` handler in [./map.html](./map.html)
 - Extend `toggleWeather()` in [./Marker Scripts/Markers.js](./Marker%20Scripts/Markers.js) to mount/show and hide/destroy `WeatherOverlay`
 - On load, normalize from `AppState.visibility.weather` and reflect button state
