@@ -337,73 +337,29 @@ async function fetchTasksFromSplynx() {
 async function getWeatherData() {
   const now = Date.now();
   const WEATHER_CACHE_TTL = 600000;
-  
   if (weatherCache.data && (now - weatherCache.lastFetch) < WEATHER_CACHE_TTL) {
     console.log('[Weather] Serving weather data from cache');
     return weatherCache.data;
   }
-  
   if (!OPENWEATHER_API_KEY) {
     console.warn('[Weather] API key not configured');
     return null;
   }
-  
   const lat = -25.0;
   const lon = 28.0;
-  
   try {
-    console.log(`[Weather] Fetching weather data from OpenWeatherMap API (Free Tier)`);
-    
-    const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-    
-    const [currentResponse, forecastResponse] = await Promise.all([
-      axios.get(currentWeatherUrl, { timeout: 10000 }),
-      axios.get(forecastUrl, { timeout: 10000 })
-    ]);
-    
-    if (currentResponse.status === 200 && currentResponse.data) {
-      const current = currentResponse.data;
-      const forecast = forecastResponse.data;
-      
-      const weatherData = {
-        current: {
-          temp: current.main.temp,
-          feels_like: current.main.feels_like,
-          humidity: current.main.humidity,
-          pressure: current.main.pressure,
-          weather: current.weather[0].main,
-          description: current.weather[0].description,
-          icon: current.weather[0].icon,
-          wind_speed: current.wind.speed,
-          wind_deg: current.wind.deg,
-          clouds: current.clouds.all,
-          rain: current.rain ? current.rain['1h'] : null,
-          snow: current.snow ? current.snow['1h'] : null,
-          visibility: current.visibility,
-          dt: current.dt,
-          sunrise: current.sys.sunrise,
-          sunset: current.sys.sunset
-        },
-        forecast: {
-          hourly: forecast.list ? forecast.list.slice(0, 8) : [],
-          daily: []
-        },
-        location: {
-          name: current.name,
-          country: current.sys.country,
-          coord: current.coord
-        },
-        lastUpdate: now
-      };
-      
-      weatherCache.data = weatherData;
+    const url = 'https://api.openweathermap.org/data/3.0/onecall';
+    const params = { lat, lon, exclude: 'minutely,alerts', units: 'metric', appid: OPENWEATHER_API_KEY };
+    console.log('[Weather] Fetching One Call 3.0 data');
+    const response = await axios.get(url, { params, timeout: 10000 });
+    if (response.status === 200 && response.data) {
+      const data = response.data;
+      weatherCache.data = data;
       weatherCache.lastFetch = now;
-      console.log(`[Weather] Successfully fetched and cached weather data for ${current.name}`);
-      
-      return weatherData;
+      console.log('[Weather] One Call 3.0 data fetched and cached');
+      return data;
     } else {
-      console.error(`[Weather] API returned unexpected response: ${currentResponse.status}`);
+      console.error(`[Weather] One Call 3.0 unexpected response: ${response.status}`);
       if (weatherCache.data) {
         console.warn('[Weather] Returning stale cache data');
         return weatherCache.data;
@@ -411,23 +367,20 @@ async function getWeatherData() {
       return null;
     }
   } catch (error) {
-    console.error('[Weather] Failed to fetch weather data:', error.message);
-    
+    console.error('[Weather] One Call 3.0 fetch failed:', error.message);
     if (error.response) {
       if (error.response.status === 401) {
-        console.error('[Weather] Invalid API key or subscription required');
+        console.error('[Weather] Unauthorized (invalid API key)');
       } else if (error.response.status === 429) {
         console.error('[Weather] Rate limit exceeded');
       } else {
         console.error(`[Weather] API error: ${error.response.status}`);
       }
     }
-    
     if (weatherCache.data) {
       console.warn('[Weather] Returning stale cache data due to error');
       return weatherCache.data;
     }
-    
     return null;
   }
 }

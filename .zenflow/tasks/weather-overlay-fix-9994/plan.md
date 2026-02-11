@@ -72,7 +72,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - In [./src/weather/WeatherOverlay.js](./src/weather/WeatherOverlay.js): remove width/height `-2px` restores; ensure DPR-safe canvas sizing; throttle resize updates if needed
 - Verification: Smooth resize, no jitter/overflow; position persists across reload
 
-### [ ] Step: Migrate Server to One Call API 3.0
+### [x] Step: Migrate Server to One Call API 3.0
+<!-- chat-id: 9840c27d-95f1-4d45-bcc0-be9d8dd0553e -->
 - Update [./server.js](./server.js) `/api/weather` to use `https://api.openweathermap.org/data/3.0/onecall` with `exclude=minutely,alerts&units=metric`
 - Keep 10–15m cache TTL; remove 2.5 fallback
 - Verification: Endpoint returns One Call 3.0 shape; logs show cache hits; tests green
