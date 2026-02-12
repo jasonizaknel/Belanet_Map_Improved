@@ -67,7 +67,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Compute SLA risk (green/amber/red) per task and render subtle indicator on cards
 - [x] Ensure indicators update on data refresh and config change
 
-### [ ] Step: Subtask 3 — Expandable Task Cards
+### [x] Step: Subtask 3 — Expandable Task Cards
+<!-- chat-id: 4e7e777f-632f-4c96-9bed-6c8e40cc2045 -->
 - [ ] Add inline expansion on click/hover with smooth height transition
 - [ ] Render full title/description, last updated, and assigned technician
 - [ ] Keep expansion inline; avoid modals; maintain grid flow

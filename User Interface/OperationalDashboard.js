@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!AppState.dashboardGridCols) AppState.dashboardGridCols = 2;
     if (!AppState.selectedTasks) AppState.selectedTasks = new Set();
     if (!AppState.activeTargetTechId) AppState.activeTargetTechId = null;
+    if (!AppState.expandedTasks) AppState.expandedTasks = new Set();
 
     // SLA Config Controls
     const slaAmberInput = document.getElementById('slaAmberHoursInput');
@@ -275,7 +276,8 @@ function aggregateAllTasks() {
                     title: t.Title || t.subject || "Unnamed Task",
                     customer: t.Customer || "Unknown Customer",
                     priority: t.priority || t.Priority || "Medium",
-                    createdAt: new Date(t.date_created || t.created_at || Date.now()).getTime()
+                    createdAt: new Date(t.date_created || t.created_at || Date.now()).getTime(),
+                    updatedAt: new Date(t['Updated at'] || t.updated_at || t.date_updated || t.updatedAt || t.updated || t.modified || t.mod_time || t.last_update || t.last_updated || t.lastUpdated || Date.now()).getTime()
                 });
             }
         });
@@ -294,6 +296,7 @@ function aggregateAllTasks() {
                     customer: t.Customer || "Sim Customer",
                     priority: t.priority || "Medium",
                     createdAt: t.createdTime || Date.now(),
+                    updatedAt: t.updatedTime || t.lastUpdated || t.modifiedAt || t.createdTime || Date.now(),
                     isSimulated: true // ADDED: Flag for styling
                 });
             }
@@ -655,6 +658,7 @@ function updatePriorityTaskQueue(tasks) {
         const pLow = task.priority.toLowerCase();
         const urgencyClass = `urgency-${pLow}`;
         const isAssigned = !!assignedAgent;
+        const isExpanded = AppState.expandedTasks && AppState.expandedTasks.has(String(task.id));
 
         // Skill Matching Validation
         const taskSkills = task.requiredSkills || (task.requiredSkill ? [task.requiredSkill] : []);
@@ -673,6 +677,9 @@ function updatePriorityTaskQueue(tasks) {
         } hover:shadow-lg backdrop-blur-md task-dashboard-card ${isAssigned ? 'assigned' : ''}`;
         card.dataset.taskId = task.id;
         card.draggable = !isAssigned;
+        if (isExpanded) card.classList.add('expanded');
+        card.style.transition = 'max-height 200ms ease';
+        card.style.maxHeight = isExpanded ? '360px' : '160px';
         
         card.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('application/json', JSON.stringify({ taskId: task.id, isLive: task.isLive }));
@@ -737,6 +744,15 @@ function updatePriorityTaskQueue(tasks) {
             <span class="px-1.5 py-0.5 rounded bg-red-600 text-white text-[7px] font-black uppercase animate-pulse">No Matching Tech</span>
         ` : '';
 
+        const updatedAtMs = task.updatedAt || task.createdAt;
+        const updatedMin = Math.floor((now - updatedAtMs) / (60 * 1000));
+        let updatedAgo = '';
+        if (updatedMin < 60) { updatedAgo = `${updatedMin}m`; }
+        else if (updatedMin < 60 * 24) { updatedAgo = `${Math.floor(updatedMin / 60)}h`; }
+        else { updatedAgo = `${Math.floor(updatedMin / (60 * 24))}d`; }
+        const assignedLabel = isAssigned ? `Assigned to ${assignedAgent.name}` : 'Unassigned';
+        const detailText = String(task.Description || task.description || task.details || task.title || '');
+
         card.innerHTML = `
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-3">
@@ -748,12 +764,25 @@ function updatePriorityTaskQueue(tasks) {
                         <div class="text-[9px] font-bold text-slate-400 tracking-tight secondary-label">#${task.id.toString().split('-')[0]}</div>
                     </div>
                 </div>
-                <div class="priority-badge px-3 py-1.5 rounded-lg text-[11px] font-black text-white ${pColor} uppercase shadow-md">${task.priority}</div>
+                <div class="flex items-center gap-2">
+                    <div class="priority-badge px-3 py-1.5 rounded-lg text-[11px] font-black text-white ${pColor} uppercase shadow-md">${task.priority}</div>
+                    <button class="task-expand-btn px-1.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50" title="${isExpanded ? 'Collapse' : 'Expand'}">
+                        <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="flex-1 my-2 overflow-hidden">
                 <div class="text-[10px] font-black text-slate-500 line-clamp-2">${task.title}</div>
                 <div class="mt-1 flex items-center gap-2"><span class="sla-dot ${slaClass}" title="${slaTitle}"></span><span class="task-age-badge">Opened ${ageLabel} ago</span></div>
+            </div>
+
+            <div class="task-expanded-content ${isExpanded ? '' : 'hidden'} mt-2 pt-2 border-t border-slate-100">
+                <div class="text-xs font-semibold text-slate-700 break-words">${detailText}</div>
+                <div class="mt-2 text-[10px] font-black text-slate-500 flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Updated ${updatedAgo} ago</span>
+                    <span class="px-2 py-0.5 rounded ${isAssigned ? 'bg-slate-100 border border-slate-200' : 'bg-amber-50 border border-amber-200 text-amber-600'}">${assignedLabel}</span>
+                </div>
             </div>
 
             <div class="flex justify-between items-center pt-2 border-t border-slate-100">
@@ -765,6 +794,20 @@ function updatePriorityTaskQueue(tasks) {
                 ${actionHtml}
             </div>
         `;
+        
+        const expandBtn = card.querySelector('.task-expand-btn');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idStr = String(task.id);
+                if (AppState.expandedTasks && AppState.expandedTasks.has(idStr)) AppState.expandedTasks.delete(idStr);
+                else {
+                    if (!AppState.expandedTasks) AppState.expandedTasks = new Set();
+                    AppState.expandedTasks.add(idStr);
+                }
+                updateOperationalDashboard();
+            });
+        }
         
         listContainer.appendChild(card);
     });

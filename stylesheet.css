@@ -398,6 +398,9 @@ input, button, select, textarea {
     font-family: 'Inter', sans-serif;
 }
 
+.task-dashboard-card { overflow: hidden; transition: max-height 0.2s ease; }
+.task-dashboard-card.expanded { }
+
 .edit-agent-modal {
     display: none;
     position: fixed;
