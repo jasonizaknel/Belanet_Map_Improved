@@ -52,7 +52,8 @@ let nagiosStatusCache = {
 
 let tasksCache = {
   data: null,
-  lastFetch: 0
+  lastFetch: 0,
+  sourceFile: null
 };
 
 let isFirstFetch = true;
@@ -287,12 +288,9 @@ function loadTaskIdsFromExcel() {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    
-    // IDs are in index 1, starting from Row 2 (index 2)
     const taskIds = data.slice(2)
       .map(row => row[1])
       .filter(id => id && !isNaN(id));
-      
     console.log(`[Excel] ✅ Successfully loaded ${taskIds.length} task IDs from file`);
     if (taskIds.length > 0) {
       console.log(`[Excel] Sample IDs: ${taskIds.slice(0, 5).join(', ')}...`);
@@ -301,6 +299,72 @@ function loadTaskIdsFromExcel() {
   } catch (error) {
     console.error('[Excel] ❌ Error reading task IDs:', error.message);
     return [];
+  }
+}
+
+function listSpreadsheetFiles() {
+  const dir = path.join(__dirname, 'Data');
+  if (!fs.existsSync(dir)) return [];
+  const files = fs.readdirSync(dir).filter(f => /\.(xlsx|csv)$/i.test(f));
+  return files.sort();
+}
+
+function parseSplynxTasksFromFile(filePath) {
+  const full = path.isAbsolute(filePath) ? filePath : path.join(__dirname, 'Data', filePath);
+  if (!fs.existsSync(full)) throw new Error('File not found');
+  const wb = XLSX.readFile(full);
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+  if (!rows || rows.length === 0) throw new Error('Empty spreadsheet');
+  const header = rows[0].map(h => String(h || '').trim());
+  const idx = {};
+  header.forEach((h, i) => { idx[h.toLowerCase()] = i; });
+  const need = ['id', 'title'];
+  for (const k of need) { if (!(k in idx)) throw new Error('Missing required header: ' + k); }
+  const tasks = [];
+  const seen = new Set();
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const id = row[idx['id']];
+    const title = row[idx['title']];
+    if (!id || !title) continue;
+    const key = String(id).trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const t = {
+      ID: key,
+      Title: String(title).trim()
+    };
+    if ('status' in idx) t.Status = String(row[idx['status']] || '').trim();
+    if ('customer' in idx) t.Customer = String(row[idx['customer']] || '').trim();
+    if ('created at' in idx) {
+      const v = row[idx['created at']];
+      if (v) t['Created at'] = new Date(v).toISOString();
+    }
+    if ('updated at' in idx) {
+      const v2 = row[idx['updated at']];
+      if (v2) t['Updated at'] = new Date(v2).toISOString();
+    }
+    tasks.push(t);
+  }
+  return tasks;
+}
+
+function tryAutoLoadSpreadsheetIntoCache() {
+  if (tasksCache.data && tasksCache.data.length > 0) return false;
+  const files = listSpreadsheetFiles();
+  if (files.length === 0) return false;
+  try {
+    const tasks = parseSplynxTasksFromFile(files[0]);
+    tasksCache.data = tasks;
+    tasksCache.lastFetch = Date.now();
+    tasksCache.sourceFile = files[0];
+    console.log(`[Tasks] Loaded ${tasks.length} tasks from ${files[0]}`);
+    return true;
+  } catch (e) {
+    console.error('[Tasks] Failed to auto-load spreadsheet:', e.message);
+    return false;
   }
 }
 
@@ -611,6 +675,53 @@ app.post("/api/simulation/report", (req, res) => {
     res.json({ success: true, filename });
 });
 
+app.get('/api/data/files', (req, res) => {
+  try {
+    const files = listSpreadsheetFiles();
+    res.json({ files });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to list files' });
+  }
+});
+
+app.post('/api/tasks/import', express.json(), (req, res) => {
+  try {
+    const file = (req.body && req.body.file) ? String(req.body.file) : '';
+    if (!file) return res.status(400).json({ error: 'Missing file parameter' });
+    const allowed = /\.(xlsx|csv)$/i.test(file);
+    if (!allowed) return res.status(400).json({ error: 'Unsupported file type' });
+    const tasks = parseSplynxTasksFromFile(file);
+    tasksCache.data = tasks;
+    tasksCache.lastFetch = Date.now();
+    tasksCache.sourceFile = file;
+    res.json({ ok: true, count: tasks.length, file });
+  } catch (e) {
+    if (/Missing required header/i.test(e.message)) {
+      return res.status(422).json({ error: 'Invalid Splynx task export format', details: e.message });
+    }
+    if (/File not found/i.test(e.message)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    res.status(500).json({ error: 'Import failed', details: e.message });
+  }
+});
+
+app.get('/api/tasks/reload', (req, res) => {
+  try {
+    if (tasksCache.sourceFile && fs.existsSync(path.join(__dirname, 'Data', tasksCache.sourceFile))) {
+      const tasks = parseSplynxTasksFromFile(tasksCache.sourceFile);
+      tasksCache.data = tasks;
+      tasksCache.lastFetch = Date.now();
+      return res.json({ ok: true, count: tasks.length, file: tasksCache.sourceFile });
+    }
+    const ok = tryAutoLoadSpreadsheetIntoCache();
+    if (ok) return res.json({ ok: true, count: tasksCache.data.length, file: tasksCache.sourceFile });
+    res.status(404).json({ error: 'No spreadsheet found' });
+  } catch (e) {
+    res.status(500).json({ error: 'Reload failed', details: e.message });
+  }
+});
+
 app.get("/api/positions", async (req, res) => {
   try {
     const now = Date.now();
@@ -763,27 +874,26 @@ app.get("/api/administrators", adminAuth, async (req, res) => {
   }
 });
 
-// ADDED: Fetch tasks from Splynx
+// ADDED: Fetch tasks (spreadsheet-first, API as optional fallback)
 app.get("/api/tasks", async (req, res) => {
   try {
     const now = Date.now();
-    // Use cache if it's still fresh
     if (tasksCache.data && (now - tasksCache.lastFetch < TASKS_REFRESH_INTERVAL)) {
-      console.log(`[Splynx] Serving tasks from cache (${tasksCache.data.length} tasks)`);
       return res.json(tasksCache.data);
     }
 
+    if (tryAutoLoadSpreadsheetIntoCache()) {
+      return res.json(tasksCache.data || []);
+    }
+
     if (!ENABLE_SPLYNX_TASKS) {
-      console.log("[Splynx] Task fetching is disabled, serving cache if available");
       return res.json(tasksCache.data || []);
     }
 
     const newTasks = await fetchTasksFromSplynx();
-    
     if (!tasksCache.data || tasksCache.data.length === 0) {
       tasksCache.data = newTasks;
     } else {
-      // Merge new tasks into existing cache by ID
       const taskMap = new Map(tasksCache.data.map(t => [String(t.ID || t.id), t]));
       newTasks.forEach(t => {
         taskMap.set(String(t.ID || t.id), t);
@@ -794,9 +904,7 @@ app.get("/api/tasks", async (req, res) => {
     tasksCache.lastFetch = now;
     res.json(tasksCache.data);
   } catch (error) {
-    console.error("Splynx tasks fetch failed:", error.message);
     if (tasksCache.data) return res.json(tasksCache.data);
-    
     const tasksFile = path.join(__dirname, "Data", "tasks.json");
     if (fs.existsSync(tasksFile)) {
       try {
@@ -1106,36 +1214,37 @@ async function broadcastTrackerPositions() {
 
 // ADDED: Fetch tasks and broadcast to all connected WebSocket clients
 async function broadcastTasks() {
-  if (wss.clients.size === 0 || !ENABLE_SPLYNX_TASKS) return;
+  if (wss.clients.size === 0) return;
 
   try {
     const now = Date.now();
     let tasks;
 
-    // Use cache if it's still fresh
     if (tasksCache.data && (now - tasksCache.lastFetch < TASKS_REFRESH_INTERVAL)) {
       tasks = tasksCache.data;
-    } else {
+    } else if (tryAutoLoadSpreadsheetIntoCache()) {
+      tasks = tasksCache.data;
+    } else if (ENABLE_SPLYNX_TASKS) {
       try {
         const fetchedTasks = await fetchTasksFromSplynx();
-        
         if (!tasksCache.data || tasksCache.data.length === 0) {
           tasksCache.data = fetchedTasks;
         } else {
-          // Merging logic: Use a Map to update existing tasks and add new ones
           const taskMap = new Map(tasksCache.data.map(t => [String(t.id || t.ID), t]));
           fetchedTasks.forEach(t => {
             taskMap.set(String(t.id || t.ID), t);
           });
           tasksCache.data = Array.from(taskMap.values());
         }
-        
         tasks = tasksCache.data;
         tasksCache.lastFetch = now;
       } catch (e) {
         if (tasksCache.data) tasks = tasksCache.data;
         else return;
       }
+    } else {
+      if (tasksCache.data) tasks = tasksCache.data;
+      else return;
     }
 
     const message = JSON.stringify({

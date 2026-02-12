@@ -209,9 +209,12 @@
                     <label class="section-label" style="margin-bottom: 0;">Loaded Tasks</label>
                     <span id="taskCountBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-primary-100 text-primary-600 font-bold">0</span>
                 </div>
-                <div id="tasksList" class="custom-scrollbar" style="max-height: calc(100vh - 250px); overflow-y: auto;">
-                    <!-- Tasks will be populated here -->
+                <div class="flex items-center gap-2 mb-3">
+                    <button id="importTasksBtn" class="filter-button-small">Import Spreadsheet</button>
+                    <select id="tasksFileSelect" class="filter-select" style="display:none; max-width: 60%;"></select>
+                    <button id="refreshImportedTasksBtn" class="filter-button-small" title="Refresh from last imported file">Refresh</button>
                 </div>
+                <div id="tasksList" class="custom-scrollbar" style="max-height: calc(100vh - 250px); overflow-y: auto;"></div>
             </div>
         </div>
 
@@ -747,24 +750,17 @@
 
 <!-- CHANGED: added defer to guarantee DOM readiness and callback safety -->
 <script>
-    // Dynamically load Google Maps API
     async function loadGoogleMaps() {
         try {
             const response = await fetch('/api/config');
             const config = await response.json();
-            
-            // Store config for other components (e.g., admin token)
             if (!window.AppState) window.AppState = {};
             window.AppState.config = config;
-            
-            // Dispatch event for other components waiting for config
             window.dispatchEvent(new CustomEvent('configLoaded', { detail: config }));
-            
             if (!config.googleMapsKey) {
                 console.error('Google Maps API key not found in server configuration');
                 return;
             }
-
             const script = document.createElement('script');
             script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsKey}&callback=initMap&libraries=geometry`;
             script.defer = true;
@@ -773,8 +769,6 @@
             console.error('Failed to load Google Maps configuration:', error);
         }
     }
-
-    // Initialize map loading
     loadGoogleMaps();
 </script>
 
@@ -794,6 +788,72 @@
         window.AppConfig = e.detail;
       }
     });
+
+    const importBtn = document.getElementById('importTasksBtn');
+    const selectEl = document.getElementById('tasksFileSelect');
+    const refreshBtn = document.getElementById('refreshImportedTasksBtn');
+
+    async function populateFiles() {
+      try {
+        const r = await fetch('/api/data/files');
+        const j = await r.json();
+        const files = Array.isArray(j.files) ? j.files : [];
+        selectEl.innerHTML = '';
+        const opt0 = document.createElement('option');
+        opt0.value = '';
+        opt0.textContent = 'Select a file...';
+        selectEl.appendChild(opt0);
+        files.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; selectEl.appendChild(o); });
+        if (files.length > 0) selectEl.style.display = '';
+        else {
+          selectEl.style.display = 'none';
+          alert('No CSV/XLSX files found in Data');
+        }
+      } catch(e) {
+        alert('Failed to load files');
+      }
+    }
+
+    if (importBtn) {
+      importBtn.addEventListener('click', async function(){
+        await populateFiles();
+        if (selectEl) selectEl.focus();
+      });
+    }
+
+    if (selectEl) {
+      selectEl.addEventListener('change', async function(){
+        const f = selectEl.value;
+        if (!f) return;
+        try {
+          const r = await fetch('/api/tasks/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: f }) });
+          if (!r.ok) {
+            const e = await r.json().catch(()=>({}));
+            alert(e && e.error ? e.error : 'Import failed');
+            return;
+          }
+          await fetchTasks();
+        } catch(e) {
+          alert('Import failed');
+        } finally {
+          selectEl.style.display = 'none';
+          selectEl.value = '';
+        }
+      });
+    }
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async function(){
+        try {
+          const r = await fetch('/api/tasks/reload');
+          if (!r.ok) {
+            await fetchTasks();
+            return;
+          }
+          await fetchTasks();
+        } catch(_){ await fetchTasks(); }
+      });
+    }
   });
 })();
 </script>
