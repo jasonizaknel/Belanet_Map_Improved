@@ -677,6 +677,16 @@ function updatePriorityTaskQueue(tasks) {
 
         const priorityColors = { "critical": "bg-red-500", "high": "bg-orange-500", "medium": "bg-blue-500", "low": "bg-slate-400" };
         const pColor = priorityColors[pLow] || "bg-slate-400";
+        const ageMs = now - task.createdAt;
+        const ageMinutes = Math.floor(ageMs / (60 * 1000));
+        let ageLabel = '';
+        if (ageMinutes < 60) {
+            ageLabel = `${ageMinutes}m`;
+        } else if (ageMinutes < 60 * 24) {
+            ageLabel = `${Math.floor(ageMinutes / 60)}h`;
+        } else {
+            ageLabel = `${Math.floor(ageMinutes / (60 * 24))}d`;
+        }
 
         // Status / Action Button
         let actionHtml = "";
@@ -705,14 +715,15 @@ function updatePriorityTaskQueue(tasks) {
                     </div>
                     <div class="overflow-hidden">
                         <div class="text-sm font-black text-slate-800 leading-tight truncate w-full">${task.customer}</div>
-                        <div class="text-[9px] font-bold text-slate-400 tracking-tight">#${task.id.toString().split('-')[0]}</div>
+                        <div class="text-[9px] font-bold text-slate-400 tracking-tight secondary-label">#${task.id.toString().split('-')[0]}</div>
                     </div>
                 </div>
-                <div class="px-2 py-0.5 rounded text-[8px] font-black text-white ${pColor} uppercase">${task.priority}</div>
+                <div class="priority-badge px-3 py-1.5 rounded-lg text-[11px] font-black text-white ${pColor} uppercase shadow-md">${task.priority}</div>
             </div>
             
             <div class="flex-1 my-2 overflow-hidden">
                 <div class="text-[10px] font-black text-slate-500 line-clamp-2">${task.title}</div>
+                <div class="mt-1"><span class="task-age-badge">Opened ${ageLabel} ago</span></div>
             </div>
 
             <div class="flex justify-between items-center pt-2 border-t border-slate-100">

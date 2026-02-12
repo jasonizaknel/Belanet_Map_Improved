@@ -53,11 +53,12 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Subtask 1 — Task Card Information Hierarchy
-- [ ] Update `updatePriorityTaskQueue()` to make priority the dominant element
-- [ ] Compute and display task age (e.g., "Opened 2h ago") from `createdAt`
-- [ ] De-emphasize secondary labels via subtle styles in `stylesheet.css`
-- [ ] Verify task priority visibility and age without opening details
+### [x] Step: Subtask 1 — Task Card Information Hierarchy
+<!-- chat-id: 77de152c-51b1-47cf-932a-7328b0aa1714 -->
+- [x] Update `updatePriorityTaskQueue()` to make priority the dominant element
+- [x] Compute and display task age (e.g., "Opened 2h ago") from `createdAt`
+- [x] De-emphasize secondary labels via subtle styles in `stylesheet.css`
+- [x] Verify task priority visibility and age without opening details
 
 ### [ ] Step: Subtask 2 — Task Age & SLA Risk Indicators
 - [ ] Add `AppState.slaConfig` with defaults; persist to `localStorage`

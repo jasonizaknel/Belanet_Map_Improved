@@ -922,6 +922,26 @@ input, button, select, textarea {
     border-left: 5px solid #3b82f6 !important;
 }
 
+.priority-badge {
+    letter-spacing: 0.08em;
+    font-weight: 900;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.secondary-label {
+    color: #94a3b8;
+}
+
+.task-age-badge {
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    border: 1px solid #e0e7ff;
+}
+
 .task-card-etc {
     font-size: 9px;
     font-weight: 900;
