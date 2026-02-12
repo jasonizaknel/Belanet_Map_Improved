@@ -15,6 +15,10 @@ The **Belanet Map Improved** project is a real-time network management and visua
 - **UI Components**: [./User Interface/](./User%20Interface/) (Sidebars & Dashboards)
 - **State**: [./state.js](./state.js) (Global application state)
 - **Weather Modules**: [./src/weather/](./src/weather/) → `WeatherService.js`, `ClockManager.js`, `WeatherOverlay.js`, `weather-overlay.css`
+- **Tests**: [./tests/](./tests/) (Playwright-style spec files)
+- **Styles**: [./stylesheet.css](./stylesheet.css) (Global styles)
+- **Data**: [./Data/](./Data/) (assets, JSON sources, and `reports/`)
+- **Utility Scripts**: [./check_markers.js](./check_markers.js), [./verify_markers.js](./verify_markers.js), [./list_hosts.js](./list_hosts.js), [./list_hosts_v2.js](./list_hosts_v2.js), [./find_mismatches.js](./find_mismatches.js), [./debug_admins.js](./debug_admins.js), [./test_tasks.js](./test_tasks.js)
 
 ## Language & Runtime
 **Language**: JavaScript (Node.js & Browser)  
@@ -31,6 +35,15 @@ The **Belanet Map Improved** project is a real-time network management and visua
 - **axios**: HTTP client for API integrations
 - **cheerio**: HTML parsing for Nagios/Splynx extraction
 - **dotenv**: Environment variable management
+
+## Environment Variables
+- **GOOGLE_MAPS_KEY**: Google Maps JS key exposed via `/api/config`
+- **OPENWEATHER_API_KEY**: Enables weather endpoints and overlay
+- **ADMIN_TOKEN**: Required as `X-Admin-Token` header for admin endpoints
+- **ENABLE_TRACCAR** (`true|false`), **TRACCAR_URL**, **TRACCAR_USER**, **TRACCAR_PASS**
+- **ENABLE_SPLYNX_TASKS** (`true|false`), **SPLYNX_URL**, **SPLYNX_READ_ONLY_KEY**, **SPLYNX_ASSIGN_KEY**, **SPLYNX_SECRET**
+- **SPLYNX_ADMIN_USER**, **SPLYNX_ADMIN_PASS** (Playwright UI login for comments)
+- **NAGIOS_URL**, **NAGIOS_USER**, **NAGIOS_PASS**
 
 ## Backend: [./server.js](./server.js)
 - **adminAuth** (`128`): Middleware securing admin APIs via `X-Admin-Token`.
@@ -97,6 +110,15 @@ The **Belanet Map Improved** project is a real-time network management and visua
 - **renderTeamMembers** (`66`): Renders/updates team list with actions.
 - **updateMemberStats** (`151`): Computes live task list and distance from tracker.
 - **handleAutoAssign** (`310`): Bulk assign via `/api/tasks/assign` then refresh tasks.
+
+## User Interface: [./User Interface/Sidebar.js](./User%20Interface/Sidebar.js)
+- **initSidebarResize** (`1`): Drag-to-resize left sidebar
+- **initSidebarToggle** (`36`): Collapse/expand sidebar button
+- **initFilterButtons** (`54`): Binds visibility toggles (customers/towers/links/trackers/weather)
+- **initTabs** (`103`): Tabbed panel switching for left sidebar
+
+## User Interface: [./User Interface/Searchbar.js](./User%20Interface/Searchbar.js)
+- **initSearchFilter** (`1`): Debounced search that updates `AppState.filters.query` and marker visibility
 
 ---
 
