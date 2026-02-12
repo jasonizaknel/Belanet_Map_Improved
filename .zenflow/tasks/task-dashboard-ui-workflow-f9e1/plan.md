@@ -53,16 +53,63 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Implementation
+### [ ] Step: Subtask 1 — Task Card Information Hierarchy
+- [ ] Update `updatePriorityTaskQueue()` to make priority the dominant element
+- [ ] Compute and display task age (e.g., "Opened 2h ago") from `createdAt`
+- [ ] De-emphasize secondary labels via subtle styles in `stylesheet.css`
+- [ ] Verify task priority visibility and age without opening details
 
-Implement the task according to the technical specification and general engineering best practices.
+### [ ] Step: Subtask 2 — Task Age & SLA Risk Indicators
+- [ ] Add `AppState.slaConfig` with defaults; persist to `localStorage`
+- [ ] Add SLA config controls in Strategy panel (green/amber thresholds)
+- [ ] Compute SLA risk (green/amber/red) per task and render subtle indicator on cards
+- [ ] Ensure indicators update on data refresh and config change
 
-1. Break the task into steps where possible.
-2. Implement the required changes in the codebase
-3. If relevant, write unit tests alongside each change.
-4. Run relevant tests and linters in the end of each step.
-5. Perform basic manual verification if applicable.
-6. After completion, write a report to `{@artifacts_path}/report.md` describing:
-   - What was implemented
-   - How the solution was tested
-   - The biggest issues or challenges encountered
+### [ ] Step: Subtask 3 — Expandable Task Cards
+- [ ] Add inline expansion on click/hover with smooth height transition
+- [ ] Render full title/description, last updated, and assigned technician
+- [ ] Keep expansion inline; avoid modals; maintain grid flow
+- [ ] Validate no layout shift breaks prioritization view
+
+### [ ] Step: Subtask 4 — Filtering & Sorting Controls
+- [ ] Add filters: multi-select Priority, Status, Customer, Task Age buckets, Unassigned only
+- [ ] Add sorting presets: Urgent First, Oldest First, Unassigned
+- [ ] Combine filters deterministically; persist to `localStorage`
+- [ ] Ensure instant reordering and filter combination correctness
+
+### [ ] Step: Subtask 5 — Density Toggle
+- [ ] Add Compact/Comfortable toggle in Priority Queue header
+- [ ] Apply density class to cards for spacing/typography adjustments
+- [ ] Persist selection per session
+- [ ] Confirm readability and instant switching
+
+### [ ] Step: Subtask 6 — Make Team Panel Actionable
+- [ ] Keep drag-and-drop task → technician; refine visuals and drop affordances
+- [ ] Display technician load state (Available/Busy/Overloaded) with thresholds
+- [ ] Update load state immediately after assignment
+- [ ] Validate sync between team panel and dashboard tasks
+
+### [ ] Step: Subtask 7 — Technician Skills & Area Tags
+- [ ] Render compact `skills` and `region/area` tags on technician tiles
+- [ ] Use data if present; omit gracefully if missing
+- [ ] Ensure tags are unobtrusive and scannable
+
+### [ ] Step: Subtask 8 — Make Summary Metrics Interactive
+- [ ] Make metrics clickable to set filters (Open Tickets, Critical Priority)
+- [ ] Show active metric filter state and provide a clear reset action
+- [ ] Confirm list updates instantly on interaction
+
+### [ ] Step: Subtask 9 — Add Metric Trend Indicators
+- [ ] Track short history in `AppState.metricsHistory`
+- [ ] Compute deltas; render up/down caret with subtle delta text
+- [ ] Validate trends reflect change since previous period
+
+### [ ] Step: Subtask 10 — Refine Visual Language & Color Usage
+- [ ] Reserve saturated colors for Critical priority and SLA risk
+- [ ] Standardize icon usage and add tooltips for any ambiguous icons
+- [ ] Calibrate neutral backgrounds/borders to reduce noise
+
+### [ ] Step: Subtask 11 — Empty & Error States
+- [ ] Distinguish "No tasks loaded yet" vs. "No tasks match filters"
+- [ ] Provide reset/clear-filters control when filtered-empty
+- [ ] Add concise guidance for invalid/missing data cases
