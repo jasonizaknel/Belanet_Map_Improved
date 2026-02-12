@@ -584,6 +584,32 @@
                 </div>
 
                 <div class="mt-10 pt-8 border-t border-slate-100">
+                    <label class="text-xs font-black text-slate-500 uppercase tracking-widest block mb-3">SLA Indicators</label>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Amber After</span>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="slaAmberHoursInput" min="1" max="168" class="w-16 bg-slate-100/50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" value="8">
+                                <span class="text-[10px] text-slate-400 font-black uppercase">hrs</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Red After</span>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="slaRedHoursInput" min="1" max="168" class="w-16 bg-slate-100/50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" value="24">
+                                <span class="text-[10px] text-slate-400 font-black uppercase">hrs</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="sla-dot sla-green" title="Low Risk"></span>
+                            <span class="sla-dot sla-amber" title="Approaching SLA"></span>
+                            <span class="sla-dot sla-red" title="SLA Risk"></span>
+                            <button id="slaResetBtn" class="ml-auto filter-button-small">Reset</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-8 border-t border-slate-100">
                     <button id="applyOptimizationBtn" class="w-full py-4 bg-primary-600 text-white rounded-2xl font-black shadow-xl shadow-primary-200 hover:bg-primary-700 hover:shadow-primary-300 transition-all flex items-center justify-center gap-3 uppercase tracking-tighter text-sm">
                         <i data-lucide="zap" class="w-5 h-5"></i>
                         Recalculate Routes

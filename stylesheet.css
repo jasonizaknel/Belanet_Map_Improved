@@ -568,6 +568,12 @@ input, button, select, textarea {
 .urgency-medium { border-left: 6px solid #3b82f6 !important; }
 .urgency-low { border-left: 6px solid #94a3b8 !important; }
 
+/* SLA Risk Dot */
+.sla-dot { width: 8px; height: 8px; border-radius: 9999px; display: inline-block; box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 0 0 4px rgba(0,0,0,0.0); }
+.sla-green { background-color: #10b981; }
+.sla-amber { background-color: #f59e0b; }
+.sla-red { background-color: #ef4444; }
+
 .tech-grid-item:hover {
     background: white;
     box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1);

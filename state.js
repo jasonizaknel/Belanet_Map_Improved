@@ -103,7 +103,23 @@ window.AppState = {
         members: [], // Added team members (persisted)
         activeMemberId: null, // Currently expanded member
         expandedSidebar: false // Whether the right sidebar is fully expanded
-    }
+    },
+    // ADDED: SLA configuration with localStorage persistence
+    slaConfig: (function(){
+        const defaults = { amberHours: 8, redHours: 24 };
+        try {
+            const saved = localStorage.getItem('belanet_sla_config');
+            if (saved) {
+                const cfg = JSON.parse(saved);
+                const amber = parseInt(cfg.amberHours);
+                const red = parseInt(cfg.redHours);
+                if (!isNaN(amber) && !isNaN(red) && red >= amber && amber > 0) {
+                    return { amberHours: amber, redHours: red };
+                }
+            }
+        } catch (e) { console.error('Error loading SLA config', e); }
+        return defaults;
+    })()
 };
 
 // ADDED: Global helper to trigger UI updates

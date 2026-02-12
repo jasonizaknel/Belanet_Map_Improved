@@ -127,6 +127,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!AppState.selectedTasks) AppState.selectedTasks = new Set();
     if (!AppState.activeTargetTechId) AppState.activeTargetTechId = null;
 
+    // SLA Config Controls
+    const slaAmberInput = document.getElementById('slaAmberHoursInput');
+    const slaRedInput = document.getElementById('slaRedHoursInput');
+    const slaResetBtn = document.getElementById('slaResetBtn');
+    if (slaAmberInput && slaRedInput) {
+        const cfg = AppState.slaConfig || { amberHours: 8, redHours: 24 };
+        slaAmberInput.value = cfg.amberHours;
+        slaRedInput.value = cfg.redHours;
+        const persist = () => {
+            const amber = Math.max(1, parseInt(slaAmberInput.value || '8'));
+            const red = Math.max(amber, parseInt(slaRedInput.value || '24'));
+            AppState.slaConfig = { amberHours: amber, redHours: red };
+            try { localStorage.setItem('belanet_sla_config', JSON.stringify(AppState.slaConfig)); } catch (e) {}
+            updateOperationalDashboard();
+        };
+        slaAmberInput.oninput = persist;
+        slaRedInput.oninput = persist;
+        if (slaResetBtn) {
+            slaResetBtn.onclick = () => {
+                slaAmberInput.value = 8;
+                slaRedInput.value = 24;
+                persist();
+            };
+        }
+    }
+
     // Grid Columns Slider
     const gridColsSlider = document.getElementById("dashGridCols");
     const gridColsVal = document.getElementById("dashGridColsVal");
@@ -687,6 +713,10 @@ function updatePriorityTaskQueue(tasks) {
         } else {
             ageLabel = `${Math.floor(ageMinutes / (60 * 24))}d`;
         }
+        const slaCfg = AppState.slaConfig || { amberHours: 8, redHours: 24 };
+        const ageHours = ageMinutes / 60;
+        const slaClass = ageHours >= slaCfg.redHours ? 'sla-red' : ageHours >= slaCfg.amberHours ? 'sla-amber' : 'sla-green';
+        const slaTitle = ageHours >= slaCfg.redHours ? 'SLA Risk' : ageHours >= slaCfg.amberHours ? 'Approaching SLA' : 'Low Risk';
 
         // Status / Action Button
         let actionHtml = "";
@@ -723,7 +753,7 @@ function updatePriorityTaskQueue(tasks) {
             
             <div class="flex-1 my-2 overflow-hidden">
                 <div class="text-[10px] font-black text-slate-500 line-clamp-2">${task.title}</div>
-                <div class="mt-1"><span class="task-age-badge">Opened ${ageLabel} ago</span></div>
+                <div class="mt-1 flex items-center gap-2"><span class="sla-dot ${slaClass}" title="${slaTitle}"></span><span class="task-age-badge">Opened ${ageLabel} ago</span></div>
             </div>
 
             <div class="flex justify-between items-center pt-2 border-t border-slate-100">

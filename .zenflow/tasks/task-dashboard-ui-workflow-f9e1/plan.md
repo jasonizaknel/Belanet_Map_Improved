@@ -60,11 +60,12 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] De-emphasize secondary labels via subtle styles in `stylesheet.css`
 - [x] Verify task priority visibility and age without opening details
 
-### [ ] Step: Subtask 2 — Task Age & SLA Risk Indicators
-- [ ] Add `AppState.slaConfig` with defaults; persist to `localStorage`
-- [ ] Add SLA config controls in Strategy panel (green/amber thresholds)
-- [ ] Compute SLA risk (green/amber/red) per task and render subtle indicator on cards
-- [ ] Ensure indicators update on data refresh and config change
+### [x] Step: Subtask 2 — Task Age & SLA Risk Indicators
+<!-- chat-id: 64bc09ec-5ec0-4338-975d-c29d6350cbd6 -->
+- [x] Add `AppState.slaConfig` with defaults; persist to `localStorage`
+- [x] Add SLA config controls in Strategy panel (green/amber thresholds)
+- [x] Compute SLA risk (green/amber/red) per task and render subtle indicator on cards
+- [x] Ensure indicators update on data refresh and config change
 
 ### [ ] Step: Subtask 3 — Expandable Task Cards
 - [ ] Add inline expansion on click/hover with smooth height transition
