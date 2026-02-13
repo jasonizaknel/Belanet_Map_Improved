@@ -213,6 +213,47 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // Density Toggle
+    (function(){
+        const compactBtn = document.getElementById('densityCompactBtn');
+        const comfortBtn = document.getElementById('densityComfortBtn');
+        const dashEl = document.getElementById('taskDashboard');
+        if (dashEl) {
+            if (!AppState.dashboardDensity) {
+                try {
+                    const saved = localStorage.getItem('belanet_density');
+                    AppState.dashboardDensity = saved === 'compact' ? 'compact' : 'comfortable';
+                } catch (_) { AppState.dashboardDensity = 'comfortable'; }
+            }
+            const apply = () => {
+                const isCompact = AppState.dashboardDensity === 'compact';
+                dashEl.classList.toggle('density-compact', isCompact);
+                if (compactBtn && comfortBtn) {
+                    compactBtn.classList.toggle('active', isCompact);
+                    comfortBtn.classList.toggle('active', !isCompact);
+                }
+                updateOperationalDashboard();
+            };
+            if (compactBtn) compactBtn.onclick = (e) => {
+                e.preventDefault();
+                AppState.dashboardDensity = 'compact';
+                try { localStorage.setItem('belanet_density', 'compact'); } catch(_){ }
+                apply();
+            };
+            if (comfortBtn) comfortBtn.onclick = (e) => {
+                e.preventDefault();
+                AppState.dashboardDensity = 'comfortable';
+                try { localStorage.setItem('belanet_density', 'comfortable'); } catch(_){ }
+                apply();
+            };
+            dashEl.classList.toggle('density-compact', AppState.dashboardDensity === 'compact');
+            if (compactBtn && comfortBtn) {
+                compactBtn.classList.toggle('active', AppState.dashboardDensity === 'compact');
+                comfortBtn.classList.toggle('active', AppState.dashboardDensity !== 'compact');
+            }
+        }
+    })();
+
     // Select All Visible
     const selectAllBtn = document.getElementById("selectAllTasksBtn");
     if (selectAllBtn) {
@@ -777,7 +818,10 @@ function updatePriorityTaskQueue(tasks) {
         card.draggable = !isAssigned;
         if (isExpanded) card.classList.add('expanded');
         card.style.transition = 'max-height 200ms ease';
-        card.style.maxHeight = isExpanded ? '360px' : '160px';
+        const isCompactDensity = (AppState.dashboardDensity === 'compact');
+        const collapsedH = isCompactDensity ? '140px' : '160px';
+        const expandedH = isCompactDensity ? '320px' : '360px';
+        card.style.maxHeight = isExpanded ? expandedH : collapsedH;
         
         card.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('application/json', JSON.stringify({ taskId: task.id, isLive: task.isLive }));

@@ -951,6 +951,16 @@ input, button, select, textarea {
     border: 1px solid #e0e7ff;
 }
 
+#densityToggle button.active { background: #2563eb; color: #fff; }
+
+.density-compact #dashTaskList { padding: 12px !important; gap: 0.5rem !important; }
+.density-compact .task-dashboard-card { padding: 10px !important; border-radius: 14px !important; }
+.density-compact .task-dashboard-card .priority-badge { font-size: 10px !important; padding: 4px 8px !important; }
+.density-compact .task-dashboard-card .w-10.h-10 { width: 28px !important; height: 28px !important; }
+.density-compact .task-dashboard-card .text-sm { font-size: 12px !important; }
+.density-compact .task-dashboard-card .text-[10px] { font-size: 9px !important; }
+.density-compact .task-expanded-content { margin-top: 6px !important; padding-top: 6px !important; }
+
 .task-card-etc {
     font-size: 9px;
     font-weight: 900;

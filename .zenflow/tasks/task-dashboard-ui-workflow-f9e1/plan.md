@@ -81,11 +81,12 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Combine filters deterministically; persist to `localStorage`
 - [ ] Ensure instant reordering and filter combination correctness
 
-### [ ] Step: Subtask 5 — Density Toggle
-- [ ] Add Compact/Comfortable toggle in Priority Queue header
-- [ ] Apply density class to cards for spacing/typography adjustments
-- [ ] Persist selection per session
-- [ ] Confirm readability and instant switching
+### [x] Step: Subtask 5 — Density Toggle
+<!-- chat-id: 831aaa61-4ca3-450d-bb17-f8525056525a -->
+- [x] Add Compact/Comfortable toggle in Priority Queue header
+- [x] Apply density class to cards for spacing/typography adjustments
+- [x] Persist selection per session
+- [x] Confirm readability and instant switching
 
 ### [ ] Step: Subtask 6 — Make Team Panel Actionable
 - [ ] Keep drag-and-drop task → technician; refine visuals and drop affordances
@@ -117,3 +118,9 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Distinguish "No tasks loaded yet" vs. "No tasks match filters"
 - [ ] Provide reset/clear-filters control when filtered-empty
 - [ ] Add concise guidance for invalid/missing data cases
+
+### [ ] Step: E2E Testing & Playwright
+
+Generate an E2E test using playwright for each of the 11 Subtasks to test the UI, and added functionality, to ensure that everything is working as intended. 
+
+Take screenshots of each UI element
