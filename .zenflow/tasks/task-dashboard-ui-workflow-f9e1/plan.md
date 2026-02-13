@@ -101,7 +101,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Use data if present; omit gracefully if missing
 - [ ] Ensure tags are unobtrusive and scannable
 
-### [ ] Step: Subtask 8 — Make Summary Metrics Interactive
+### [x] Step: Subtask 8 — Make Summary Metrics Interactive
+<!-- chat-id: 84e95fed-a62c-4b75-8e40-a2c173acb0b5 -->
 - [ ] Make metrics clickable to set filters (Open Tickets, Critical Priority)
 - [ ] Show active metric filter state and provide a clear reset action
 - [ ] Confirm list updates instantly on interaction

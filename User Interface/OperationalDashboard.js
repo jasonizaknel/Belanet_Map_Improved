@@ -167,6 +167,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fSort) fSort.onchange = () => { AppState.taskFilters.sort = fSort.value; onChange(); };
 
 
+    if (typeof AppState.activeMetricFilter === 'undefined') AppState.activeMetricFilter = null;
+    const setMetricFilter = (type) => {
+        if (type === 'open') {
+            AppState.taskFilters.status = 'open';
+            AppState.activeMetricFilter = 'open';
+            const fStatusEl = document.getElementById('dashTaskStatusFilter');
+            if (fStatusEl) fStatusEl.value = 'open';
+        } else if (type === 'critical') {
+            AppState.taskFilters.priorities = { critical: true, high: false, medium: false, low: false };
+            AppState.activeMetricFilter = 'critical';
+            const fPriCriticalEl = document.getElementById('fPriCritical');
+            const fPriHighEl = document.getElementById('fPriHigh');
+            const fPriMediumEl = document.getElementById('fPriMedium');
+            const fPriLowEl = document.getElementById('fPriLow');
+            if (fPriCriticalEl) fPriCriticalEl.checked = true;
+            if (fPriHighEl) fPriHighEl.checked = false;
+            if (fPriMediumEl) fPriMediumEl.checked = false;
+            if (fPriLowEl) fPriLowEl.checked = false;
+        } else {
+            AppState.activeMetricFilter = null;
+            AppState.taskFilters.status = 'all';
+            AppState.taskFilters.priorities = { critical: true, high: true, medium: true, low: true };
+            const fStatusEl = document.getElementById('dashTaskStatusFilter');
+            if (fStatusEl) fStatusEl.value = 'all';
+            const fPriCriticalEl = document.getElementById('fPriCritical');
+            const fPriHighEl = document.getElementById('fPriHigh');
+            const fPriMediumEl = document.getElementById('fPriMedium');
+            const fPriLowEl = document.getElementById('fPriLow');
+            if (fPriCriticalEl) fPriCriticalEl.checked = true;
+            if (fPriHighEl) fPriHighEl.checked = true;
+            if (fPriMediumEl) fPriMediumEl.checked = true;
+            if (fPriLowEl) fPriLowEl.checked = true;
+        }
+        try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_) {}
+        updateOperationalDashboard();
+    };
+    const openTicketsCard = document.getElementById('hbOpenTickets') ? document.getElementById('hbOpenTickets').closest('.heartbeat-stat') : null;
+    const criticalCard = document.getElementById('hbCriticalTasks') ? document.getElementById('hbCriticalTasks').closest('.heartbeat-stat') : null;
+    if (openTicketsCard) {
+        openTicketsCard.classList.add('cursor-pointer');
+        openTicketsCard.onclick = () => setMetricFilter('open');
+    }
+    if (criticalCard) {
+        criticalCard.classList.add('cursor-pointer');
+        criticalCard.onclick = () => setMetricFilter('critical');
+    }
+
     // Initialize new AppState variables
     if (!AppState.dashboardGridCols) AppState.dashboardGridCols = 2;
     if (!AppState.selectedTasks) AppState.selectedTasks = new Set();
@@ -505,6 +552,12 @@ function updateHeartbeatMetrics(allTasks, allAgents) {
     const dashTaskCount = document.getElementById("dashTaskCount");
     if (dashAgentCount) dashAgentCount.textContent = `${allAgents.length} Agents`;
     if (dashTaskCount) dashTaskCount.textContent = `${allTasks.length} Tasks`;
+
+    const openCard = document.getElementById('hbOpenTickets') ? document.getElementById('hbOpenTickets').closest('.heartbeat-stat') : null;
+    const critCard = document.getElementById('hbCriticalTasks') ? document.getElementById('hbCriticalTasks').closest('.heartbeat-stat') : null;
+    [openCard, critCard].forEach(c => { if (c) { c.classList.remove('ring-2','ring-primary-500','bg-primary-50'); } });
+    if (AppState.activeMetricFilter === 'open' && openCard) { openCard.classList.add('ring-2','ring-primary-500','bg-primary-50'); }
+    if (AppState.activeMetricFilter === 'critical' && critCard) { critCard.classList.add('ring-2','ring-primary-500','bg-primary-50'); }
 }
 
 /**
@@ -683,6 +736,40 @@ function updatePriorityTaskQueue(tasks) {
     const targetTechNameSpan = document.getElementById("targetTechName");
     
     if (!listContainer) return;
+
+    const filtersBar = document.getElementById('dashFiltersBar');
+    if (filtersBar) {
+        const existing = document.getElementById('metricFilterChip');
+        if (existing) existing.remove();
+        if (AppState.activeMetricFilter) {
+            const chip = document.createElement('button');
+            chip.id = 'metricFilterChip';
+            chip.className = 'px-2 py-1 text-[10px] font-black rounded-lg border border-primary-200 bg-primary-50 text-primary-700 flex items-center gap-1';
+            chip.innerHTML = (AppState.activeMetricFilter === 'open' ? 'Metric: Open Tickets' : 'Metric: Critical Priority') + ' <span class="ml-1">✕</span>';
+            chip.onclick = (e) => {
+                e.preventDefault();
+                if (AppState.activeMetricFilter === 'open') {
+                    AppState.taskFilters.status = 'all';
+                    const fStatusEl = document.getElementById('dashTaskStatusFilter');
+                    if (fStatusEl) fStatusEl.value = 'all';
+                } else if (AppState.activeMetricFilter === 'critical') {
+                    AppState.taskFilters.priorities = { critical: true, high: true, medium: true, low: true };
+                    const fPriCriticalEl = document.getElementById('fPriCritical');
+                    const fPriHighEl = document.getElementById('fPriHigh');
+                    const fPriMediumEl = document.getElementById('fPriMedium');
+                    const fPriLowEl = document.getElementById('fPriLow');
+                    if (fPriCriticalEl) fPriCriticalEl.checked = true;
+                    if (fPriHighEl) fPriHighEl.checked = true;
+                    if (fPriMediumEl) fPriMediumEl.checked = true;
+                    if (fPriLowEl) fPriLowEl.checked = true;
+                }
+                AppState.activeMetricFilter = null;
+                try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_) {}
+                updateOperationalDashboard();
+            };
+            filtersBar.appendChild(chip);
+        }
+    }
 
     if (tasks.length === 0) {
         listContainer.innerHTML = '<div class="text-center py-10 text-slate-400 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">No active tasks found</div>';
