@@ -68,16 +68,34 @@ function renderTeamMembers() {
     if (!list) return;
 
     list.innerHTML = '';
+    const tasks = window.AppState.tasks || [];
+    const maxCap = (window.AppState.simulation && window.AppState.simulation.maxTasksPerAgent) || 10;
+
     window.AppState.team.members.forEach(member => {
+        const memberTasks = tasks.filter(t => {
+            const isAssigned = (t.assignee && String(t.assignee) === String(member.id)) ||
+                               (t["Assigned to"] && String(t["Assigned to"]).toLowerCase() === String(member.name).toLowerCase());
+            if (!isAssigned) return false;
+            const status = typeof getTaskStatusLabel === 'function' ? getTaskStatusLabel(t) : (t.Status || 'Active');
+            return status !== 'Closed' && status !== 'Resolved' && status !== 'Rejected';
+        });
+        const workload = memberTasks.length;
+        const pct = Math.min(100, Math.round((workload / maxCap) * 100));
+        let loadLabel = 'Available';
+        let loadClass = 'text-emerald-600';
+        if (pct >= 90 || workload > maxCap) { loadLabel = 'Overloaded'; loadClass = 'text-red-600'; }
+        else if (pct >= 60) { loadLabel = 'Busy'; loadClass = 'text-amber-600'; }
+
         const card = document.createElement('div');
-        card.className = 'member-card flex items-center gap-4 group relative';
+        card.className = 'member-card flex items-center gap-4 group relative rounded-xl border border-slate-100 p-3 transition-all';
+        card.title = 'Drag tasks here to assign';
         card.innerHTML = `
             <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
                 <i data-lucide="user" class="w-6 h-6"></i>
             </div>
             <div class="flex-1">
                 <div class="font-bold text-slate-800">${member.name}</div>
-                <div class="text-xs text-green-500 font-medium">Online</div>
+                <div class="text-xs font-semibold ${loadClass}">${loadLabel} · ${workload}/${maxCap}</div>
             </div>
             <div class="flex items-center gap-2">
                 <button class="remove-member-btn opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 transition-all" title="Remove Member">
@@ -86,6 +104,33 @@ function renderTeamMembers() {
                 <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
             </div>
         `;
+
+        card.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            card.classList.add('ring-2', 'ring-primary-500', 'bg-primary-50/50');
+        });
+        card.addEventListener('dragleave', () => {
+            card.classList.remove('ring-2', 'ring-primary-500', 'bg-primary-50/50');
+        });
+        card.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            card.classList.remove('ring-2', 'ring-primary-500', 'bg-primary-50/50');
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                const ok = typeof handleTaskAssignment === 'function' ? handleTaskAssignment(data.taskId, member.id, data.isLive) : false;
+                if (ok) {
+                    if (data.isLive && typeof fetchTasks === 'function') {
+                        await fetchTasks();
+                    }
+                    updateMemberStats(member);
+                    renderTeamMembers();
+                    if (typeof updateOperationalDashboard === 'function') updateOperationalDashboard();
+                }
+            } catch (err) {
+                console.error('Drop failed:', err);
+            }
+        });
         
         card.onclick = (e) => {
             if (e.target.closest('.remove-member-btn')) {
@@ -394,6 +439,39 @@ async function handleAutoAssign() {
         }
     }
 }
+
+async function assignTaskToTechnician(taskId, technicianId) {
+    try {
+        const member = (window.AppState.team.members || []).find(m => String(m.id) === String(technicianId));
+        const token = window.AppState && window.AppState.config ? window.AppState.config.adminToken : '';
+        const body = {
+            taskIds: [String(taskId)],
+            technicianId: String(technicianId),
+            technicianName: member ? member.name : String(technicianId)
+        };
+        const res = await fetch('/api/tasks/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+            body: JSON.stringify(body)
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            if (typeof showNotification === 'function') showNotification('Assignment Failed', 'Unable to assign task', 'error');
+            return false;
+        }
+        if (typeof fetchTasks === 'function') await fetchTasks();
+        if (member) updateMemberStats(member);
+        renderTeamMembers();
+        if (typeof updateOperationalDashboard === 'function') updateOperationalDashboard();
+        if (typeof showNotification === 'function') showNotification('Assigned', `Task ${taskId} → ${member ? member.name : technicianId}`, 'success');
+        return true;
+    } catch (e) {
+        console.error('assignTaskToTechnician error', e);
+        if (typeof showNotification === 'function') showNotification('Assignment Error', 'Check console for details', 'error');
+        return false;
+    }
+}
+window.assignTaskToTechnician = assignTaskToTechnician;
 
 function toggleAutoAssignUI(show) {
     const ui = document.getElementById('autoAssignUI');

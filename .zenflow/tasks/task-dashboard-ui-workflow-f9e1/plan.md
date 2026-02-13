@@ -88,11 +88,12 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Persist selection per session
 - [x] Confirm readability and instant switching
 
-### [ ] Step: Subtask 6 — Make Team Panel Actionable
-- [ ] Keep drag-and-drop task → technician; refine visuals and drop affordances
-- [ ] Display technician load state (Available/Busy/Overloaded) with thresholds
-- [ ] Update load state immediately after assignment
-- [ ] Validate sync between team panel and dashboard tasks
+### [x] Step: Subtask 6 — Make Team Panel Actionable
+<!-- chat-id: d91580fe-2446-4af6-98b3-4f537e28ac45 -->
+- [x] Keep drag-and-drop task → technician; refine visuals and drop affordances
+- [x] Display technician load state (Available/Busy/Overloaded) with thresholds
+- [x] Update load state immediately after assignment
+- [x] Validate sync between team panel and dashboard tasks
 
 ### [ ] Step: Subtask 7 — Technician Skills & Area Tags
 - [ ] Render compact `skills` and `region/area` tags on technician tiles
