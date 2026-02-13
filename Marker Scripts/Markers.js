@@ -517,6 +517,44 @@ class StrikeMarker {
 }
 
 // ADDED: Update weather tile layers
+// Simple opacity wrapper for weather tile overlays
+class OpacityMapType {
+    constructor(baseMapType, opacity) {
+        this.baseMapType = baseMapType;
+        this.opacity = Math.max(0.1, Math.min(1.0, opacity || 1.0));
+        this.tileSize = baseMapType.tileSize;
+        this.name = baseMapType.name;
+        this.alt = baseMapType.alt;
+    }
+
+    getTile(coord, zoom, ownerDocument) {
+        const canvas = ownerDocument.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = this.tileSize.width;
+        canvas.height = this.tileSize.height;
+
+        const tileUrl = this.baseMapType.getTileUrl(coord, zoom);
+        const img = new Image();
+        
+        img.onload = () => {
+            ctx.globalAlpha = this.opacity;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1.0;
+        };
+
+        img.onerror = () => {
+            console.warn(`Failed to load tile: ${tileUrl}`);
+        };
+
+        img.src = tileUrl;
+        return canvas;
+    }
+
+    releaseTile(tile) {
+        // No-op
+    }
+}
+
 function updateWeatherLayers() {
     const apiKey = window.AppConfig ? window.AppConfig.openWeatherKey : null;
     if (!AppState.map || !google || !google.maps) return;
@@ -533,6 +571,7 @@ function updateWeatherLayers() {
 
     const defaultLayers = ['clouds_new'];
 
+    // Remove old overlays
     for (const key of Object.keys(AppState.weatherLayers)) {
         const overlay = AppState.weatherLayers[key];
         if (!overlay) continue;
@@ -548,28 +587,31 @@ function updateWeatherLayers() {
     if (!AppState.visibility.weather || !apiKey) return;
 
     const layerMeta = {
-        'clouds_new': { name: 'Clouds', opacity: 0.55 },
-        'precipitation_new': { name: 'Precipitation', opacity: 0.6 },
-        'rain_new': { name: 'Rain', opacity: 0.6 },
-        'snow_new': { name: 'Snow', opacity: 0.6 },
-        'temp_new': { name: 'Temperature', opacity: 1.0 },
-        'wind_new': { name: 'Wind', opacity: 0.5 },
-        'pressure_new': { name: 'Pressure', opacity: 0.5 }
+        'clouds_new': { name: 'Clouds', opacity: 0.75 },
+        'precipitation_new': { name: 'Precipitation', opacity: 0.85 },
+        'rain_new': { name: 'Rain', opacity: 0.85 },
+        'snow_new': { name: 'Snow', opacity: 0.85 },
+        'temp_new': { name: 'Temperature', opacity: 0.95 },
+        'wind_new': { name: 'Wind', opacity: 0.8 },
+        'pressure_new': { name: 'Pressure', opacity: 0.8 }
     };
 
+    const useHighDpr = (typeof window !== 'undefined' && window.devicePixelRatio && window.devicePixelRatio > 1);
+
     supportedLayers.forEach((type) => {
-        const meta = layerMeta[type] || { name: type, opacity: 0.6 };
-        const useHighDpr = (typeof window !== 'undefined' && window.devicePixelRatio && window.devicePixelRatio > 1);
+        const meta = layerMeta[type] || { name: type, opacity: 0.85 };
         const imageMapType = new google.maps.ImageMapType({
             getTileUrl: function(coord, zoom) {
                 const scaleSuffix = useHighDpr ? '@2x' : '';
                 return `https://tile.openweathermap.org/map/${type}/${zoom}/${coord.x}/${coord.y}${scaleSuffix}.png?appid=${apiKey}`;
             },
             tileSize: new google.maps.Size(useHighDpr ? 512 : 256, useHighDpr ? 512 : 256),
-            name: meta.name,
-            opacity: meta.opacity
+            name: meta.name
         });
-        AppState.weatherLayers[type] = imageMapType;
+        
+        // Wrap with opacity handler
+        const opacityMapType = new OpacityMapType(imageMapType, meta.opacity);
+        AppState.weatherLayers[type] = opacityMapType;
     });
 
     let selected = defaultLayers.slice();
