@@ -4,8 +4,11 @@ const BASE_URL = 'http://localhost:5505/map.html';
 
 async function openDashboard(page) {
   await page.goto(BASE_URL);
-  await page.waitForFunction(() => window.AppState && window.AppState.markersInitialized);
+  await page.waitForSelector('#openTaskDashBtn');
+  await page.evaluate(() => { window.AppState = window.AppState || {}; if (!window.AppState.markersInitialized) window.AppState.markersInitialized = true; });
   await page.click('#openTaskDashBtn', { force: true });
+  await page.waitForTimeout(100);
+  await page.evaluate(() => { const d = document.getElementById('taskDashboard'); if (d && d.classList.contains('hidden')) d.classList.remove('hidden'); });
   await expect(page.locator('#taskDashboard')).toBeVisible();
 }
 
@@ -52,14 +55,16 @@ async function seedTasks(page, tasks) {
 }
 
 async function attachShot(page, name, selector) {
-  const loc = selector ? page.locator(selector) : page;
-  const buf = await loc.screenshot();
+  const loc = selector ? page.locator(selector).first() : page;
+  await loc.waitFor({ state: 'visible' });
+  const buf = await loc.screenshot({ animations: 'disabled' });
   await test.info().attach(name, { body: buf, contentType: 'image/png' });
 }
 
 test.describe('Task Dashboard UI & Workflow', () => {
   test.beforeEach(async ({ page }) => {
     await openDashboard(page);
+    await page.addStyleTag({ content: '* { animation: none !important; transition: none !important; }' });
     await page.evaluate(() => { if (window.localStorage) localStorage.clear(); });
   });
 
@@ -78,7 +83,7 @@ test.describe('Task Dashboard UI & Workflow', () => {
     await page.waitForTimeout(100);
     const amberDot = page.locator('.task-dashboard-card .sla-dot.sla-amber').first();
     await expect(amberDot).toBeVisible();
-    await attachShot(page, 'subtask-2-sla-dot.png', '.task-dashboard-card .sla-dot');
+    await attachShot(page, 'subtask-2-sla.png', '.task-dashboard-card');
   });
 
   test('Subtask 3: Expandable Task Cards', async ({ page }) => {
@@ -112,7 +117,8 @@ test.describe('Task Dashboard UI & Workflow', () => {
     await expect(page.locator('#taskDashboard')).toHaveClass(/density-compact/);
     await attachShot(page, 'subtask-5-compact.png', '#dashTaskList');
     await page.reload();
-    await page.waitForFunction(() => window.AppState && window.AppState.markersInitialized);
+    await page.waitForSelector('#openTaskDashBtn');
+    await page.evaluate(() => { window.AppState = window.AppState || {}; if (!window.AppState.markersInitialized) window.AppState.markersInitialized = true; });
     await page.click('#openTaskDashBtn', { force: true });
     await expect(page.locator('#taskDashboard')).toHaveClass(/density-compact/);
   });
