@@ -89,6 +89,13 @@ function renderTeamMembers() {
         const card = document.createElement('div');
         card.className = 'member-card flex items-center gap-4 group relative rounded-xl border border-slate-100 p-3 transition-all';
         card.title = 'Drag tasks here to assign';
+        let tagsHtml = '';
+        const skills = Array.isArray(member.skills) ? member.skills.slice(0, 3) : [];
+        const regionTag = member.region || member.area;
+        const tagSpans = [];
+        skills.forEach(s => { if (s) tagSpans.push(`<span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">${String(s)}</span>`); });
+        if (regionTag) { tagSpans.push(`<span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100">${String(regionTag)}</span>`); }
+        if (tagSpans.length) { tagsHtml = `<div class="flex flex-wrap gap-1 mt-1">${tagSpans.join('')}</div>`; }
         card.innerHTML = `
             <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
                 <i data-lucide="user" class="w-6 h-6"></i>
@@ -96,6 +103,7 @@ function renderTeamMembers() {
             <div class="flex-1">
                 <div class="font-bold text-slate-800">${member.name}</div>
                 <div class="text-xs font-semibold ${loadClass}">${loadLabel} · ${workload}/${maxCap}</div>
+                ${tagsHtml}
             </div>
             <div class="flex items-center gap-2">
                 <button class="remove-member-btn opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 transition-all" title="Remove Member">

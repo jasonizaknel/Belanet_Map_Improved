@@ -95,7 +95,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Update load state immediately after assignment
 - [x] Validate sync between team panel and dashboard tasks
 
-### [ ] Step: Subtask 7 — Technician Skills & Area Tags
+### [x] Step: Subtask 7 — Technician Skills & Area Tags
+<!-- chat-id: 74f02d6d-a442-4fdd-87a3-1361a7c08321 -->
 - [ ] Render compact `skills` and `region/area` tags on technician tiles
 - [ ] Use data if present; omit gracefully if missing
 - [ ] Ensure tags are unobtrusive and scannable

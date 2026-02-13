@@ -621,6 +621,13 @@ function updateTechnicianGrid(agents) {
             `;
         }
 
+        let tagsHtml = '';
+        const skills = Array.isArray(agent.skills) ? agent.skills.slice(0, 3) : [];
+        const regionTag = agent.region || agent.area;
+        const tagSpans = [];
+        skills.forEach(s => { if (s) tagSpans.push(`<span class=\"text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200\">${String(s)}</span>`); });
+        if (regionTag) { tagSpans.push(`<span class=\"text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100\">${String(regionTag)}</span>`); }
+        if (tagSpans.length) { tagsHtml = `<div class=\"flex flex-wrap gap-1 mt-2\">${tagSpans.join('')}</div>`; }
         card.innerHTML = `
             <div class="flex justify-between items-start mb-5">
                 <div class="flex items-center gap-4">
@@ -638,6 +645,7 @@ function updateTechnicianGrid(agents) {
                             </span>
                             ${agent.isLive ? '<span class="text-[9px] font-black uppercase px-2 py-1 rounded-md bg-emerald-100 text-emerald-600 border border-emerald-200 shadow-sm">Live</span>' : ''}
                         </div>
+                        ${tagsHtml}
                     </div>
                 </div>
                 <div class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 text-center min-w-[50px]">
