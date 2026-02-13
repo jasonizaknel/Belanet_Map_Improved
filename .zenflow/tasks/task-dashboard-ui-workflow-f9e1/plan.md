@@ -119,10 +119,11 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Standardize icon usage and add tooltips for any ambiguous icons
 - [ ] Calibrate neutral backgrounds/borders to reduce noise
 
-### [ ] Step: Subtask 11 — Empty & Error States
-- [ ] Distinguish "No tasks loaded yet" vs. "No tasks match filters"
-- [ ] Provide reset/clear-filters control when filtered-empty
-- [ ] Add concise guidance for invalid/missing data cases
+### [x] Step: Subtask 11 — Empty & Error States
+<!-- chat-id: 08ed750e-a6fc-415f-a6f9-befdfb2e0fa8 -->
+- [x] Distinguish "No tasks loaded yet" vs. "No tasks match filters"
+- [x] Provide reset/clear-filters control when filtered-empty
+- [x] Add concise guidance for invalid/missing data cases
 
 ### [ ] Step: E2E Testing & Playwright
 

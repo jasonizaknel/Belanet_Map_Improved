@@ -810,8 +810,15 @@ function updatePriorityTaskQueue(tasks) {
     }
 
     if (tasks.length === 0) {
-        listContainer.innerHTML = '<div class="text-center py-10 text-slate-400 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">No active tasks found</div>';
+        const liveLoaded = Array.isArray(AppState.tasks);
+        const simHas = Array.isArray(AppState.simulation?.tasks) && AppState.simulation.tasks.length > 0;
+        if (!liveLoaded && !simHas) {
+            listContainer.innerHTML = '<div class="flex flex-col items-center justify-center py-10 text-slate-500 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200"><i data-lucide="inbox" class="w-10 h-10 mb-2 opacity-20"></i><p class="text-sm font-medium">No tasks loaded yet</p><p class="text-[11px] text-slate-400 mt-1">Waiting for task data...</p></div>';
+        } else {
+            listContainer.innerHTML = '<div class="text-center py-10 text-slate-400 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">No active tasks found</div>';
+        }
         if (bulkBar) bulkBar.classList.add("hidden");
+        if (window.lucide) window.lucide.createIcons();
         return;
     }
 
@@ -867,6 +874,21 @@ function updatePriorityTaskQueue(tasks) {
 
         return matchesSearch && matchesPriority && matchesStatus && matchesCustomer && matchesAge && matchesUnassigned;
     });
+
+    if (filteredTasks.length === 0) {
+        listContainer.innerHTML = '<div class="flex flex-col items-center justify-center py-10 text-slate-500 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200"><i data-lucide="filter-x" class="w-10 h-10 mb-2 opacity-20"></i><p class="text-sm font-medium">No tasks match current filters</p><button id="resetTaskFiltersBtn" class="mt-3 px-3 py-1.5 text-[11px] font-black rounded-lg border border-slate-200 bg-white hover:bg-slate-50">Clear Filters</button></div>';
+        if (bulkBar) bulkBar.classList.add('hidden');
+        if (window.lucide) window.lucide.createIcons();
+        const btn = document.getElementById('resetTaskFiltersBtn');
+        if (btn) btn.onclick = (e) => {
+            e.preventDefault();
+            AppState.activeMetricFilter = null;
+            AppState.taskFilters = { priorities: { critical: true, high: true, medium: true, low: true }, status: 'all', customer: 'all', age: 'all', unassignedOnly: false, sort: 'urgent' };
+            try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_){ }
+            updateOperationalDashboard();
+        };
+        return;
+    }
 
     // Attach ageDays for legacy highlighting
     const withAge = filteredTasks.map(t => ({ ...t, ageDays: (now - t.createdAt) / (1000 * 3600 * 24) }));
