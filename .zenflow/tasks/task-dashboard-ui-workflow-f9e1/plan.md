@@ -113,7 +113,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Compute deltas; render up/down caret with subtle delta text
 - [ ] Validate trends reflect change since previous period
 
-### [ ] Step: Subtask 10 — Refine Visual Language & Color Usage
+### [x] Step: Subtask 10 — Refine Visual Language & Color Usage
+<!-- chat-id: b39ef2ce-3145-4156-ae34-8c8f9cab2407 -->
 - [ ] Reserve saturated colors for Critical priority and SLA risk
 - [ ] Standardize icon usage and add tooltips for any ambiguous icons
 - [ ] Calibrate neutral backgrounds/borders to reduce noise

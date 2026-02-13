@@ -703,7 +703,7 @@ function updateTechnicianGrid(agents) {
             `;
         } else if (agent.status === "En Route") {
              etcHtml = `
-                <div class="mt-4 text-[10px] font-black text-primary-600 uppercase tracking-widest flex items-center gap-2 px-1">
+                <div class="mt-4 text-[10px] font-black text-primary-600 uppercase tracking-widest flex items-center gap-2 px-1" title="In Transit">
                     <div class="p-1.5 bg-primary-50 rounded-lg">
                         <i data-lucide="truck" class="w-4 h-4 animate-bounce"></i> 
                     </div>
@@ -983,8 +983,8 @@ function updatePriorityTaskQueue(tasks) {
             }
         };
 
-        const priorityColors = { "critical": "bg-red-500", "high": "bg-orange-500", "medium": "bg-blue-500", "low": "bg-slate-400" };
-        const pColor = priorityColors[pLow] || "bg-slate-400";
+        const priorityColors = { "critical": "bg-red-600 text-white", "high": "bg-amber-200 text-amber-800", "medium": "bg-slate-200 text-slate-700", "low": "bg-slate-100 text-slate-600" };
+        const pColor = priorityColors[pLow] || "bg-slate-100 text-slate-600";
         const ageMs = now - task.createdAt;
         const ageMinutes = Math.floor(ageMs / (60 * 1000));
         let ageLabel = '';
@@ -1013,10 +1013,10 @@ function updatePriorityTaskQueue(tasks) {
         }
 
         const simBadge = isSim ? `
-            <span class="px-1.5 py-0.5 rounded bg-indigo-500 text-white text-[7px] font-black uppercase">Sim</span>
+            <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[7px] font-black uppercase">Sim</span>
         ` : '';
         const matchBadge = !hasMatchingTech ? `
-            <span class="px-1.5 py-0.5 rounded bg-red-600 text-white text-[7px] font-black uppercase animate-pulse">No Matching Tech</span>
+            <span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[7px] font-black uppercase">No Matching Tech</span>
         ` : '';
 
         const updatedAtMs = task.updatedAt || task.createdAt;
@@ -1031,7 +1031,7 @@ function updatePriorityTaskQueue(tasks) {
         card.innerHTML = `
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+                    <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100" title="${task.isLive ? 'Live Task' : 'Simulated Task'}">
                         <i data-lucide="${task.isLive ? 'globe' : 'cpu'}" class="w-5 h-5"></i>
                     </div>
                     <div class="overflow-hidden">
@@ -1040,7 +1040,7 @@ function updatePriorityTaskQueue(tasks) {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="priority-badge px-3 py-1.5 rounded-lg text-[11px] font-black text-white ${pColor} uppercase shadow-md">${task.priority}</div>
+                    <div class="priority-badge px-3 py-1.5 rounded-lg text-[11px] font-black ${pColor} uppercase shadow-md" title="Priority: ${task.priority}">${task.priority}</div>
                     <button class="task-expand-btn px-1.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50" title="${isExpanded ? 'Collapse' : 'Expand'}">
                         <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4"></i>
                     </button>
