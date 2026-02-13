@@ -517,41 +517,45 @@ class StrikeMarker {
 }
 
 // ADDED: Update weather tile layers
-// Simple opacity wrapper for weather tile overlays
-class OpacityMapType {
-    constructor(baseMapType, opacity) {
-        this.baseMapType = baseMapType;
-        this.opacity = Math.max(0.1, Math.min(1.0, opacity || 1.0));
-        this.tileSize = baseMapType.tileSize;
-        this.name = baseMapType.name;
-        this.alt = baseMapType.alt;
-    }
+// Apply opacity to OpenWeather tile images via DOM and observe new tiles
+function _applyWeatherTileOpacity(opacity) {
+    try {
+        if (!AppState.map || !AppState.map.getDiv) return;
+        const mapDiv = AppState.map.getDiv();
+        if (!mapDiv) return;
 
-    getTile(coord, zoom, ownerDocument) {
-        const canvas = ownerDocument.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = this.tileSize.width;
-        canvas.height = this.tileSize.height;
+        const selector = 'img[src*="tile.openweathermap.org"]';
+        const imgs = mapDiv.querySelectorAll(selector);
+        imgs.forEach(img => {
+            img.style.opacity = String(opacity);
+            img.style.transition = 'opacity 300ms ease';
+            img.style.imageRendering = 'auto';
+        });
 
-        const tileUrl = this.baseMapType.getTileUrl(coord, zoom);
-        const img = new Image();
-        
-        img.onload = () => {
-            ctx.globalAlpha = this.opacity;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            ctx.globalAlpha = 1.0;
-        };
-
-        img.onerror = () => {
-            console.warn(`Failed to load tile: ${tileUrl}`);
-        };
-
-        img.src = tileUrl;
-        return canvas;
-    }
-
-    releaseTile(tile) {
-        // No-op
+        // Install a MutationObserver once to catch future tiles
+        if (!mapDiv._weatherOpacityObserver) {
+            const obs = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    if (m.addedNodes && m.addedNodes.length) {
+                        m.addedNodes.forEach(node => {
+                            if (node.nodeType === 1) {
+                                if (node.tagName === 'IMG' && node.src && node.src.includes('tile.openweathermap.org')) {
+                                    node.style.opacity = String(opacity);
+                                    node.style.transition = 'opacity 300ms ease';
+                                } else if (node.querySelectorAll) {
+                                    const found = node.querySelectorAll(selector);
+                                    found.forEach(i => { i.style.opacity = String(opacity); i.style.transition = 'opacity 300ms ease'; });
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            obs.observe(mapDiv, { childList: true, subtree: true });
+            mapDiv._weatherOpacityObserver = obs;
+        }
+    } catch (e) {
+        console.warn('Failed to apply weather tile opacity:', e);
     }
 }
 
@@ -608,10 +612,7 @@ function updateWeatherLayers() {
             tileSize: new google.maps.Size(useHighDpr ? 512 : 256, useHighDpr ? 512 : 256),
             name: meta.name
         });
-        
-        // Wrap with opacity handler
-        const opacityMapType = new OpacityMapType(imageMapType, meta.opacity);
-        AppState.weatherLayers[type] = opacityMapType;
+        AppState.weatherLayers[type] = imageMapType;
     });
 
     let selected = defaultLayers.slice();
@@ -632,7 +633,10 @@ function updateWeatherLayers() {
     const overlays = AppState.map.overlayMapTypes;
     selected.forEach((type) => {
         const overlay = AppState.weatherLayers[type];
+        const meta = layerMeta[type] || { name: type, opacity: 0.85 };
         if (overlay) overlays.push(overlay);
+        // Ensure tile opacity applied via DOM
+        setTimeout(() => _applyWeatherTileOpacity(meta.opacity), 200);
     });
 
     // Legends now rendered inside WeatherOverlay; nothing to render here.
