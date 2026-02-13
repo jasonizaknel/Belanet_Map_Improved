@@ -74,7 +74,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Keep expansion inline; avoid modals; maintain grid flow
 - [ ] Validate no layout shift breaks prioritization view
 
-### [ ] Step: Subtask 4 — Filtering & Sorting Controls
+### [x] Step: Subtask 4 — Filtering & Sorting Controls
+<!-- chat-id: a303a1e2-ea01-4bde-bd92-cd37984370cf -->
 - [ ] Add filters: multi-select Priority, Status, Customer, Task Age buckets, Unassigned only
 - [ ] Add sorting presets: Urgent First, Oldest First, Unassigned
 - [ ] Combine filters deterministically; persist to `localStorage`

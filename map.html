@@ -701,13 +701,36 @@
                                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                                     <input type="text" id="dashTaskSearch" placeholder="Search tasks..." class="w-full pl-10 pr-4 py-2 bg-slate-100/50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
                                 </div>
-                                <select id="dashTaskPriorityFilter" class="bg-slate-100/50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20">
-                                    <option value="all">All Priorities</option>
-                                    <option value="critical">Critical</option>
-                                    <option value="high">High</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="low">Low</option>
-                                </select>
+                                <div id="dashFiltersBar" class="flex flex-wrap items-center gap-2">
+                                    <div class="flex items-center gap-2 bg-slate-100/50 border border-slate-200 rounded-xl px-2 py-1.5">
+                                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Priority</span>
+                                        <label class="text-[10px] font-bold text-slate-600 flex items-center gap-1"><input type="checkbox" id="fPriCritical" class="accent-red-500" checked> Critical</label>
+                                        <label class="text-[10px] font-bold text-slate-600 flex items-center gap-1"><input type="checkbox" id="fPriHigh" class="accent-orange-500" checked> High</label>
+                                        <label class="text-[10px] font-bold text-slate-600 flex items-center gap-1"><input type="checkbox" id="fPriMedium" class="accent-blue-500" checked> Medium</label>
+                                        <label class="text-[10px] font-bold text-slate-600 flex items-center gap-1"><input type="checkbox" id="fPriLow" class="accent-slate-500" checked> Low</label>
+                                    </div>
+                                    <select id="dashTaskStatusFilter" class="bg-slate-100/50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 min-w-[140px]">
+                                        <option value="all">All Statuses</option>
+                                    </select>
+                                    <select id="dashTaskCustomerFilter" class="bg-slate-100/50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 min-w-[160px]">
+                                        <option value="all">All Customers</option>
+                                    </select>
+                                    <select id="dashTaskAgeFilter" class="bg-slate-100/50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20">
+                                        <option value="all">Any Age</option>
+                                        <option value="today">Today</option>
+                                        <option value="24h">24h</option>
+                                        <option value="48h">48h+</option>
+                                    </select>
+                                    <label class="bg-slate-100/50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black text-slate-600 flex items-center gap-2">
+                                        <input type="checkbox" id="dashUnassignedOnly" class="accent-primary-600">
+                                        Unassigned Only
+                                    </label>
+                                    <select id="dashSortPreset" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20">
+                                        <option value="urgent">Urgent First</option>
+                                        <option value="oldest">Oldest First</option>
+                                        <option value="unassigned">Unassigned</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Bulk Assignment Action Bar -->

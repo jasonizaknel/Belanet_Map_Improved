@@ -104,14 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ADDED: Dashboard Search and Filters
     const dashSearch = document.getElementById("dashTaskSearch");
-    const dashPriority = document.getElementById("dashTaskPriorityFilter");
     const toggleGridView = document.getElementById("toggleTaskGridViewBtn");
 
     if (dashSearch) {
         dashSearch.addEventListener("input", () => updateOperationalDashboard());
-    }
-    if (dashPriority) {
-        dashPriority.addEventListener("change", () => updateOperationalDashboard());
     }
     if (toggleGridView) {
         toggleGridView.addEventListener("click", () => {
@@ -121,6 +117,55 @@ document.addEventListener('DOMContentLoaded', () => {
             updateOperationalDashboard();
         });
     }
+
+    // New: Initialize and bind Filtering & Sorting controls with persistence
+    if (!AppState.taskFilters) {
+        try {
+            const saved = localStorage.getItem('belanet_task_filters_v1');
+            AppState.taskFilters = saved ? JSON.parse(saved) : null;
+        } catch (_) { AppState.taskFilters = null; }
+        if (!AppState.taskFilters) {
+            AppState.taskFilters = {
+                priorities: { critical: true, high: true, medium: true, low: true },
+                status: 'all',
+                customer: 'all',
+                age: 'all',
+                unassignedOnly: false,
+                sort: 'urgent'
+            };
+        }
+    }
+    const persistFilters = () => { try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_) {} };
+
+    const fPriCritical = document.getElementById('fPriCritical');
+    const fPriHigh = document.getElementById('fPriHigh');
+    const fPriMedium = document.getElementById('fPriMedium');
+    const fPriLow = document.getElementById('fPriLow');
+    const fStatus = document.getElementById('dashTaskStatusFilter');
+    const fCustomer = document.getElementById('dashTaskCustomerFilter');
+    const fAge = document.getElementById('dashTaskAgeFilter');
+    const fUnassigned = document.getElementById('dashUnassignedOnly');
+    const fSort = document.getElementById('dashSortPreset');
+
+    if (fPriCritical) fPriCritical.checked = !!AppState.taskFilters.priorities.critical;
+    if (fPriHigh) fPriHigh.checked = !!AppState.taskFilters.priorities.high;
+    if (fPriMedium) fPriMedium.checked = !!AppState.taskFilters.priorities.medium;
+    if (fPriLow) fPriLow.checked = !!AppState.taskFilters.priorities.low;
+    if (fAge) fAge.value = AppState.taskFilters.age || 'all';
+    if (fUnassigned) fUnassigned.checked = !!AppState.taskFilters.unassignedOnly;
+    if (fSort) fSort.value = AppState.taskFilters.sort || 'urgent';
+
+    const onChange = () => { persistFilters(); updateOperationalDashboard(); };
+    if (fPriCritical) fPriCritical.onchange = () => { AppState.taskFilters.priorities.critical = fPriCritical.checked; onChange(); };
+    if (fPriHigh) fPriHigh.onchange = () => { AppState.taskFilters.priorities.high = fPriHigh.checked; onChange(); };
+    if (fPriMedium) fPriMedium.onchange = () => { AppState.taskFilters.priorities.medium = fPriMedium.checked; onChange(); };
+    if (fPriLow) fPriLow.onchange = () => { AppState.taskFilters.priorities.low = fPriLow.checked; onChange(); };
+    if (fStatus) fStatus.onchange = () => { AppState.taskFilters.status = fStatus.value; onChange(); };
+    if (fCustomer) fCustomer.onchange = () => { AppState.taskFilters.customer = fCustomer.value; onChange(); };
+    if (fAge) fAge.onchange = () => { AppState.taskFilters.age = fAge.value; onChange(); };
+    if (fUnassigned) fUnassigned.onchange = () => { AppState.taskFilters.unassignedOnly = fUnassigned.checked; onChange(); };
+    if (fSort) fSort.onchange = () => { AppState.taskFilters.sort = fSort.value; onChange(); };
+
 
     // Initialize new AppState variables
     if (!AppState.dashboardGridCols) AppState.dashboardGridCols = 2;
@@ -276,6 +321,8 @@ function aggregateAllTasks() {
                     title: t.Title || t.subject || "Unnamed Task",
                     customer: t.Customer || "Unknown Customer",
                     priority: t.priority || t.Priority || "Medium",
+                    status: status,
+                    assigneeId: t.assignee || t.assignee_id || t.assigned_to || t.technician_id || null,
                     createdAt: new Date(t.date_created || t.created_at || Date.now()).getTime(),
                     updatedAt: new Date(t['Updated at'] || t.updated_at || t.date_updated || t.updatedAt || t.updated || t.modified || t.mod_time || t.last_update || t.last_updated || t.lastUpdated || Date.now()).getTime()
                 });
@@ -594,33 +641,84 @@ function updatePriorityTaskQueue(tasks) {
         return;
     }
 
-    // Apply Search and Priority Filters
+    // Build dynamic filter options for Status and Customer
+    const statusSel = document.getElementById('dashTaskStatusFilter');
+    const customerSel = document.getElementById('dashTaskCustomerFilter');
+    const uniqueStatuses = Array.from(new Set(tasks.map(t => (t.status || 'Open')))).sort();
+    const uniqueCustomers = Array.from(new Set(tasks.map(t => t.customer || 'Unknown Customer'))).sort();
+    if (statusSel) {
+        const current = AppState.taskFilters?.status || 'all';
+        statusSel.innerHTML = '<option value="all">All Statuses</option>' + uniqueStatuses.map(s => `<option value="${s.toLowerCase()}">${s}</option>`).join('');
+        statusSel.value = current;
+    }
+    if (customerSel) {
+        const currentC = AppState.taskFilters?.customer || 'all';
+        customerSel.innerHTML = '<option value="all">All Customers</option>' + uniqueCustomers.map(c => `<option value="${encodeURIComponent(c)}">${c}</option>`).join('');
+        customerSel.value = currentC;
+    }
+
+    // Apply Combined Filters
     const searchQuery = document.getElementById("dashTaskSearch")?.value.toLowerCase() || "";
-    const priorityFilter = document.getElementById("dashTaskPriorityFilter")?.value || "all";
-    
+    const tf = AppState.taskFilters || { priorities: { critical: true, high: true, medium: true, low: true }, status: 'all', customer: 'all', age: 'all', unassignedOnly: false, sort: 'urgent' };
+    const now = Date.now();
+
     let filteredTasks = tasks.filter(t => {
         const matchesSearch = !searchQuery || 
-            t.customer.toLowerCase().includes(searchQuery) || 
-            t.title.toLowerCase().includes(searchQuery) || 
-            t.id.toString().toLowerCase().includes(searchQuery);
-        
-        const matchesPriority = priorityFilter === "all" || t.priority.toLowerCase() === priorityFilter;
-        
-        return matchesSearch && matchesPriority;
+            (t.customer && t.customer.toLowerCase().includes(searchQuery)) || 
+            (t.title && t.title.toLowerCase().includes(searchQuery)) || 
+            (t.id && t.id.toString().toLowerCase().includes(searchQuery));
+
+        const p = (t.priority || 'medium').toLowerCase();
+        const matchesPriority = !!tf.priorities[p];
+
+        const s = (t.status || 'open').toLowerCase();
+        const matchesStatus = tf.status === 'all' || s === tf.status;
+
+        const matchesCustomer = tf.customer === 'all' || encodeURIComponent(t.customer || '') === tf.customer;
+
+        const ageHours = (now - t.createdAt) / (1000 * 3600);
+        let matchesAge = true;
+        if (tf.age === 'today') matchesAge = ageHours < 24;
+        else if (tf.age === '24h') matchesAge = ageHours >= 24 && ageHours < 48;
+        else if (tf.age === '48h') matchesAge = ageHours >= 48;
+
+        let isAssigned = false;
+        if (!t.isLive) {
+            const assignedAgent = AppState.simulation.agents?.find(a => a.taskQueue && a.taskQueue.some(tt => tt.id === t.id));
+            isAssigned = !!assignedAgent;
+        } else {
+            isAssigned = !!t.assigneeId;
+        }
+        const matchesUnassigned = !tf.unassignedOnly || !isAssigned;
+
+        return matchesSearch && matchesPriority && matchesStatus && matchesCustomer && matchesAge && matchesUnassigned;
     });
 
-    // Calculate Urgency Score
-    const now = Date.now();
-    const sortedTasks = filteredTasks.map(t => {
-        const ageHours = (now - t.createdAt) / (1000 * 3600);
-        let score = ageHours * 0.5;
-        const p = t.priority.toLowerCase();
-        if (p === "critical") score += 100;
-        else if (p === "high") score += 50;
-        if (t.isBusiness || (t.customer && t.customer.toLowerCase().includes("business"))) score += 30;
-        return { ...t, urgencyScore: score, ageDays: ageHours / 24 };
-    })
-    .sort((a, b) => b.urgencyScore - a.urgencyScore);
+    // Attach ageDays for legacy highlighting
+    const withAge = filteredTasks.map(t => ({ ...t, ageDays: (now - t.createdAt) / (1000 * 3600 * 24) }));
+
+    // Sorting Presets
+    let sortedTasks;
+    if (tf.sort === 'oldest') {
+        sortedTasks = withAge.sort((a, b) => a.createdAt - b.createdAt);
+    } else if (tf.sort === 'unassigned') {
+        sortedTasks = withAge.sort((a, b) => {
+            const aAssigned = (a.isLive ? !!a.assigneeId : (AppState.simulation.agents?.some(x => x.taskQueue?.some(tt => tt.id === a.id)) || false)) ? 1 : 0;
+            const bAssigned = (b.isLive ? !!b.assigneeId : (AppState.simulation.agents?.some(x => x.taskQueue?.some(tt => tt.id === b.id)) || false)) ? 1 : 0;
+            if (aAssigned !== bAssigned) return aAssigned - bAssigned; // unassigned first
+            return a.createdAt - b.createdAt;
+        });
+    } else {
+        sortedTasks = withAge.map(t => {
+            const ageHours = (now - t.createdAt) / (1000 * 3600);
+            let score = ageHours * 0.5;
+            const pl = (t.priority || '').toLowerCase();
+            if (pl === 'critical') score += 100;
+            else if (pl === 'high') score += 50;
+            if (t.isBusiness || (t.customer && t.customer.toLowerCase().includes('business'))) score += 30;
+            return { ...t, urgencyScore: score };
+        }).sort((a, b) => b.urgencyScore - a.urgencyScore);
+    }
 
     // Grid Layout
     const cols = AppState.dashboardGridCols || 2;
@@ -657,7 +755,7 @@ function updatePriorityTaskQueue(tasks) {
 
         const pLow = task.priority.toLowerCase();
         const urgencyClass = `urgency-${pLow}`;
-        const isAssigned = !!assignedAgent;
+        const isAssigned = !!assignedAgent || !!task.assigneeId;
         const isExpanded = AppState.expandedTasks && AppState.expandedTasks.has(String(task.id));
 
         // Skill Matching Validation
