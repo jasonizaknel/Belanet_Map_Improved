@@ -5,3 +5,9 @@ test-results/
 .DS_Store
 Data/*.json
 Data/*.xlsx
+dist/
+build/
+.cache/
+*.log
+playwright-report/
+coverage/
