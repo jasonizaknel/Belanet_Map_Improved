@@ -119,7 +119,8 @@ window.AppState = {
             }
         } catch (e) { console.error('Error loading SLA config', e); }
         return defaults;
-    })()
+    })(),
+    metricsHistory: { openTickets: [], critical: [] }
 };
 
 // ADDED: Global helper to trigger UI updates

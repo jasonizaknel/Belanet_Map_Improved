@@ -533,7 +533,8 @@ function updateHeartbeatMetrics(allTasks, allAgents) {
     }
 
     // 2. Open Tickets
-    hbOpenTickets.textContent = allTasks.length;
+    const openCount = allTasks.length;
+    hbOpenTickets.textContent = openCount;
 
     // 3. Critical Priority (excluding Legacy > 30d)
     const now = Date.now();
@@ -543,6 +544,43 @@ function updateHeartbeatMetrics(allTasks, allAgents) {
         return t.priority.toLowerCase() === "critical" || t.priority.toLowerCase() === "high";
     }).length;
     hbCriticalTasks.textContent = criticalCount;
+
+    if (!AppState.metricsHistory) AppState.metricsHistory = { openTickets: [], critical: [] };
+    AppState.metricsHistory.openTickets.push(openCount);
+    if (AppState.metricsHistory.openTickets.length > 20) AppState.metricsHistory.openTickets.shift();
+    const prevOpen = AppState.metricsHistory.openTickets.length > 1 ? AppState.metricsHistory.openTickets[AppState.metricsHistory.openTickets.length - 2] : null;
+    const openTrendEl = document.getElementById('hbOpenTicketsTrend');
+    if (openTrendEl) {
+        if (prevOpen == null) {
+            openTrendEl.textContent = '';
+            openTrendEl.className = 'text-[10px] font-black text-slate-400 mt-0.5 flex items-center gap-1';
+        } else {
+            const delta = openCount - prevOpen;
+            let cls = 'text-[10px] font-black mt-0.5 flex items-center gap-1 ';
+            if (delta > 0) { cls += 'text-red-600'; openTrendEl.textContent = `▲ +${delta}`; }
+            else if (delta < 0) { cls += 'text-emerald-600'; openTrendEl.textContent = `▼ ${Math.abs(delta)}`; }
+            else { cls += 'text-slate-400'; openTrendEl.textContent = '— 0'; }
+            openTrendEl.className = cls;
+        }
+    }
+
+    AppState.metricsHistory.critical.push(criticalCount);
+    if (AppState.metricsHistory.critical.length > 20) AppState.metricsHistory.critical.shift();
+    const prevCrit = AppState.metricsHistory.critical.length > 1 ? AppState.metricsHistory.critical[AppState.metricsHistory.critical.length - 2] : null;
+    const critTrendEl = document.getElementById('hbCriticalTasksTrend');
+    if (critTrendEl) {
+        if (prevCrit == null) {
+            critTrendEl.textContent = '';
+            critTrendEl.className = 'text-[10px] font-black text-slate-400 mt-0.5 flex items-center gap-1';
+        } else {
+            const delta = criticalCount - prevCrit;
+            let cls = 'text-[10px] font-black mt-0.5 flex items-center gap-1 ';
+            if (delta > 0) { cls += 'text-red-600'; critTrendEl.textContent = `▲ +${delta}`; }
+            else if (delta < 0) { cls += 'text-emerald-600'; critTrendEl.textContent = `▼ ${Math.abs(delta)}`; }
+            else { cls += 'text-slate-400'; critTrendEl.textContent = '— 0'; }
+            critTrendEl.className = cls;
+        }
+    }
 
     // 4. Active Techs
     hbActiveTechs.textContent = allAgents.filter(a => a.status !== "Offline").length;

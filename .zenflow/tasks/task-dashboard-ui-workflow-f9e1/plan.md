@@ -107,7 +107,8 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [ ] Show active metric filter state and provide a clear reset action
 - [ ] Confirm list updates instantly on interaction
 
-### [ ] Step: Subtask 9 — Add Metric Trend Indicators
+### [x] Step: Subtask 9 — Add Metric Trend Indicators
+<!-- chat-id: ebe79684-5d0e-41dc-8b7a-5efe5328db67 -->
 - [ ] Track short history in `AppState.metricsHistory`
 - [ ] Compute deltas; render up/down caret with subtle delta text
 - [ ] Validate trends reflect change since previous period
