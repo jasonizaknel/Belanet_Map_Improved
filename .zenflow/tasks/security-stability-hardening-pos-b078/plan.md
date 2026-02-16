@@ -18,50 +18,71 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Technical Specification
+### [x] Step: Technical Specification
+<!-- chat-id: 8fcb162c-6ca5-4b46-ae93-d7b618360ed3 -->
 
-Assess the task's difficulty, as underestimating it leads to poor outcomes.
-- easy: Straightforward implementation, trivial bug fix or feature
-- medium: Moderate complexity, some edge cases or caveats to consider
-- hard: Complex logic, many caveats, architectural considerations, or high-risk changes
+- Saved spec to `{@artifacts_path}/spec.md`
+- Complexity: hard (multi-area hardening across server, UI, and integrations)
 
-Create a technical specification for the task that is appropriate for the complexity level:
-- Review the existing codebase architecture and identify reusable components.
-- Define the implementation approach based on established patterns in the project.
-- Identify all source code files that will be created or modified.
-- Define any necessary data model, API, or interface changes.
-- Describe verification steps using the project's test and lint commands.
+### [ ] Step: R1 – Splynx Session Hardening
+- Add circuit-breaker (failure counters, cooldown) to Playwright flows
+- Enforce per-stage and total timeouts
+- Structured logs around login/CSRF/comment; explicit error states
+- Metrics: `integration_calls_total{service=splynx,...}`, `splynx_circuit_open`
+- Verify with bad creds → circuit opens; restore → recovers
 
-Save the output to `{@artifacts_path}/spec.md` with:
-- Technical context (language, dependencies)
-- Implementation approach
-- Source code structure changes
-- Data model / API / interface changes
-- Verification approach
+### [ ] Step: R2 – Centralized TTL/LRU Caches
+- Add `lib/cache.js` (TTL + max-size + in-flight de-dupe)
+- Replace ad-hoc caches in `server.js` and `SplynxService`
+- Metrics: `cache_hit|cache_miss|cache_eviction{cache}`
+- Verify bounded memory and correct hit/miss behavior
 
-If the task is complex enough, create a detailed implementation plan based on `{@artifacts_path}/spec.md`:
-- Break down the work into concrete tasks (incrementable, testable milestones)
-- Each task should reference relevant contracts and include verification steps
-- Replace the Implementation step below with the planned tasks
+### [ ] Step: R3 – ENV Validation & Readiness
+- Add `lib/config.js` and remove empty-string fallbacks
+- Fail readiness when enabled features lack required env
+- Update `.env.example` with explicit requirements
+- Verify `/ready` returns 503/200 appropriately
 
-Rule of thumb for step size: each step should represent a coherent unit of work (e.g., implement a component, add an API endpoint, write tests for a module). Avoid steps that are too granular (single function).
+### [ ] Step: R4 – Weather Duplication Warnings (Interim)
+- Add runtime warnings: client cache advisory; server authoritative
+- Expose TTLs via logs/metrics; compare client vs server fetch rates
+- Verify metrics and console warnings visible
 
-Important: unit tests must be part of each implementation task, not separate tasks. Each task should implement the code and its tests together, if relevant.
+### [ ] Step: R5 – Async File I/O & Preload
+- Convert sync fs ops to async; add timings
+- Preload or background parse spreadsheets; keep reload endpoint
+- Verify latency improvements and timing metrics
 
-Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warrant this breakdown, keep the Implementation step below as is.
+### [ ] Step: R6 – CDN Pinning + SRI
+- Pin Tailwind/Lucide/Animate.css versions in `map.html`
+- Add SRI attributes; document fallback in `docs/map.html.md`
+- Verify assets load with integrity and notes exist
 
----
+### [ ] Step: R7 – Secrets Hygiene in Utilities/Tests
+- Remove hardcoded secrets (e.g., `test_tasks.js`) → env-based or quarantine
+- Update `.env.example`; document findings in cleanup report
+- Verify no secrets remain via repo scan
 
-### [ ] Step: Implementation
+### [ ] Step: R8 – Safer Name Matching
+- Add normalization (case/whitespace/accents) utilities
+- Detect ambiguities; surface warnings; avoid auto-assign on ties
+- Verify with crafted ambiguous inputs
 
-Implement the task according to the technical specification and general engineering best practices.
+### [ ] Step: R9 – WebSocket Rate Limit/Backpressure
+- Add per-topic batching/rate-limits; drop under high `bufferedAmount`
+- Metrics: `ws_client_count`, `ws_broadcast_total`, `ws_dropped_total{reason}`
+- Verify under load with multiple clients
 
-1. Break the task into steps where possible.
-2. Implement the required changes in the codebase
-3. If relevant, write unit tests alongside each change.
-4. Run relevant tests and linters in the end of each step.
-5. Perform basic manual verification if applicable.
-6. After completion, write a report to `{@artifacts_path}/report.md` describing:
-   - What was implemented
-   - How the solution was tested
-   - The biggest issues or challenges encountered
+### [ ] Step: R10 – Unified Retry/Timeouts
+- Standardize all outbound HTTP on `fetchWithRetry`
+- Remove ad-hoc retries; ensure global limits respected
+- Verify timeouts/retries via simulated failures
+
+### [ ] Step: R11 – LocalStorage Namespacing & Schema
+- Namespace keys with version; add schema checks and graceful reset
+- Verify corrupted state resets and valid state persists
+
+### [ ] Step: R12 – Test Stability Aids
+- Document test prerequisites and startup waits
+- Configurable ports and network dependency flags
+- Verify fewer false negatives running e2e flows
