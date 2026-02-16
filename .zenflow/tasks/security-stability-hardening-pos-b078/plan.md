@@ -24,7 +24,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Saved spec to `{@artifacts_path}/spec.md`
 - Complexity: hard (multi-area hardening across server, UI, and integrations)
 
-### [ ] Step: R1 – Splynx Session Hardening
+### [x] Step: R1 – Splynx Session Hardening
+<!-- chat-id: 9f36773c-142b-4a8a-851e-62e83ab4fcdc -->
 - Add circuit-breaker (failure counters, cooldown) to Playwright flows
 - Enforce per-stage and total timeouts
 - Structured logs around login/CSRF/comment; explicit error states
