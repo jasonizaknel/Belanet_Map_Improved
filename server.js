@@ -6,10 +6,6 @@ const WebSocket = require("ws");
 const XLSX = require('xlsx');
 const http = require("http");
 const https = require("https");
-const cheerio = require("cheerio");
-const { chromium } = require('playwright');
-const axios = require('axios');
-
 const { logger, requestLoggerMiddleware, installConsoleInterceptor } = require('./lib/logger');
 const { requestMetricsMiddleware, inc, setGauge, snapshot } = require('./lib/metrics');
 installConsoleInterceptor();
@@ -21,7 +17,6 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const PORT = 5505;
-const DATA_DIR = path.join(__dirname, "Data", "icons");
 
 const { TrackerService } = require('./services/TrackerService');
 const { NagiosService } = require('./services/NagiosService');
@@ -135,11 +130,6 @@ function _saveApiCallStatsToDisk() {
 
 _loadApiCallStatsFromDisk();
 
-let splynxSessionCache = {
-  cookie: null,
-  lastLogin: 0
-};
-
 // ADDED: Administrative Authentication Middleware
 function adminAuth(req, res, next) {
     if (!ADMIN_TOKEN) {
@@ -163,132 +153,6 @@ function adminAuth(req, res, next) {
     }
 }
 
-// ADDED: Session helper for UI interactions
-async function getSplynxSession() {
-  const now = Date.now();
-  // Reuse session if it's less than 30 minutes old
-  if (splynxSessionCache.cookie && (now - splynxSessionCache.lastLogin < 1800000)) {
-      console.log('[LOGIN][CACHE] Using cached Splynx session');
-      return splynxSessionCache.cookie;
-  }
-
-  console.log(`[LOGIN][AUTH] Starting Playwright authentication for ${SPLYNX_URL}`);
-  let browser;
-  try {
-      browser = await chromium.launch({ 
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox'] 
-      });
-      const context = await browser.newContext();
-      const page = await context.newPage();
-
-      const loginUrl = `${SPLYNX_URL}/admin/login/`;
-      console.log(`[LOGIN][NAVIGATE] Going to ${loginUrl}`);
-      await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 60000 });
-
-      if (page.url().includes('/admin/dashboard')) {
-          console.log('[LOGIN][SUCCESS] Already logged in via session persistence');
-      } else {
-          console.log('[LOGIN][FLOW] Filling credentials for user:', SPLYNX_ADMIN_USER);
-          await page.waitForSelector('input[name="LoginForm[login]"]', { timeout: 10000 });
-          await page.fill('input[name="LoginForm[login]"]', SPLYNX_ADMIN_USER);
-          await page.fill('input[name="LoginForm[password]"]', SPLYNX_ADMIN_PASS);
-          
-          console.log('[LOGIN][FLOW] Clicking submit');
-          await page.click('#submit');
-          
-          try {
-              await page.waitForURL('**/admin/dashboard', { timeout: 30000 });
-              console.log('[LOGIN][SUCCESS] Login successful, reached dashboard');
-          } catch (urlErr) {
-              const currentUrl = page.url();
-              const pageContent = await page.content();
-              console.error(`[LOGIN][ERROR] Failed to reach dashboard. Current URL: ${currentUrl}`);
-              if (pageContent.includes('Incorrect username or password')) {
-                  console.error('[LOGIN][ERROR] Authentication Failure: Incorrect username or password');
-              }
-              throw new Error(`Login failed to reach dashboard. URL: ${currentUrl}`);
-          }
-      }
-
-      const cookies = await context.cookies();
-      const cookieStr = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-      
-      if (!cookieStr) {
-          throw new Error('No cookies retrieved after login');
-      }
-
-      // Cache the result
-      splynxSessionCache.cookie = cookieStr;
-      splynxSessionCache.lastLogin = Date.now();
-      
-      console.log('[LOGIN][SESSION] Session cookies captured and cached');
-      return cookieStr;
-  } catch (err) {
-      console.error('[LOGIN][FATAL] Playwright FAILED:', err);
-      return null;
-  } finally {
-      if (browser) {
-          await browser.close();
-          console.log('[LOGIN][CLEANUP] Browser closed');
-      }
-  }
-}
-
-// ADDED: Helper to add a comment to a task using session cookies
-async function addSplynxComment(taskId, technicianName) {
-    console.log(`[COMMENT][START] Adding assignment comment for task ${taskId}`);
-    const cookieStr = await getSplynxSession();
-    if (!cookieStr) {
-        console.error('[COMMENT][ERROR] Failed to get session for comment - aborting');
-        return false;
-    }
-
-    try {
-        // 1. Get the task view page to extract CSRF token
-        const taskUrl = `${SPLYNX_URL}/admin/scheduling/tasks/view?id=${taskId}`;
-        console.log(`[COMMENT][CSRF] Fetching task page to extract CSRF: ${taskUrl}`);
-        const viewRes = await axios.get(taskUrl, {
-            headers: { 'Cookie': cookieStr },
-            timeout: 10000
-        });
-
-        const $ = cheerio.load(viewRes.data);
-        const csrfToken = $('meta[name="csrf-token"]').attr('content');
-
-        if (!csrfToken) {
-            console.error('[COMMENT][ERROR] CSRF token not found in page content');
-            // Log a snippet of the page for debugging if needed
-            return false;
-        }
-        console.log('[COMMENT][CSRF] CSRF token successfully extracted');
-
-        // 2. POST the comment
-        const commentUrl = `${SPLYNX_URL}/admin/scheduling/tasks/view--save-comment?id=${taskId}`;
-        const formData = new URLSearchParams();
-        formData.append('_csrf_token', csrfToken);
-        formData.append('TaskComment[text]', `This task has been assigned to ${technicianName} - Auto`);
-
-        console.log(`[COMMENT][POST] Sending comment to: ${commentUrl}`);
-        const saveRes = await axios.post(commentUrl, formData.toString(), {
-            headers: {
-                'Cookie': cookieStr,
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            timeout: 10000
-        });
-
-        console.log(`[COMMENT][SUCCESS] Task ${taskId} comment result:`, saveRes.data.result || 'success');
-        return true;
-    } catch (err) {
-        console.error(`[COMMENT][ERROR] Failed to add comment for task ${taskId}:`, err.response ? {
-            status: err.response.status,
-            data: err.response.data
-        } : err.message);
-        return false;
-    }
-}
 
 // ADDED: Read task IDs from Excel export to filter API requests
 function loadTaskIdsFromExcel() {
@@ -424,152 +288,6 @@ async function getWeatherData() {
   return data;
 }
 
-// ADDED: Fetch Nagios status page and parse HTML
-async function fetchFromNagios(hostName = null, type = 'services') {
-  return new Promise((resolve, reject) => {
-    const auth = Buffer.from(`${NAGIOS_USER}:${NAGIOS_PASS}`).toString('base64');
-    
-    let url;
-    if (type === 'hosts') {
-      url = `${NAGIOS_URL}/cgi-bin/status.cgi?hostgroup=all&style=hostdetail&limit=0`;
-    } else {
-      url = hostName 
-        ? `${NAGIOS_URL}/cgi-bin/status.cgi?host=${encodeURIComponent(hostName)}&limit=0`
-        : `${NAGIOS_URL}/cgi-bin/status.cgi?host=all&limit=0`;
-    }
-
-    const parsedUrl = new URL(url);
-    const options = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || 80,
-      path: parsedUrl.pathname + parsedUrl.search,
-      headers: {
-        'Authorization': `Basic ${auth}`
-      },
-      timeout: 15000
-    };
-
-    http.get(options, (res) => {
-      let html = '';
-      res.on('data', chunk => html += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const data = type === 'hosts' ? parseNagiosHostHTML(html) : parseNagiosHTML(html);
-            resolve(data);
-          } catch (e) {
-            reject(new Error(`Failed to parse HTML: ${e.message}`));
-          }
-        } else {
-          reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
-        }
-      });
-    }).on('error', reject).on('timeout', () => {
-      reject(new Error('Request timeout'));
-    });
-  });
-}
-
-// ADDED: Parse Nagios HTML host status page
-function parseNagiosHostHTML(html) {
-  const $ = cheerio.load(html);
-  const hosts = [];
-  
-  $('tr').each((rowIdx, row) => {
-    const cells = $('td', row);
-    if (cells.length < 3) return;
-    
-    const hostName = $(cells[0]).text().trim();
-    const status = $(cells[1]).text().trim();
-    const info = $(cells[ cells.length - 1 ]).text().trim();
-    
-    if (hostName && status && hostName !== 'Host' && status !== 'Status' && hostName.length < 100) {
-      let stateCode = 0; // UP
-      let stateText = 'UP';
-      
-      if (status.includes('DOWN')) {
-        stateCode = 2; // DOWN
-        stateText = 'DOWN';
-      } else if (status.includes('UNREACHABLE')) {
-        stateCode = 1; // UNREACHABLE
-        stateText = 'UNREACHABLE';
-      }
-      
-      hosts.push({
-        host_name: hostName,
-        service_name: 'Host Status',
-        current_state: stateCode,
-        current_state_text: stateText,
-        plugin_output: info,
-        last_check: new Date().toISOString(),
-        is_host: true
-      });
-    }
-  });
-  
-  return hosts;
-}
-
-// ADDED: Parse Nagios HTML status page to extract service data
-function parseNagiosHTML(html) {
-  const $ = cheerio.load(html);
-  const services = [];
-  let currentHost = '';
-  
-  // Parse the status table rows
-  $('tr').each((rowIdx, row) => {
-    const cells = $('td', row);
-    if (cells.length < 3) return;
-    
-    let hostName = $(cells[0]).text().trim();
-    const serviceName = $(cells[1]).text().trim();
-    const status = $(cells[2]).text().trim();
-    
-    if (hostName) {
-      currentHost = hostName;
-    } else {
-      hostName = currentHost;
-    }
-    
-    if (hostName && serviceName && status && serviceName !== 'Service' && status !== 'Status' && hostName.length < 100) {
-      // Filter out meta-rows like "All Problems", "Current Network Status"
-      if (hostName.includes('Status') || serviceName.includes('Status') || hostName.includes('History')) return;
-
-      let stateCode = 0;
-      let stateText = 'OK';
-      
-      if (status.includes('CRITICAL')) {
-        stateCode = 2;
-        stateText = 'CRITICAL';
-      } else if (status.includes('WARNING')) {
-        stateCode = 1;
-        stateText = 'WARNING';
-      } else if (status.includes('UNKNOWN')) {
-        stateCode = 3;
-        stateText = 'UNKNOWN';
-      }
-      
-      services.push({
-        host_name: hostName,
-        service_name: serviceName,
-        current_state: stateCode,
-        current_state_text: stateText,
-        plugin_output: status,
-        last_check: new Date().toISOString(),
-        next_check: new Date().toISOString()
-      });
-    }
-  });
-  
-  return services;
-}
-
-async function ensureUserIconFolder(username) {
-  const userIconDir = path.join(DATA_DIR, username);
-  if (!fs.existsSync(userIconDir)) {
-    fs.mkdirSync(userIconDir, { recursive: true });
-  }
-}
 
 app.use(express.static(__dirname));
 
