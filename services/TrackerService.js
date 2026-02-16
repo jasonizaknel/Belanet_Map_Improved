@@ -4,11 +4,11 @@ const { fetchWithRetry } = require('../lib/http');
 const { inc } = require('../lib/metrics');
 
 class TrackerService {
-  constructor({ baseUrl, user, pass, enable, dataDir }) {
+  constructor({ baseUrl, user, pass, enable = false, dataDir }) {
     this.baseUrl = baseUrl;
     this.user = user;
     this.pass = pass;
-    this.enable = enable;
+    this.enable = !!enable;
     this.dataDir = dataDir;
     this.positionsCache = { data: null, ts: 0 };
     this.devicesCache = { data: null, ts: 0 };
@@ -67,3 +67,12 @@ class TrackerService {
 }
 
 module.exports = { TrackerService };
+
+// Toggle helpers
+TrackerService.prototype.setEnabled = function (enabled) {
+  this.enable = !!enabled;
+};
+
+TrackerService.prototype.isEnabled = function () {
+  return !!this.enable;
+};

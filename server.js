@@ -26,18 +26,21 @@ const { WeatherBackend } = require('./services/WeatherBackend');
 const TRACCAR_URL = process.env.TRACCAR_URL || "https://demo.traccar.org";
 const USER = process.env.TRACCAR_USER || "";
 const PASS = process.env.TRACCAR_PASS || "";
-const ENABLE_TRACCAR = process.env.ENABLE_TRACCAR === 'true';
+let ENABLE_TRACCAR = process.env.ENABLE_TRACCAR === 'true';
 
 const SPLYNX_URL = process.env.SPLYNX_URL || "https://splynx.bndns.co.za";
 const SPLYNX_READ_ONLY_KEY = process.env.SPLYNX_READ_ONLY_KEY || process.env.SPLYNX_KEY || "";
 const SPLYNX_ASSIGN_KEY = process.env.SPLYNX_ASSIGN_KEY || process.env.SPLYNX_KEY || "";
 const SPLYNX_SECRET = process.env.SPLYNX_SECRET || "";
-const ENABLE_SPLYNX_TASKS = process.env.ENABLE_SPLYNX_TASKS === 'true';
+let ENABLE_SPLYNX_TASKS = process.env.ENABLE_SPLYNX_TASKS === 'true';
 
 const NAGIOS_URL = process.env.NAGIOS_URL || "http://nagios.bndns.co.za/nagios";
 const NAGIOS_USER = process.env.NAGIOS_USER || "nagiosadmin";
 const NAGIOS_PASS = process.env.NAGIOS_PASS || "";
-let ENABLE_NAGIOS = true;
+let ENABLE_NAGIOS = process.env.ENABLE_NAGIOS === 'true';
+
+// Weather feature toggle (disabled by default)
+let ENABLE_WEATHER = process.env.ENABLE_WEATHER === 'true';
 
 const GOOGLE_MAPS_KEY = process.env.GOOGLE_MAPS_KEY || "";
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "";
@@ -51,9 +54,9 @@ const TASKS_REFRESH_INTERVAL = 900000; // 15 minutes as requested
 const WEATHER_REFRESH_INTERVAL = 30000; // 30 seconds for lightning/weather
 
 const trackerService = new TrackerService({ baseUrl: TRACCAR_URL, user: USER, pass: PASS, enable: ENABLE_TRACCAR, dataDir: path.join(__dirname, 'Data', 'icons') });
-const nagiosService = new NagiosService({ baseUrl: NAGIOS_URL, user: NAGIOS_USER, pass: NAGIOS_PASS, enable: true, refreshMs: NAGIOS_REFRESH_INTERVAL });
-const splynxService = new SplynxService({ baseUrl: SPLYNX_URL, readKey: SPLYNX_READ_ONLY_KEY, assignKey: SPLYNX_ASSIGN_KEY, secret: SPLYNX_SECRET, adminUser: SPLYNX_ADMIN_USER, adminPass: SPLYNX_ADMIN_PASS });
-const weatherBackend = new WeatherBackend({ apiKey: OPENWEATHER_API_KEY, dataDir: __dirname });
+const nagiosService = new NagiosService({ baseUrl: NAGIOS_URL, user: NAGIOS_USER, pass: NAGIOS_PASS, enable: ENABLE_NAGIOS, refreshMs: NAGIOS_REFRESH_INTERVAL });
+const splynxService = new SplynxService({ baseUrl: SPLYNX_URL, readKey: SPLYNX_READ_ONLY_KEY, assignKey: SPLYNX_ASSIGN_KEY, secret: SPLYNX_SECRET, adminUser: SPLYNX_ADMIN_USER, adminPass: SPLYNX_ADMIN_PASS, enable: ENABLE_SPLYNX_TASKS });
+const weatherBackend = new WeatherBackend({ apiKey: OPENWEATHER_API_KEY, dataDir: __dirname, enable: ENABLE_WEATHER });
 
 let nagiosStatusCache = {
   data: null,
@@ -242,6 +245,9 @@ app.get("/api/config", (req, res) => {
     openWeatherKey: OPENWEATHER_API_KEY,
     adminToken: ADMIN_TOKEN,
     enableNagios: ENABLE_NAGIOS,
+    enableSplynx: ENABLE_SPLYNX_TASKS,
+    enableTraccar: ENABLE_TRACCAR,
+    enableWeather: ENABLE_WEATHER,
     features: {
       weather: !!OPENWEATHER_API_KEY
     }
@@ -251,8 +257,33 @@ app.get("/api/config", (req, res) => {
 app.post("/api/nagios/toggle", adminAuth, (req, res) => {
     const { enabled } = req.body;
     ENABLE_NAGIOS = enabled;
+    nagiosService.setEnabled(ENABLE_NAGIOS);
     console.log(`[Nagios] Fetching ${ENABLE_NAGIOS ? 'ENABLED' : 'DISABLED'} via API`);
     res.json({ success: true, enabled: ENABLE_NAGIOS });
+});
+
+app.post("/api/splynx/toggle", adminAuth, (req, res) => {
+  const { enabled } = req.body;
+  ENABLE_SPLYNX_TASKS = !!enabled;
+  splynxService.setEnabled(ENABLE_SPLYNX_TASKS);
+  console.log(`[Splynx] Tasks integration ${ENABLE_SPLYNX_TASKS ? 'ENABLED' : 'DISABLED'} via API`);
+  res.json({ success: true, enabled: ENABLE_SPLYNX_TASKS });
+});
+
+app.post("/api/tracker/toggle", adminAuth, (req, res) => {
+  const { enabled } = req.body;
+  ENABLE_TRACCAR = !!enabled;
+  trackerService.setEnabled(ENABLE_TRACCAR);
+  console.log(`[Tracker] Traccar integration ${ENABLE_TRACCAR ? 'ENABLED' : 'DISABLED'} via API`);
+  res.json({ success: true, enabled: ENABLE_TRACCAR });
+});
+
+app.post("/api/weather/toggle", adminAuth, (req, res) => {
+  const { enabled } = req.body;
+  ENABLE_WEATHER = !!enabled;
+  weatherBackend.setEnabled(ENABLE_WEATHER);
+  console.log(`[Weather] Weather fetching ${ENABLE_WEATHER ? 'ENABLED' : 'DISABLED'} via API`);
+  res.json({ success: true, enabled: ENABLE_WEATHER });
 });
 
 app.post("/api/simulation/report", (req, res) => {

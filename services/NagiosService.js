@@ -3,11 +3,11 @@ const cheerio = require('cheerio');
 const { inc } = require('../lib/metrics');
 
 class NagiosService {
-  constructor({ baseUrl, user, pass, enable, refreshMs = 60000 }) {
+  constructor({ baseUrl, user, pass, enable = false, refreshMs = 60000 }) {
     this.baseUrl = baseUrl;
     this.user = user;
     this.pass = pass;
-    this.enable = enable;
+    this.enable = !!enable;
     this.refreshMs = refreshMs;
     this.cache = { data: null, ts: 0 };
   }
@@ -126,3 +126,12 @@ class NagiosService {
 }
 
 module.exports = { NagiosService };
+
+// Toggle helpers
+NagiosService.prototype.setEnabled = function (enabled) {
+  this.enable = !!enabled;
+};
+
+NagiosService.prototype.isEnabled = function () {
+  return !!this.enable;
+};

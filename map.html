@@ -73,6 +73,10 @@
                 <i data-lucide="beaker" class="w-4 h-4 mb-1 mx-auto"></i>
                 Play
             </button>
+            <button class="tabBtn" data-tab="services">
+                <i data-lucide="server" class="w-4 h-4 mb-1 mx-auto"></i>
+                Services
+            </button>
         </div>
 
         <!-- Tab content sections -->
@@ -316,6 +320,18 @@
                     <i data-lucide="bell" class="w-3 h-3 inline-block mr-1"></i>
                     Trigger Test Alert
                 </button>
+            </div>
+        </div>
+
+        <div id="servicesTab" class="tabContent">
+            <div class="tab-section">
+                <label class="section-label">External Services</label>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <label class="filter-label"><input type="checkbox" id="serviceNagiosCheckbox"> Enable Nagios</label>
+                    <label class="filter-label"><input type="checkbox" id="serviceSplynxCheckbox"> Enable Splynx Tasks</label>
+                    <label class="filter-label"><input type="checkbox" id="serviceTrackerCheckbox"> Enable Trackers (Traccar)</label>
+                    <label class="filter-label"><input type="checkbox" id="serviceWeatherCheckbox"> Enable Weather</label>
+                </div>
             </div>
         </div>
 
@@ -909,6 +925,55 @@
         } catch(_){ await fetchTasks(); }
       });
     }
+
+        // Service toggles: wire UI to backend toggle endpoints
+        async function setupServiceToggles(){
+            try {
+                const r = await fetch('/api/config');
+                const cfg = await r.json();
+                const adminToken = cfg.adminToken || '';
+                const nagiosCb = document.getElementById('serviceNagiosCheckbox');
+                const splynxCb = document.getElementById('serviceSplynxCheckbox');
+                const trackerCb = document.getElementById('serviceTrackerCheckbox');
+                const weatherCb = document.getElementById('serviceWeatherCheckbox');
+                if (nagiosCb) nagiosCb.checked = !!cfg.enableNagios;
+                if (splynxCb) splynxCb.checked = !!cfg.enableSplynx;
+                if (trackerCb) trackerCb.checked = !!cfg.enableTraccar;
+                if (weatherCb) weatherCb.checked = !!cfg.enableWeather;
+
+                async function postToggle(path, enabled){
+                    try {
+                        const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken }, body: JSON.stringify({ enabled }) });
+                        return res.ok;
+                    } catch (e) { return false; }
+                }
+
+                if (nagiosCb) nagiosCb.addEventListener('change', async ()=>{ const ok = await postToggle('/api/nagios/toggle', nagiosCb.checked); if (!ok) alert('Failed to update Nagios'); });
+                if (splynxCb) splynxCb.addEventListener('change', async ()=>{ const ok = await postToggle('/api/splynx/toggle', splynxCb.checked); if (!ok) alert('Failed to update Splynx'); });
+                if (trackerCb) trackerCb.addEventListener('change', async ()=>{ 
+                    const ok = await postToggle('/api/tracker/toggle', trackerCb.checked); 
+                    if (!ok) {
+                        alert('Failed to update Tracker');
+                        return;
+                    }
+                    // Update client state to start/stop polling and websocket
+                    window.AppConfig = window.AppConfig || {};
+                    window.AppConfig.enableTraccar = !!trackerCb.checked;
+                    if (typeof AppState !== 'undefined') {
+                        AppState.trackerRefresh = AppState.trackerRefresh || {};
+                        AppState.trackerRefresh.enabled = !!trackerCb.checked;
+                        if (trackerCb.checked) {
+                            if (typeof connectTrackerWebSocket === 'function') connectTrackerWebSocket();
+                            if (!AppState.trackerRefresh.wsConnected && typeof startTrackerRefreshLoop === 'function') startTrackerRefreshLoop();
+                        } else {
+                            if (typeof stopTrackerRefreshLoop === 'function') stopTrackerRefreshLoop();
+                        }
+                    }
+                });
+                if (weatherCb) weatherCb.addEventListener('change', async ()=>{ const ok = await postToggle('/api/weather/toggle', weatherCb.checked); if (!ok) alert('Failed to update Weather'); });
+            } catch (e) { console.error('Service toggles setup failed', e); }
+        }
+        setupServiceToggles();
   });
 })();
 </script>

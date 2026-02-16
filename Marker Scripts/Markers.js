@@ -888,6 +888,9 @@ function initTrackerRefreshControls() {
 
     if (!checkbox || !intervalInput) return;
 
+    // Ensure checkbox reflects current enabled state
+    checkbox.checked = !!AppState.trackerRefresh.enabled;
+
     checkbox.addEventListener("change", (e) => {
         AppState.trackerRefresh.enabled = e.target.checked;
         if (AppState.trackerRefresh.enabled) {
@@ -1488,12 +1491,22 @@ function renderMarkers() { // CHANGED: extracted marker logic into a function
     // ADDED: Render tracker markers from server
     renderTrackerMarkers();
     
-    // ADDED: Initialize tracker refresh controls and start real-time updates
+    // ADDED: Initialize tracker refresh controls and start/stop real-time updates
     initTrackerRefreshControls();
-    connectTrackerWebSocket();
-    // Fallback polling starts only if WebSocket fails
-    if (!AppState.trackerRefresh.wsConnected) {
-        startTrackerRefreshLoop();
+    // Respect server-provided enable flag if available
+    const cfg = window.AppConfig || {};
+    const trEnabled = !!cfg.enableTraccar;
+    AppState.trackerRefresh.enabled = trEnabled;
+    const trackerCheckbox = document.getElementById("trackerAutoRefreshCheckbox");
+    if (trackerCheckbox) trackerCheckbox.checked = !!AppState.trackerRefresh.enabled;
+
+    if (AppState.trackerRefresh.enabled) {
+        connectTrackerWebSocket();
+        // Fallback polling starts only if WebSocket fails
+        if (!AppState.trackerRefresh.wsConnected) startTrackerRefreshLoop();
+    } else {
+        // Ensure polling and websocket are stopped
+        stopTrackerRefreshLoop();
     }
     
     // FIXED: Initialize search filter after markers are rendered

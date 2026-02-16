@@ -4,7 +4,7 @@ const axios = require('axios');
 const { inc } = require('../lib/metrics');
 
 class WeatherBackend {
-  constructor({ apiKey, coordTtlMs = 10*60*1000, cacheTtlMs = 10*60*1000, dataDir }) {
+  constructor({ apiKey, coordTtlMs = 10*60*1000, cacheTtlMs = 10*60*1000, dataDir, enable = false }) {
     this.apiKey = apiKey;
     this.coordTtlMs = coordTtlMs;
     this.cacheTtlMs = cacheTtlMs;
@@ -12,6 +12,7 @@ class WeatherBackend {
     this.cache = { data: null, ts: 0 };
     this.statsFile = path.join(dataDir || process.cwd(), 'Data', 'weather-api-stats.json');
     this.apiCallStats = { callsUsed: 0, callLimit: 500, startTime: Date.now(), resetTime: Date.now() };
+    this.enable = !!enable;
     this._loadStats();
   }
 
@@ -36,6 +37,7 @@ class WeatherBackend {
   async getWeatherData(lat = -25.0, lon = 28.0) {
     const now = Date.now();
     if (this.cache.data && (now - this.cache.ts) < this.cacheTtlMs) return this.cache.data;
+    if (!this.enable) return null;
     if (!this.apiKey) return null;
     try {
       const url = 'https://api.openweathermap.org/data/3.0/onecall';
@@ -62,6 +64,7 @@ class WeatherBackend {
     const now = Date.now();
     const cached = this.coordCache.get(key);
     if (cached && (now - cached.ts) < this.coordTtlMs) return cached.data;
+    if (!this.enable) throw Object.assign(new Error('Weather service disabled'), { status: 503 });
     if (!this.apiKey) throw Object.assign(new Error('Weather service not configured'), { status: 503 });
     if (this.apiCallStats.callsUsed >= this.apiCallStats.callLimit) throw Object.assign(new Error('OneCall API 3 call limit reached'), { status: 429 });
     try {
@@ -102,3 +105,12 @@ class WeatherBackend {
 }
 
 module.exports = { WeatherBackend };
+
+// Toggle helpers
+WeatherBackend.prototype.setEnabled = function (enabled) {
+  this.enable = !!enabled;
+};
+
+WeatherBackend.prototype.isEnabled = function () {
+  return !!this.enable;
+};

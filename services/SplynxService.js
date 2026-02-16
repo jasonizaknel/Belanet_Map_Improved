@@ -5,13 +5,14 @@ const { fetchWithRetry } = require('../lib/http');
 const { inc } = require('../lib/metrics');
 
 class SplynxService {
-  constructor({ baseUrl, readKey, assignKey, secret, adminUser, adminPass }) {
+  constructor({ baseUrl, readKey, assignKey, secret, adminUser, adminPass, enable = false }) {
     this.baseUrl = baseUrl;
     this.readKey = readKey;
     this.assignKey = assignKey;
     this.secret = secret;
     this.adminUser = adminUser;
     this.adminPass = adminPass;
+    this.enable = !!enable;
     this.adminsCache = { data: null, ts: 0 };
     this.tasksCache = { data: null, ts: 0 };
     this.session = { cookie: null, lastLogin: 0 };
@@ -19,6 +20,11 @@ class SplynxService {
 
   async fetchAdministrators() {
     const now = Date.now();
+    if (!this.enable) return this.adminsCache.data || [
+      { id: 1, name: 'Admin 1 (Disabled)' },
+      { id: 2, name: 'Admin 2 (Disabled)' },
+      { id: 3, name: 'Technician A (Disabled)' }
+    ];
     if (this.adminsCache.data && (now - this.adminsCache.ts < 3600000)) {
       inc('cache_hit', { cache: 'splynx_admins' });
       return this.adminsCache.data;
@@ -42,6 +48,7 @@ class SplynxService {
   }
 
   async fetchTasksByIds(ids) {
+    if (!this.enable) return [];
     const auth = Buffer.from(`${this.readKey}:${this.secret}`).toString('base64');
     const tasks = [];
     const CONCURRENCY = 5;
@@ -65,6 +72,7 @@ class SplynxService {
 
   async getSessionCookie() {
     const now = Date.now();
+    if (!this.enable) return null;
     if (this.session.cookie && (now - this.session.lastLogin < 1800000)) return this.session.cookie;
     let browser;
     try {
@@ -114,6 +122,7 @@ class SplynxService {
   }
 
   async assignTask(taskId, technicianId, technicianName) {
+    if (!this.enable) return { taskId, assigned: false, commented: false };
     const auth = Buffer.from(`${this.assignKey}:${this.secret}`).toString('base64');
     const assignUrl = `${this.baseUrl}/api/2.0/admin/scheduling/tasks/${taskId}`;
     const res = await fetchWithRetry(assignUrl, { method: 'PUT', headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ assignee: parseInt(technicianId) }) }).catch(() => null);
@@ -124,3 +133,12 @@ class SplynxService {
 }
 
 module.exports = { SplynxService };
+
+// Toggle helpers
+SplynxService.prototype.setEnabled = function (enabled) {
+  this.enable = !!enabled;
+};
+
+SplynxService.prototype.isEnabled = function () {
+  return !!this.enable;
+};
