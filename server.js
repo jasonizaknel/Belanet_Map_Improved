@@ -3,11 +3,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const WebSocket = require("ws");
-const XLSX = require('xlsx');
 const http = require("http");
 const https = require("https");
 const { logger, requestLoggerMiddleware, installConsoleInterceptor } = require('./lib/logger');
 const { requestMetricsMiddleware, inc, setGauge, snapshot } = require('./lib/metrics');
+const { listSpreadsheetFiles, parseSplynxTasksFromFile, loadTaskIdsFromExcel, tryAutoLoadSpreadsheetIntoCache } = require('./lib/spreadsheetTasks');
 installConsoleInterceptor();
 const app = express();
 app.use(express.json());
@@ -155,97 +155,6 @@ function adminAuth(req, res, next) {
 
 
 // ADDED: Read task IDs from Excel export to filter API requests
-function loadTaskIdsFromExcel() {
-  console.log("[Excel] Attempting to load task IDs from Belanet Tasks Export.xlsx...");
-  try {
-    const filePath = path.join(__dirname, 'Data', 'Belanet Tasks Export.xlsx');
-    if (!fs.existsSync(filePath)) {
-      console.warn('[Excel] ⚠ Export file not found at:', filePath);
-      return [];
-    }
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    const taskIds = data.slice(2)
-      .map(row => row[1])
-      .filter(id => id && !isNaN(id));
-    console.log(`[Excel] ✅ Successfully loaded ${taskIds.length} task IDs from file`);
-    if (taskIds.length > 0) {
-      console.log(`[Excel] Sample IDs: ${taskIds.slice(0, 5).join(', ')}...`);
-    }
-    return taskIds;
-  } catch (error) {
-    console.error('[Excel] ❌ Error reading task IDs:', error.message);
-    return [];
-  }
-}
-
-function listSpreadsheetFiles() {
-  const dir = path.join(__dirname, 'Data');
-  if (!fs.existsSync(dir)) return [];
-  const files = fs.readdirSync(dir).filter(f => /\.(xlsx|csv)$/i.test(f));
-  return files.sort();
-}
-
-function parseSplynxTasksFromFile(filePath) {
-  const full = path.isAbsolute(filePath) ? filePath : path.join(__dirname, 'Data', filePath);
-  if (!fs.existsSync(full)) throw new Error('File not found');
-  const wb = XLSX.readFile(full);
-  const sheetName = wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
-  if (!rows || rows.length === 0) throw new Error('Empty spreadsheet');
-  const header = rows[0].map(h => String(h || '').trim());
-  const idx = {};
-  header.forEach((h, i) => { idx[h.toLowerCase()] = i; });
-  const need = ['id', 'title'];
-  for (const k of need) { if (!(k in idx)) throw new Error('Missing required header: ' + k); }
-  const tasks = [];
-  const seen = new Set();
-  for (let r = 1; r < rows.length; r++) {
-    const row = rows[r] || [];
-    const id = row[idx['id']];
-    const title = row[idx['title']];
-    if (!id || !title) continue;
-    const key = String(id).trim();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    const t = {
-      ID: key,
-      Title: String(title).trim()
-    };
-    if ('status' in idx) t.Status = String(row[idx['status']] || '').trim();
-    if ('customer' in idx) t.Customer = String(row[idx['customer']] || '').trim();
-    if ('created at' in idx) {
-      const v = row[idx['created at']];
-      if (v) t['Created at'] = new Date(v).toISOString();
-    }
-    if ('updated at' in idx) {
-      const v2 = row[idx['updated at']];
-      if (v2) t['Updated at'] = new Date(v2).toISOString();
-    }
-    tasks.push(t);
-  }
-  return tasks;
-}
-
-function tryAutoLoadSpreadsheetIntoCache() {
-  if (tasksCache.data && tasksCache.data.length > 0) return false;
-  const files = listSpreadsheetFiles();
-  if (files.length === 0) return false;
-  try {
-    const tasks = parseSplynxTasksFromFile(files[0]);
-    tasksCache.data = tasks;
-    tasksCache.lastFetch = Date.now();
-    tasksCache.sourceFile = files[0];
-    console.log(`[Tasks] Loaded ${tasks.length} tasks from ${files[0]}`);
-    return true;
-  } catch (e) {
-    console.error('[Tasks] Failed to auto-load spreadsheet:', e.message);
-    return false;
-  }
-}
 
 // ADDED: Helper to fetch tasks from Splynx with filtering
 async function fetchTasksFromSplynx() {
@@ -253,8 +162,7 @@ async function fetchTasksFromSplynx() {
     console.log("[Splynx] Task fetching is disabled via ENABLE_SPLYNX_TASKS");
     return [];
   }
-  const auth = Buffer.from(`${SPLYNX_READ_ONLY_KEY}:${SPLYNX_SECRET}`).toString("base64");
-  const allTaskIds = loadTaskIdsFromExcel();
+  const allTaskIds = loadTaskIdsFromExcel(__dirname);
   
   if (allTaskIds.length === 0) {
     console.warn("[Splynx] No task IDs found in Excel. Fetching nothing.");
@@ -364,7 +272,7 @@ app.post("/api/simulation/report", (req, res) => {
 
 app.get('/api/data/files', (req, res) => {
   try {
-    const files = listSpreadsheetFiles();
+    const files = listSpreadsheetFiles(__dirname);
     res.json({ files });
   } catch (e) {
     res.status(500).json({ error: 'Failed to list files' });
@@ -377,7 +285,7 @@ app.post('/api/tasks/import', express.json(), (req, res) => {
     if (!file) return res.status(400).json({ error: 'Missing file parameter' });
     const allowed = /\.(xlsx|csv)$/i.test(file);
     if (!allowed) return res.status(400).json({ error: 'Unsupported file type' });
-    const tasks = parseSplynxTasksFromFile(file);
+    const tasks = parseSplynxTasksFromFile(__dirname, file);
     tasksCache.data = tasks;
     tasksCache.lastFetch = Date.now();
     tasksCache.sourceFile = file;
@@ -396,12 +304,12 @@ app.post('/api/tasks/import', express.json(), (req, res) => {
 app.get('/api/tasks/reload', (req, res) => {
   try {
     if (tasksCache.sourceFile && fs.existsSync(path.join(__dirname, 'Data', tasksCache.sourceFile))) {
-      const tasks = parseSplynxTasksFromFile(tasksCache.sourceFile);
+      const tasks = parseSplynxTasksFromFile(__dirname, tasksCache.sourceFile);
       tasksCache.data = tasks;
       tasksCache.lastFetch = Date.now();
       return res.json({ ok: true, count: tasks.length, file: tasksCache.sourceFile });
     }
-    const ok = tryAutoLoadSpreadsheetIntoCache();
+    const ok = tryAutoLoadSpreadsheetIntoCache(__dirname, tasksCache);
     if (ok) return res.json({ ok: true, count: tasksCache.data.length, file: tasksCache.sourceFile });
     res.status(404).json({ error: 'No spreadsheet found' });
   } catch (e) {
@@ -455,7 +363,7 @@ app.get("/api/tasks", async (req, res) => {
       return res.json(tasksCache.data);
     }
 
-    if (tryAutoLoadSpreadsheetIntoCache()) {
+    if (tryAutoLoadSpreadsheetIntoCache(__dirname, tasksCache)) {
       return res.json(tasksCache.data || []);
     }
 
@@ -712,7 +620,7 @@ async function broadcastTasks() {
 
     if (tasksCache.data && (now - tasksCache.lastFetch < TASKS_REFRESH_INTERVAL)) {
       tasks = tasksCache.data;
-    } else if (tryAutoLoadSpreadsheetIntoCache()) {
+    } else if (tryAutoLoadSpreadsheetIntoCache(__dirname, tasksCache)) {
       tasks = tasksCache.data;
     } else if (ENABLE_SPLYNX_TASKS) {
       try {
