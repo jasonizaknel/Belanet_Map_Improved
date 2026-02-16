@@ -1,19 +1,53 @@
 # Cleanup Report
 
+This report enumerates files/folders that are likely redundant, obsolete, or generated, with justifications and safety notes.
+
+## Candidates for Deletion (Now)
+- [ARCHIVAL] Belanet_Map_Improved/* (images)
+  - Why: Design/debug screenshots, not used at runtime
+  - Safety: Safe now; verify no references in external docs
+- [SAFE-DELETE] server_retry.log
+  - Why: Transient log output
+  - Safety: Safe now; already covered by `.gitignore` patterns
+- [SAFE-DELETE] tests/tmp_debug.spec.js
+  - Why: Temporary debug spec
+  - Safety: Safe now; ensure no CI relies on it
+- [SAFE-DELETE] Data/reports/*.json
+  - Why: Generated simulation/usage reports
+  - Safety: Safe now; confirm not used in tests
+- [ARCHIVAL] repo/belanet-map-improved.md
+  - Why: Legacy overview, superseded by `/docs`
+  - Safety: Post-refactor archival optional; ensure coverage in docs/Wiki
+
+## Candidates After Refactor / With Review
+- [SECURITY-RISK] test_tasks.js
+  - Why: Hard-coded credentials; non-production utility
+  - Safety: Remove credentials immediately; delete post-refactor once replaced with env-driven or admin tool
+- [ARCHIVAL] Visual Studio Projects.code-workspace
+  - Why: Editor-specific convenience file
+  - Safety: Safe now if team standardizes on workspace config elsewhere
+
 ## Suspected Duplication Clusters
 - Weather fetching and caching logic
-  - Client: `src/weather/WeatherService.js` (caching/TTL, retries likely at client layer)
-  - Server: `server.js` (`weatherCache`, `coordWeatherCache`, OneCall API usage and persistence)
-  - Note: Consider consolidating retry/TTL ownership [REQUIRES-REFACTOR]
+  - Client: `src/weather/WeatherService.js` (client caching/TTL)
+  - Server: `server.js` (`weatherCache`, `coordWeatherCache`, OneCall API usage/persistence)
+  - Note: Consolidate retry/TTL ownership [REQUIRES-REFACTOR]
 - Host listing utilities
-  - `list_hosts.js` vs `list_hosts_v2.js` appear to target similar outputs with differing logic paths [REQUIRES-REFACTOR]
+  - `list_hosts.js` vs `list_hosts_v2.js` targeting similar outputs [REQUIRES-REFACTOR]
 - Marker verification utilities
-  - `verify_markers.js` vs `check_markers.js` both validate marker/link integrity with overlapping responsibilities [REQUIRES-REFACTOR]
+  - `verify_markers.js` vs `check_markers.js` overlapping validation [REQUIRES-REFACTOR]
 - Nagios datasets
-  - `nagios_hosts.txt` vs `nagios_hosts_new.txt` look like versioned snapshots of similar data [ARCHIVAL]
+  - `nagios_hosts.txt` vs `nagios_hosts_new.txt` versioned snapshots [ARCHIVAL]
 - Dashboard features and tests
-  - `tests/dashboard_grid_assignment.spec.js`, `tests/dashboard_v3_improvements.spec.js`, `tests/operational_dashboard_v2.spec.js`, `tests/ops_dashboard_fixes.spec.js` cover overlapping UI flows; underlying UI code appears split across `OperationalDashboard.js`, `Sidebar.js`, `TeamSidebar.js` [REQUIRES-REFACTOR]
-- Weather UI validation tests
-  - `tests/weather_layer_screens.spec.js`, `tests/weather_overlay.spec.js`, `tests/weather_service.spec.js`, `tests/weather_tiles_e2e.spec.js` share scenarios across overlay/service; may benefit from shared fixtures/utilities [REQUIRES-REFACTOR]
-- Simulation logic vs live tracker handling
-  - `Marker Scripts/Simulation.js` and tracker management in `Markers.js` both update map state and polylines; ensure responsibilities are cleanly separated [REQUIRES-REFACTOR]
+  - Multiple dashboard e2e specs cover overlapping flows; consider shared fixtures/utilities [REQUIRES-REFACTOR]
+- Simulation vs live tracker handling
+  - `Marker Scripts/Simulation.js` and tracker handling in `Markers.js` both manage polylines/state [REQUIRES-REFACTOR]
+
+## Dependency Checks Before Deleting
+- Full-text search for filenames across repo (including HTML/CSS/JS) to confirm zero inbound references
+- Ensure Playwright tests do not reference deleted assets
+- Confirm no automation or scripts archive these artifacts externally
+
+## Additional Hygiene
+- Extend `.gitignore` if needed to ensure generated artifacts (e.g., Data/reports/*.json) do not enter VCS
+- Scrub any committed secrets (e.g., test_tasks.js) from history using appropriate tooling
