@@ -35,3 +35,10 @@ This index mirrors the repository to help navigate per-file and per-folder docum
 ## Global
 - [docs/_architecture.md](./_architecture.md)
 - [docs/_technical-debt.md](./_technical-debt.md)
+
+## Analysis & Planning
+- [docs/_analysis-summary.md](./_analysis-summary.md)
+- [docs/_feature-suggestions.md](./_feature-suggestions.md)
+- [docs/_risk-and-bug-assessment.md](./_risk-and-bug-assessment.md)
+- [docs/_refactor-proposals.md](./_refactor-proposals.md)
+- [docs/_phased-roadmap.md](./_phased-roadmap.md)
