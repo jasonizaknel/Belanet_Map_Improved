@@ -69,6 +69,7 @@ Express HTTP + WebSocket server for Belanet Map. Integrates with Splynx (tasks, 
 - `services/NagiosService.js` — HTML fetch/parse + caching for Nagios hosts/services
 - `services/SplynxService.js` — Admins/tasks fetch, assignment + UI comment via session caching
 - `services/WeatherBackend.js` — One Call cache, per-coordinate cache, usage stats persistence
+- `lib/spreadsheetTasks.js` — Spreadsheet import utilities (list files, parse tasks, load task IDs, auto-load cache)
 
 ## Refactor Notes
 - Candidates for extraction:
