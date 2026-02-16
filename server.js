@@ -886,7 +886,23 @@ app.get("/api/tasks", async (req, res) => {
       return res.json(tasksCache.data || []);
     }
 
+    // If Splynx integration is disabled, attempt to use local fallback file `Data/tasks.json`
+    const localTasksFile = path.join(__dirname, "Data", "tasks.json");
     if (!ENABLE_SPLYNX_TASKS) {
+      if (fs.existsSync(localTasksFile)) {
+        try {
+          const raw = fs.readFileSync(localTasksFile, 'utf8');
+          const local = JSON.parse(raw);
+          tasksCache.data = Array.isArray(local) ? local : [];
+          tasksCache.lastFetch = now;
+          tasksCache.sourceFile = 'tasks.json (local)';
+          console.log(`[Tasks] Loaded ${tasksCache.data.length} tasks from local fallback ${localTasksFile}`);
+          return res.json(tasksCache.data);
+        } catch (e) {
+          console.error('[Tasks] Failed to load local tasks.json fallback:', e && e.message);
+          // fall through to return cache/empty
+        }
+      }
       return res.json(tasksCache.data || []);
     }
 
