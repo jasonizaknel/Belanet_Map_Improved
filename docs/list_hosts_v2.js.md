@@ -18,3 +18,8 @@ Improved Nagios host listing that saves output to `nagios_hosts_new.txt`.
 
 ## Deletion & Cleanup Suggestions
 - Retain if useful; otherwise consolidate with `list_hosts.js`.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

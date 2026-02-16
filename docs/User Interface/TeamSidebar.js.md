@@ -26,3 +26,8 @@ Implements team management UI: fetch administrators, add/remove members, render 
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

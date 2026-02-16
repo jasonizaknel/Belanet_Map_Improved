@@ -1,3 +1,5 @@
+⚠ This folder is documented for audit and understanding only. Do not modify contents manually.
+
 # config.json — File
 
 - Name: config.json

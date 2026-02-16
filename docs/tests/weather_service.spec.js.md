@@ -11,3 +11,8 @@ Unit-like tests for WeatherService normalization, caching/TTL, resampling to 3h 
 
 ## Notes
 - Uses mocked fetch sequences and helpers to simulate responses/latency.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

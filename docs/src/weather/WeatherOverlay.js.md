@@ -35,3 +35,8 @@ Canvas-based UI overlay that renders weather visualizations and exposes controls
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

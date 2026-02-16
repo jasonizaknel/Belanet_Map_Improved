@@ -19,3 +19,8 @@ Adds a debounced text filter to update customer marker visibility via global fil
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

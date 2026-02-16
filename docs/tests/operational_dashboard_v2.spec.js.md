@@ -8,3 +8,8 @@ Regression tests for Operational Dashboard v2 behaviors and metrics.
 
 ## Dependencies
 - @playwright/test
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

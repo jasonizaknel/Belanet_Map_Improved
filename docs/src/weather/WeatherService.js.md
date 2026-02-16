@@ -38,3 +38,8 @@ Fetches and normalizes weather data (OpenWeather One Call 3.0 or free-tier aggre
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

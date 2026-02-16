@@ -18,3 +18,8 @@ Debug utility to fetch Splynx administrators using read-only credentials and log
 
 ## Deletion & Cleanup Suggestions
 - Safe to delete if not used; otherwise add to tooling scripts.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

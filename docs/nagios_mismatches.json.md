@@ -9,3 +9,8 @@ Holds mismatch data produced by analysis scripts. Not loaded by application runt
 
 ## Deletion & Cleanup Suggestions
 - Safe to delete; retain only if referenced in documentation.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

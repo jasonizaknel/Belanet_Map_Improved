@@ -1,3 +1,5 @@
+⚠ This folder is documented for audit and understanding only. Do not modify contents manually.
+
 # report.md — File
 
 - Path: ./.zenflow/tasks/weather-overlay-9d8b/report.md

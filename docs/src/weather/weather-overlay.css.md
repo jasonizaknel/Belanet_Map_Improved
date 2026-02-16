@@ -22,3 +22,8 @@ Stylesheet for Weather Overlay UI, including container, header, controls, sideba
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

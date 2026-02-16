@@ -23,3 +23,8 @@ Implements left sidebar behaviors: drag-to-resize, collapse/expand, layer filter
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

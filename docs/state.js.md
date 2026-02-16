@@ -25,3 +25,9 @@ Defines global `window.AppState` for the frontend application, including data st
 
 ## Deletion & Cleanup Suggestions
 - None. Consider modular state (e.g., ES modules or a small store) during refactor.
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

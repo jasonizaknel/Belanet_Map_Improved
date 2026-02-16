@@ -1,3 +1,5 @@
+⚠ This folder is documented for audit and understanding only. Do not modify contents manually.
+
 # .zenflow/tasks — Folder
 
 - Name: tasks
@@ -21,3 +23,9 @@ Per-task directories containing `spec.md`, `plan.md`, and optionally `report.md`
 
 ## Risk & Cleanup
 - None. Retain history for auditability.
+
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

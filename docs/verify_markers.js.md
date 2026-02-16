@@ -18,3 +18,8 @@ Loads `map.html`, waits for markers to initialize, logs counts and visibility, c
 
 ## Deletion & Cleanup Suggestions
 - Retain as utility; safe to delete if replaced by tests.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

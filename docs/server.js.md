@@ -58,3 +58,9 @@ Express HTTP + WebSocket server for Belanet Map. Integrates with Splynx (tasks, 
 
 ## Deletion & Cleanup Suggestions
 - None in this file. Consider extracting subsystems (Nagios, Splynx, Weather) into modules for testability and reducing tight coupling.
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

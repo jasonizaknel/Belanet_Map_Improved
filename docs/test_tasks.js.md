@@ -18,3 +18,9 @@ Fetches tasks from Splynx API using hard-coded credentials, logs counts. Likely 
 
 ## Deletion & Cleanup Suggestions
 - Strong candidate for deletion or sanitization; replace with environment-driven script.
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

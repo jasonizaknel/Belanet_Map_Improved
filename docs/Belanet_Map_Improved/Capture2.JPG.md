@@ -9,3 +9,8 @@ Screenshot for design/debug reference.
 
 ## Deletion & Cleanup Suggestions
 - Candidate for deletion or archival.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

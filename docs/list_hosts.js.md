@@ -18,3 +18,8 @@ Fetches Nagios status CGI page and extracts unique host names, printing a sorted
 
 ## Deletion & Cleanup Suggestions
 - Retain as maintenance utility; safe to remove if replaced by API calls.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

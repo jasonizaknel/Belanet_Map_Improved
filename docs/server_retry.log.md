@@ -12,3 +12,8 @@ Captured server retry logs from previous runs. Not used by application logic.
 
 ## Deletion & Cleanup Suggestions
 - Safe to delete. Ensure `.gitignore` covers `*.log` (already present).
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

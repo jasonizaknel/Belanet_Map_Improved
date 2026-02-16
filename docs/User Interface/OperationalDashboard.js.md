@@ -29,3 +29,8 @@ Coordinates the Operational Dashboard UI lifecycle: listens to state changes, bi
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

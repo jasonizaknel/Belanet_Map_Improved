@@ -18,3 +18,8 @@ Implements a self-contained Weather Overlay: UI component, data service for Open
 
 ## Risk & Cleanup
 - UMD patterns and globals; consider ES module migration in refactor.
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

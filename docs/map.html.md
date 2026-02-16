@@ -29,3 +29,9 @@ Main application page hosting Google Map, sidebar UI, dashboard, and controls. L
 
 ## Deletion & Cleanup Suggestions
 - None. Future refactor could template or componentize UI to reduce static HTML bulk.
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

@@ -18,3 +18,9 @@ Holds end-to-end and unit-like Playwright tests for Weather modules and selected
 
 ## Risk & Cleanup
 - Ensure network and environment variables configured before running E2E tests
+
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

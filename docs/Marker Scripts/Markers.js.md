@@ -32,3 +32,8 @@ Core frontend logic for loading domain data (towers, customers, tasks, service l
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

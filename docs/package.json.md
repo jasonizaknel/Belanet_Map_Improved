@@ -21,3 +21,8 @@ Defines Node.js package metadata, scripts, and dependencies for the server and t
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

@@ -15,3 +15,8 @@ Holds modularized features not tied to legacy folder structure. Currently used f
 
 ## Risk & Cleanup
 - None specific; good candidate for further modularization.
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

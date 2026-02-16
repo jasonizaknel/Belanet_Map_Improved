@@ -12,3 +12,9 @@ Legacy repository overview used prior to this `/docs` hierarchy. Summarizes stru
 
 ## Deletion & Cleanup Suggestions
 - Marked obsolete; retain until `/docs` adoption is complete.
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

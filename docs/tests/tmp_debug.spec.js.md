@@ -8,3 +8,8 @@ Temporary debug spec; used for ad-hoc checks.
 
 ## Deletion & Cleanup Suggestions
 - Candidate for deletion once stable tests cover scenarios.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

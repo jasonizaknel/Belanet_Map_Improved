@@ -8,3 +8,8 @@ Tests sidebar resizing, collapse/expand, and tab interactions.
 
 ## Dependencies
 - @playwright/test
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

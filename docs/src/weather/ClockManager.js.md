@@ -25,3 +25,8 @@ Tick-driven clock with realtime and simulation modes, adjustable rates, hidden t
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

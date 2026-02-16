@@ -12,3 +12,8 @@ Likely a convenience script to start the server on Windows. Contents not examine
 
 ## Deletion & Cleanup Suggestions
 - Retain if used by Windows environment; safe to delete otherwise.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

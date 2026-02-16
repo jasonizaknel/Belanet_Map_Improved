@@ -17,3 +17,9 @@ Map logic for rendering customers/towers, linking services, real-time updates, a
 
 ## Risk & Cleanup
 - Tight coupling to `window.AppState` globals; consider modularization in refactor
+
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

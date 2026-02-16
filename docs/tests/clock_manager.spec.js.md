@@ -8,3 +8,9 @@ Validates ClockManager tick progression, rate changes, mode switching anchoring,
 
 ## Dependencies
 - @playwright/test; imports `../src/weather/ClockManager.js`
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

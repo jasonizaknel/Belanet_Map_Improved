@@ -31,3 +31,7 @@ This index mirrors the repository to help navigate per-file and per-folder docum
 
 ## Cleanup Report
 - [docs/_cleanup-report.md](./_cleanup-report.md)
+
+## Global
+- [docs/_architecture.md](./_architecture.md)
+- [docs/_technical-debt.md](./_technical-debt.md)

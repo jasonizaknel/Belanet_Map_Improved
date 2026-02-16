@@ -8,3 +8,9 @@ UI tests for Weather Overlay: mount/unmount, layer toggle persistence, drag/resi
 
 ## Dependencies
 - @playwright/test; injects `src/weather/*` scripts at runtime
+
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

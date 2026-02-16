@@ -8,3 +8,8 @@ Timestamped UI screenshot used during design/testing.
 
 ## Deletion & Cleanup Suggestions
 - Candidate for deletion or archival outside repo.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

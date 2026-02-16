@@ -1,3 +1,5 @@
+⚠ This folder is documented for audit and understanding only. Do not modify contents manually.
+
 # .continue — Folder
 
 - Name: .continue
@@ -15,3 +17,8 @@ Holds configuration for a local workflow tool. Not part of application runtime.
 
 ## Risk & Cleanup
 - Keep as developer tooling; exclude from production packaging.
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

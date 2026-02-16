@@ -1,3 +1,5 @@
+⚠ This folder is documented for audit and understanding only. Do not modify contents manually.
+
 # spec.md — File
 
 - Path: ./.zenflow/tasks/task-dashboard-ui-workflow-f9e1/spec.md

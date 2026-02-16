@@ -1,3 +1,5 @@
+⚠ This folder is documented for audit and understanding only. Do not modify contents manually.
+
 # spec.md — File
 
 - Path: ./.zenflow/tasks/customer-tasks-adb2/spec.md

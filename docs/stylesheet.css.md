@@ -18,3 +18,8 @@ Global styles for the map application and custom UI elements not covered by Tail
 
 ## Deletion & Cleanup Suggestions
 - None
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

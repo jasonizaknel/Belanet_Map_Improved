@@ -19,3 +19,8 @@ Analyzes tower vs service login mappings and lists customers without links by cr
 
 ## Deletion & Cleanup Suggestions
 - Keep as analysis script; safe to remove if folded into app logic.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

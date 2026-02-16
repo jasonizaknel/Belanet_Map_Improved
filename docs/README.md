@@ -25,3 +25,9 @@ Holds the entire Belanet Map Improved project: Node.js server, browser UI, integ
 ## Risk & Cleanup
 - Large binary assets and generated reports should be excluded from refactors, documented only
 - Legacy `repo/` folder is superseded by `docs/` and can be considered obsolete post-docs adoption
+
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

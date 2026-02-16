@@ -8,3 +8,8 @@ End-to-end test for weather tile layers integration and interactions.
 
 ## Dependencies
 - @playwright/test; backend weather endpoints
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

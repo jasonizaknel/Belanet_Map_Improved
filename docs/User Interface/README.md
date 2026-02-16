@@ -18,3 +18,9 @@ Encapsulates dashboard, sidebar, team management UI behavior detached from core 
 
 ## Risk & Cleanup
 - Heavy DOM manipulation and globals; future refactor may move to modular structure or a framework.
+
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

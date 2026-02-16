@@ -19,3 +19,8 @@ Automates a browser session to load `map.html`, open the dashboard, wait briefly
 
 ## Deletion & Cleanup Suggestions
 - Retain as a diagnostic utility; safe to remove if replaced by formal tests.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

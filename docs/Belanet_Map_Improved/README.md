@@ -17,3 +17,8 @@ Contains UI screenshots and visual references used during design/debugging of th
 ## Risk & Cleanup
 - Candidates for deletion or archival outside repo history. Keep out of runtime bundles.
 - Safe to delete after confirming no external docs link to these filenames.
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

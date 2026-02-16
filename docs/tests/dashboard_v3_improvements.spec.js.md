@@ -8,3 +8,8 @@ Regression tests for v3 dashboard improvements and features.
 
 ## Dependencies
 - @playwright/test
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

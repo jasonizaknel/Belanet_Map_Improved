@@ -8,3 +8,8 @@ Validates Weather Overlay layer toggles and captured screenshots for visual veri
 
 ## Dependencies
 - @playwright/test; Weather modules
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

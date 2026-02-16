@@ -11,3 +11,8 @@ End-to-end test covering advanced routing and path optimization behaviors in the
 
 ## Notes
 - Ensure test data and AppState hooks are stable before running.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:

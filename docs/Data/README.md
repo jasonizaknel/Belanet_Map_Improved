@@ -18,3 +18,9 @@ Holds input data files, icons for map markers, and generated reports produced by
 
 ## Risk & Cleanup
 - `reports/*.json` and large data dumps are candidates for cleanup; ensure not required for tests
+
+## Naming & Structural Consistency
+- Consistency: mixed but generally coherent; standardize during refactor
+- Case Styles: prefer kebab-case for files, camelCase for JS identifiers
+- Normalization: align folder/file naming, collapse near-duplicates
+- Import Paths: prefer relative paths consolidated via clear top-level entry points

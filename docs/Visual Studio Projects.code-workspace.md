@@ -12,3 +12,8 @@ Stores editor workspace settings for multi-root or tailored environment. No runt
 
 ## Deletion & Cleanup Suggestions
 - Retain for developer convenience; safe to remove if unused.
+## Refactor Notes
+- Candidates for extraction:
+- Candidates for merge:
+- Known inefficiencies:
+- Rename or relocation suggestions:
