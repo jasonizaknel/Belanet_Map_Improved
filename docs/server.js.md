@@ -59,6 +59,17 @@ Express HTTP + WebSocket server for Belanet Map. Integrates with Splynx (tasks, 
 ## Deletion & Cleanup Suggestions
 - None in this file. Consider extracting subsystems (Nagios, Splynx, Weather) into modules for testability and reducing tight coupling.
 
+## Observability Endpoints
+- GET `/metrics.json` — In-memory counters and gauges (HTTP requests, integration call status, cache hits/misses, WS broadcasts)
+- GET `/health` — Liveness: `{ status, pid, uptime_s }`
+- GET `/ready` — Readiness: `{ ready, details: { env, features } }`
+
+## Service Modules (Extracted)
+- `services/TrackerService.js` — Traccar positions/devices with caching and retry/timeout
+- `services/NagiosService.js` — HTML fetch/parse + caching for Nagios hosts/services
+- `services/SplynxService.js` — Admins/tasks fetch, assignment + UI comment via session caching
+- `services/WeatherBackend.js` — One Call cache, per-coordinate cache, usage stats persistence
+
 ## Refactor Notes
 - Candidates for extraction:
 - Candidates for merge:

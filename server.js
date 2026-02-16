@@ -10,13 +10,23 @@ const cheerio = require("cheerio");
 const { chromium } = require('playwright');
 const axios = require('axios');
 
+const { logger, requestLoggerMiddleware, installConsoleInterceptor } = require('./lib/logger');
+const { requestMetricsMiddleware, inc, setGauge, snapshot } = require('./lib/metrics');
+installConsoleInterceptor();
 const app = express();
 app.use(express.json());
+app.use(requestLoggerMiddleware);
+app.use(requestMetricsMiddleware);
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const PORT = 5505;
 const DATA_DIR = path.join(__dirname, "Data", "icons");
+
+const { TrackerService } = require('./services/TrackerService');
+const { NagiosService } = require('./services/NagiosService');
+const { SplynxService } = require('./services/SplynxService');
+const { WeatherBackend } = require('./services/WeatherBackend');
 
 const TRACCAR_URL = process.env.TRACCAR_URL || "https://demo.traccar.org";
 const USER = process.env.TRACCAR_USER || "";
@@ -44,6 +54,11 @@ const TRACKER_REFRESH_INTERVAL = 5000;
 const NAGIOS_REFRESH_INTERVAL = 60000; // Increased from 30s to 1m
 const TASKS_REFRESH_INTERVAL = 900000; // 15 minutes as requested
 const WEATHER_REFRESH_INTERVAL = 30000; // 30 seconds for lightning/weather
+
+const trackerService = new TrackerService({ baseUrl: TRACCAR_URL, user: USER, pass: PASS, enable: ENABLE_TRACCAR, dataDir: path.join(__dirname, 'Data', 'icons') });
+const nagiosService = new NagiosService({ baseUrl: NAGIOS_URL, user: NAGIOS_USER, pass: NAGIOS_PASS, enable: true, refreshMs: NAGIOS_REFRESH_INTERVAL });
+const splynxService = new SplynxService({ baseUrl: SPLYNX_URL, readKey: SPLYNX_READ_ONLY_KEY, assignKey: SPLYNX_ASSIGN_KEY, secret: SPLYNX_SECRET, adminUser: SPLYNX_ADMIN_USER, adminPass: SPLYNX_ADMIN_PASS });
+const weatherBackend = new WeatherBackend({ apiKey: OPENWEATHER_API_KEY, dataDir: __dirname });
 
 let nagiosStatusCache = {
   data: null,
@@ -398,96 +413,15 @@ async function fetchTasksFromSplynx() {
     }
   }
 
-  const tasks = [];
-  const CONCURRENCY_LIMIT = 5; 
-  
-  for (let i = 0; i < taskIds.length; i += CONCURRENCY_LIMIT) {
-    const chunk = taskIds.slice(i, i + CONCURRENCY_LIMIT);
-    const promises = chunk.map(async (id) => {
-      const url = `${SPLYNX_URL}/api/2.0/admin/scheduling/tasks/${id}`;
-      try {
-        const res = await fetch(url, {
-          headers: { 
-            "Authorization": `Basic ${auth}`,
-            "Accept": "application/json"
-          },
-          timeout: 5000
-        });
-        
-        if (res.ok) {
-          const task = await res.json();
-          // FIXED: Map attributes correctly for frontend (Markers.js expects Title/Description)
-          task.Title = task.title || task.subject || "No Title";
-          task.Description = task.Description || task.description || "";
-          return task;
-        } else {
-          console.error(`[Splynx] Failed to fetch task ${id}: HTTP ${res.status}`);
-          return null;
-        }
-      } catch (e) {
-        console.error(`[Splynx] Error fetching task ${id}: ${e.message}`);
-        return null;
-      }
-    });
-
-    const results = await Promise.all(promises);
-    results.filter(t => t !== null).forEach(t => tasks.push(t));
-  }
-
+  const tasks = await splynxService.fetchTasksByIds(taskIds);
   console.log(`[Splynx] 📦 Total tasks in this fetch: ${tasks.length}`);
   return tasks;
 }
 
 
 async function getWeatherData() {
-  const now = Date.now();
-  const WEATHER_CACHE_TTL = 600000;
-  if (weatherCache.data && (now - weatherCache.lastFetch) < WEATHER_CACHE_TTL) {
-    console.log('[Weather] Serving weather data from cache');
-    return weatherCache.data;
-  }
-  if (!OPENWEATHER_API_KEY) {
-    console.warn('[Weather] API key not configured');
-    return null;
-  }
-  const lat = -25.0;
-  const lon = 28.0;
-  try {
-    const url = 'https://api.openweathermap.org/data/3.0/onecall';
-    const params = { lat, lon, exclude: 'minutely,alerts', units: 'metric', appid: OPENWEATHER_API_KEY };
-    console.log('[Weather] Fetching One Call 3.0 data');
-    const response = await axios.get(url, { params, timeout: 10000 });
-    if (response.status === 200 && response.data) {
-      const data = response.data;
-      weatherCache.data = data;
-      weatherCache.lastFetch = now;
-      console.log('[Weather] One Call 3.0 data fetched and cached');
-      return data;
-    } else {
-      console.error(`[Weather] One Call 3.0 unexpected response: ${response.status}`);
-      if (weatherCache.data) {
-        console.warn('[Weather] Returning stale cache data');
-        return weatherCache.data;
-      }
-      return null;
-    }
-  } catch (error) {
-    console.error('[Weather] One Call 3.0 fetch failed:', error.message);
-    if (error.response) {
-      if (error.response.status === 401) {
-        console.error('[Weather] Unauthorized (invalid API key)');
-      } else if (error.response.status === 429) {
-        console.error('[Weather] Rate limit exceeded');
-      } else {
-        console.error(`[Weather] API error: ${error.response.status}`);
-      }
-    }
-    if (weatherCache.data) {
-      console.warn('[Weather] Returning stale cache data due to error');
-      return weatherCache.data;
-    }
-    return null;
-  }
+  const data = await weatherBackend.getWeatherData();
+  return data;
 }
 
 // ADDED: Fetch Nagios status page and parse HTML
@@ -639,6 +573,41 @@ async function ensureUserIconFolder(username) {
 
 app.use(express.static(__dirname));
 
+app.get('/metrics.json', (req, res) => {
+  res.json(snapshot());
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', pid: process.pid, uptime_s: Math.floor(process.uptime()) });
+});
+
+app.get('/ready', (req, res) => {
+  const readiness = {
+    process: true,
+    env: {
+      TRACCAR_URL: !!TRACCAR_URL,
+      TRACCAR_USER: !!USER,
+      TRACCAR_PASS: !!PASS,
+      SPLYNX_URL: !!SPLYNX_URL,
+      SPLYNX_KEYS: !!(SPLYNX_READ_ONLY_KEY && SPLYNX_SECRET),
+      NAGIOS_URL: !!NAGIOS_URL,
+      NAGIOS_USER: !!NAGIOS_USER,
+      NAGIOS_PASS: !!NAGIOS_PASS,
+      OPENWEATHER_API_KEY: !!OPENWEATHER_API_KEY,
+    },
+    features: {
+      traccar_enabled: ENABLE_TRACCAR,
+      splynx_tasks_enabled: ENABLE_SPLYNX_TASKS,
+      nagios_enabled: ENABLE_NAGIOS,
+    }
+  };
+  let ok = true;
+  if (ENABLE_TRACCAR && (!USER || !PASS)) ok = false;
+  if (ENABLE_SPLYNX_TASKS && (!SPLYNX_READ_ONLY_KEY || !SPLYNX_SECRET)) ok = false;
+  if (ENABLE_NAGIOS && (!NAGIOS_USER || !NAGIOS_PASS)) ok = false;
+  res.status(ok ? 200 : 503).json({ ready: ok, details: readiness });
+});
+
 // ADDED: Serve public configuration to frontend
 app.get("/api/config", (req, res) => {
   console.log('[API][CONFIG] Serving configuration to frontend');
@@ -724,96 +693,22 @@ app.get('/api/tasks/reload', (req, res) => {
 
 app.get("/api/positions", async (req, res) => {
   try {
-    const now = Date.now();
-    // Cache for 5 seconds (matching tracker broadcast interval)
-    if (trackerCache.data && (now - trackerCache.lastFetch < 5000)) {
-      return res.json(trackerCache.data);
-    }
-
-    if (!ENABLE_TRACCAR) {
-      console.log("[API][TRACCAR] Traccar requests disabled, serving cache if available");
-      return res.json(trackerCache.data || []);
-    }
-
-    const auth = Buffer.from(`${USER}:${PASS}`).toString("base64");
-    console.log(`[API][TRACCAR] Requesting positions from ${TRACCAR_URL}/api/positions`);
-
-    const r = await fetch(`${TRACCAR_URL}/api/positions`, {
-      headers: { Authorization: `Basic ${auth}` },
-      timeout: 10000
-    });
-
-    if (!r.ok) {
-      console.error(`[API][TRACCAR][ERROR] API responded with status ${r.status}: ${r.statusText}`);
-      if (trackerCache.data) {
-        console.warn('[API][TRACCAR][WARN] Serving stale cache due to API error');
-        return res.json(trackerCache.data);
-      }
-      return res.status(r.status).json({ 
-        error: `Traccar API returned ${r.status}`,
-        debug: r.statusText
-      });
-    }
-
-    const positions = await r.json();
-    console.log(`[API][TRACCAR][SUCCESS] Received ${positions.length} positions`);
-    trackerCache.data = positions;
-    trackerCache.lastFetch = now;
-    
-    for (const position of positions) {
-      if (position.attributes && position.attributes.name) {
-        await ensureUserIconFolder(position.attributes.name);
-      }
-    }
-
+    const positions = await trackerService.fetchPositions();
+    if (!positions) return res.json([]);
     res.json(positions);
   } catch (error) {
     console.error("[API][TRACCAR][FATAL] Fetch failed:", error);
-    if (trackerCache.data) return res.json(trackerCache.data);
     res.status(500).json({ error: "Traccar fetch failed", details: error.message });
   }
 });
 
 app.get("/api/devices", async (req, res) => {
   try {
-    const now = Date.now();
-    // Cache for 10 minutes
-    if (devicesCache.data && (now - devicesCache.lastFetch < 600000)) {
-      return res.json(devicesCache.data);
-    }
-
-    if (!ENABLE_TRACCAR) {
-      console.log("[API][TRACCAR] Traccar requests disabled, serving cache if available");
-      return res.json(devicesCache.data || []);
-    }
-
-    const auth = Buffer.from(`${USER}:${PASS}`).toString("base64");
-
-    const r = await fetch(`${TRACCAR_URL}/api/devices`, {
-      headers: { Authorization: `Basic ${auth}` },
-      timeout: 10000
-    });
-
-    if (!r.ok) {
-      console.error(`Traccar API error: ${r.status} ${r.statusText}`);
-      if (devicesCache.data) return res.json(devicesCache.data);
-      return res.status(r.status).json({ error: `Traccar API returned ${r.status}` });
-    }
-
-    const devices = await r.json();
-    devicesCache.data = devices;
-    devicesCache.lastFetch = now;
-    
-    for (const device of devices) {
-      if (device.name) {
-        await ensureUserIconFolder(device.name);
-      }
-    }
-
+    const devices = await trackerService.fetchDevices();
+    if (!devices) return res.json([]);
     res.json(devices);
   } catch (error) {
     console.error("Traccar fetch failed:", error.message);
-    if (devicesCache.data) return res.json(devicesCache.data);
     res.status(500).json({ error: "Traccar fetch failed", details: error.message });
   }
 });
@@ -821,51 +716,10 @@ app.get("/api/devices", async (req, res) => {
 // ADDED: Fetch administrators from Splynx
 app.get("/api/administrators", adminAuth, async (req, res) => {
   try {
-    const now = Date.now();
-    // Cache for 1 hour for admins
-    if (adminsCache.data && (now - adminsCache.lastFetch < 3600000)) {
-      console.log('[API][SPLY][CACHE] Serving administrators from cache');
-      return res.json(adminsCache.data);
-    }
-
-    const auth = Buffer.from(`${SPLYNX_READ_ONLY_KEY}:${SPLYNX_SECRET}`).toString("base64");
-    const url = `${SPLYNX_URL}/api/2.0/admin/administration/administrators`;
-    
-    console.log(`[API][SPLY][REQ] Fetching administrators from: ${url}`);
-
-    const r = await fetch(url, {
-      headers: { 
-        "Authorization": `Basic ${auth}`,
-        "Accept": "application/json",
-        "User-Agent": "PostmanRuntime/7.36.0",
-        "Content-Type": "application/json"
-      },
-      timeout: 15000
-    });
-
-    if (!r.ok) {
-      const errorText = await r.text();
-      console.error(`[API][SPLY][ERROR] Status ${r.status}: ${r.statusText} - Content: ${errorText}`);
-      if (adminsCache.data) {
-        console.warn('[API][SPLY][WARN] Serving stale admin cache');
-        return res.json(adminsCache.data);
-      }
-      // Fallback for simulation mode
-      return res.json([
-        { id: 1, name: "Admin 1 (Mock-Error)" },
-        { id: 2, name: "Admin 2 (Mock-Error)" },
-        { id: 3, name: "Technician A (Mock-Error)" }
-      ]);
-    }
-
-    const administrators = await r.json();
-    adminsCache.data = administrators;
-    adminsCache.lastFetch = now;
-    console.log(`[API][SPLY][SUCCESS] Fetched ${administrators.length} administrators`);
+    const administrators = await splynxService.fetchAdministrators();
     res.json(administrators);
   } catch (error) {
     console.error(`[API][SPLY][FATAL] Fetch failed:`, error);
-    if (adminsCache.data) return res.json(adminsCache.data);
     res.json([
       { id: 1, name: "Admin 1 (Mock-Fatal)" },
       { id: 2, name: "Admin 2 (Mock-Fatal)" },
@@ -879,6 +733,7 @@ app.get("/api/tasks", async (req, res) => {
   try {
     const now = Date.now();
     if (tasksCache.data && (now - tasksCache.lastFetch < TASKS_REFRESH_INTERVAL)) {
+      inc('cache_hit', { cache: 'splynx_tasks' });
       return res.json(tasksCache.data);
     }
 
@@ -938,6 +793,7 @@ app.get("/api/weather", async (req, res) => {
     const weatherData = await getWeatherData();
     
     if (!weatherData) {
+      inc('cache_miss', { cache: 'weather' });
       if (!OPENWEATHER_API_KEY) {
         return res.status(503).json({ 
           error: "Weather service not configured",
@@ -950,6 +806,7 @@ app.get("/api/weather", async (req, res) => {
       });
     }
     
+    inc('cache_hit', { cache: 'weather' });
     res.json(weatherData);
   } catch (error) {
     console.error("[Weather][API] Failed to serve weather data:", error.message);
@@ -965,73 +822,28 @@ app.get('/api/onecall', async (req, res) => {
     const lat = parseFloat(req.query.lat);
     const lon = parseFloat(req.query.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(400).json({ error: 'Missing lat/lon' });
-    if (!OPENWEATHER_API_KEY) return res.status(503).json({ error: 'Weather service not configured' });
-    const qlat = Math.round(lat*100)/100;
-    const qlon = Math.round(lon*100)/100;
-    const key = qlat.toFixed(2)+','+qlon.toFixed(2);
-    const now = Date.now();
-    const ttl = 10*60*1000;
-    const cached = coordWeatherCache.get(key);
-    if (cached && (now - cached.ts) < ttl) return res.json(cached.data);
-    
-    // Check if API call limit reached
-    if (apiCallStats.callsUsed >= apiCallStats.callLimit) {
-      return res.status(429).json({ error: 'OneCall API 3 call limit reached', callsUsed: apiCallStats.callsUsed, limit: apiCallStats.callLimit });
-    }
-    
-    const url = 'https://api.openweathermap.org/data/3.0/onecall';
-    const params = { lat: qlat, lon: qlon, exclude: 'minutely,alerts', units: 'metric', appid: OPENWEATHER_API_KEY };
-    const resp = await axios.get(url, { params, timeout: 10000 });
-    const data = resp.data;
-    
-    // Increment API call count
-    apiCallStats.callsUsed += 1;
-    apiCallStats.startTime = apiCallStats.startTime || Date.now();
-    console.log(`[API Stats] OneCall API 3 call made. Total: ${apiCallStats.callsUsed} / ${apiCallStats.callLimit}`);
-    _saveApiCallStatsToDisk();
-    
-    coordWeatherCache.set(key, { ts: now, data });
+    const data = await weatherBackend.oneCall(lat, lon);
     res.json(data);
   } catch (e) {
-    if (e.response && e.response.status) return res.status(e.response.status).json({ error: 'Upstream error' });
+    if (e.status) return res.status(e.status).json({ error: e.message });
     res.status(500).json({ error: 'Failed to fetch onecall' });
   }
 });
 
 // ADDED: Get current API call statistics
 app.get('/api/weather/stats', (req, res) => {
-  res.json({
-    callsUsed: apiCallStats.callsUsed,
-    limit: apiCallStats.callLimit,
-    startTime: apiCallStats.startTime,
-    resetTime: apiCallStats.resetTime,
-  });
+  res.json(weatherBackend.weatherStats());
 });
 
-// ADDED: Set API call limit
 app.post('/api/weather/stats/limit', express.json(), (req, res) => {
   const { limit } = req.body;
-  const newLimit = Math.max(1, parseInt(limit, 10) || 500);
-  apiCallStats.callLimit = newLimit;
-  console.log(`[API Stats] Call limit updated to ${newLimit}`);
-  _saveApiCallStatsToDisk();
-  res.json({
-    callsUsed: apiCallStats.callsUsed,
-    limit: apiCallStats.callLimit,
-  });
+  const stats = weatherBackend.setLimit(limit);
+  res.json(stats);
 });
 
-// ADDED: Reset API call counter
 app.post('/api/weather/stats/reset', (req, res) => {
-  apiCallStats.callsUsed = 0;
-  apiCallStats.resetTime = Date.now();
-  console.log('[API Stats] Call counter reset');
-  _saveApiCallStatsToDisk();
-  res.json({
-    callsUsed: 0,
-    limit: apiCallStats.callLimit,
-    resetTime: apiCallStats.resetTime,
-  });
+  const stats = weatherBackend.resetCounter();
+  res.json(stats);
 });
 
 // ADDED: Assign tasks to a technician and add a comment
@@ -1045,38 +857,11 @@ app.post("/api/tasks/assign", adminAuth, express.json(), async (req, res) => {
     }
 
     console.log(`[API][ASSIGN][PROCESS] Assigning ${taskIds.length} tasks to ${technicianName} (ID: ${technicianId})`);
-    const auth = Buffer.from(`${SPLYNX_ASSIGN_KEY}:${SPLYNX_SECRET}`).toString("base64");
     const results = [];
 
     for (const taskId of taskIds) {
-      // 1. Assign the task - CHANGED to PUT as per user instruction
-      const assignUrl = `${SPLYNX_URL}/api/2.0/admin/scheduling/tasks/${taskId}`;
-      console.log(`[API][ASSIGN][PUT] Updating task ${taskId}: ${assignUrl}`);
-      
-      const assignRes = await fetch(assignUrl, {
-        method: "PUT",
-        headers: { 
-          "Authorization": `Basic ${auth}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ assignee: parseInt(technicianId) })
-      });
-
-      if (!assignRes.ok) {
-          const errText = await assignRes.text();
-          console.error(`[API][ASSIGN][ERROR] Task ${taskId} assignment failed: ${assignRes.status} - ${errText}`);
-      } else {
-          console.log(`[API][ASSIGN][SUCCESS] Task ${taskId} assigned successfully`);
-      }
-
-      // 2. Add a comment - FIXED: Use UI emulation as API comment endpoint is limited
-      const commented = await addSplynxComment(taskId, technicianName);
-
-      results.push({ 
-        taskId, 
-        assigned: assignRes.ok, 
-        commented: commented 
-      });
+      const r = await splynxService.assignTask(taskId, technicianId, technicianName);
+      results.push(r);
     }
 
     console.log('[API][ASSIGN][DONE] All tasks processed');
@@ -1100,7 +885,6 @@ app.get("/api/nagios/status/:hostName", async (req, res) => {
     const hostName = req.params.hostName;
     const now = Date.now();
 
-    // Check if we have this host in the global cache and it's fresh
     if (nagiosStatusCache.data && (now - nagiosStatusCache.lastFetch < NAGIOS_REFRESH_INTERVAL)) {
       const filteredServices = nagiosStatusCache.data.filter(s => s.host_name === hostName);
       if (filteredServices.length > 0) {
@@ -1114,11 +898,9 @@ app.get("/api/nagios/status/:hostName", async (req, res) => {
     }
 
     const [services, hosts] = await Promise.all([
-      fetchFromNagios(hostName, 'services'),
-      fetchFromNagios(hostName, 'hosts')
+      nagiosService.fetchFromNagios(hostName, 'services'),
+      nagiosService.fetchFromNagios(hostName, 'hosts')
     ]);
-    
-    // Filter hosts to only include the requested one
     const filteredHosts = hosts.filter(h => h.host_name === hostName);
     const allStatus = [...services, ...filteredHosts];
 
@@ -1143,19 +925,13 @@ async function broadcastNagiosStatus() {
     const now = Date.now();
     let allStatus;
 
-    // Use cache if it's still fresh
     if (nagiosStatusCache.data && (now - nagiosStatusCache.lastFetch < NAGIOS_REFRESH_INTERVAL)) {
       allStatus = nagiosStatusCache.data;
     } else if (!ENABLE_NAGIOS) {
-        if (nagiosStatusCache.data) allStatus = nagiosStatusCache.data;
-        else return;
+      if (nagiosStatusCache.data) allStatus = nagiosStatusCache.data;
+      else return;
     } else {
-      const [services, hosts] = await Promise.all([
-        fetchFromNagios(null, 'services'),
-        fetchFromNagios(null, 'hosts')
-      ]);
-
-      allStatus = [...services, ...hosts];
+      allStatus = await nagiosService.getAllStatus(true);
       nagiosStatusCache.data = allStatus;
       nagiosStatusCache.lastFetch = now;
       console.log(`[Nagios] Fetched and cached ${allStatus.length} entries`);
@@ -1173,6 +949,7 @@ async function broadcastNagiosStatus() {
       }
     });
 
+    inc('ws_broadcast_total', { type: 'nagios' });
     const uniqueHosts = [...new Set(allStatus.map(s => s.host_name))];
     console.log(`[Nagios] Broadcast ${allStatus.length} entries across ${uniqueHosts.length} hosts to ${wss.clients.size} clients`);
   } catch (error) {
@@ -1185,30 +962,8 @@ async function broadcastTrackerPositions() {
   if (wss.clients.size === 0 || !ENABLE_TRACCAR) return;
 
   try {
-    const now = Date.now();
-    let positions;
-
-    // Use cache if it's still fresh (within 5 seconds)
-    if (trackerCache.data && (now - trackerCache.lastFetch < TRACKER_REFRESH_INTERVAL)) {
-      positions = trackerCache.data;
-    } else {
-      const auth = Buffer.from(`${USER}:${PASS}`).toString("base64");
-
-      const r = await fetch(`${TRACCAR_URL}/api/positions`, {
-        headers: { Authorization: `Basic ${auth}` },
-        timeout: 10000
-      });
-
-      if (!r.ok) {
-        console.error(`Traccar API error: ${r.status} ${r.statusText}`);
-        if (trackerCache.data) positions = trackerCache.data;
-        else return;
-      } else {
-        positions = await r.json();
-        trackerCache.data = positions;
-        trackerCache.lastFetch = now;
-      }
-    }
+    const positions = await trackerService.fetchPositions();
+    if (!positions) return;
 
     const message = JSON.stringify({
       type: "tracker_update",
@@ -1222,6 +977,7 @@ async function broadcastTrackerPositions() {
       }
     });
 
+    inc('ws_broadcast_total', { type: 'tracker' });
     console.log(`[WebSocket] Broadcast ${positions.length} tracker positions to ${wss.clients.size} clients`);
   } catch (error) {
     console.error("Error broadcasting tracker positions:", error.message);
@@ -1275,6 +1031,7 @@ async function broadcastTasks() {
       }
     });
 
+    inc('ws_broadcast_total', { type: 'tasks' });
     console.log(`[WebSocket] Broadcast ${tasks.length} tasks to ${wss.clients.size} clients`);
   } catch (error) {
     console.error("Error broadcasting tasks:", error.message);
@@ -1326,6 +1083,7 @@ async function broadcastWeatherEvents() {
         }
       });
 
+      inc('ws_broadcast_total', { type: 'weather' });
       console.log(`[Weather] Broadcast ${strikes.length} lightning strikes to ${wss.clients.size} clients`);
     }
   } catch (error) {

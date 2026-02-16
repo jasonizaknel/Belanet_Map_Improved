@@ -40,3 +40,15 @@ Belanet Map Improved is a geospatial operations dashboard that unifies network m
 ## Cross-References
 - Cleanup candidates and duplication clusters are tracked in [./_cleanup-report.md](./_cleanup-report.md).
 - Technical debt hotspots are indexed in [./_technical-debt.md](./_technical-debt.md).
+
+## CDN Dependencies & Safety
+- Google Fonts (Inter): served via `fonts.googleapis.com`/`fonts.gstatic.com`
+- Tailwind CDN: `https://cdn.tailwindcss.com` (unversioned runtime)
+- Lucide Icons: `https://unpkg.com/lucide@latest`
+- Animate.css: `https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css` (pinned)
+
+Recommendations:
+- Prefer pinning to explicit versions where possible:
+  - Lucide: `https://unpkg.com/lucide@0.446.0` (or current tested)
+  - Tailwind CDN: `https://cdn.tailwindcss.com/3.4.15` (or migrate to local build for deterministic output)
+- Fallback strategy: if CDN fails, UI remains functional but un-styled; consider local fallbacks checked into `./vendor/` and conditional `<script>`/`<link>` tags at runtime.
