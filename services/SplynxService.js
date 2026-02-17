@@ -4,6 +4,7 @@ const axios = require('axios');
 const { fetchWithRetry } = require('../lib/http');
 const { inc, setGauge } = require('../lib/metrics');
 const { logger } = require('../lib/logger');
+const { LruTtlCache } = require('../lib/cache');
 
 class SplynxService {
   constructor({ baseUrl, readKey, assignKey, secret, adminUser, adminPass, enable = false }) {
@@ -14,8 +15,7 @@ class SplynxService {
     this.adminUser = adminUser;
     this.adminPass = adminPass;
     this.enable = !!enable;
-    this.adminsCache = { data: null, ts: 0 };
-    this.tasksCache = { data: null, ts: 0 };
+    this.cacheAdmins = new LruTtlCache({ name: 'splynx_admins', ttlMs: 3600000, maxSize: 1 });
     this.session = { cookie: null, lastLogin: 0 };
     this._log = logger.child({ subsystem: 'splynx' });
     this._fails = 0;
@@ -44,31 +44,29 @@ class SplynxService {
   }
 
   async fetchAdministrators() {
-    const now = Date.now();
-    if (!this.enable) return this.adminsCache.data || [
+    if (!this.enable) return this.cacheAdmins.peek('all') || [
       { id: 1, name: 'Admin 1 (Disabled)' },
       { id: 2, name: 'Admin 2 (Disabled)' },
       { id: 3, name: 'Technician A (Disabled)' }
     ];
-    if (this.adminsCache.data && (now - this.adminsCache.ts < 3600000)) {
-      inc('cache_hit', { cache: 'splynx_admins' });
-      return this.adminsCache.data;
-    }
+
     const auth = Buffer.from(`${this.readKey}:${this.secret}`).toString('base64');
     const url = `${this.baseUrl}/api/2.0/admin/administration/administrators`;
-    const res = await fetchWithRetry(url, { headers: { Authorization: `Basic ${auth}`, Accept: 'application/json', 'Content-Type': 'application/json' }, timeout: 15000, retries: 1 });
-    if (!res.ok) {
-      inc('integration_calls_total', { service: 'splynx', op: 'administrators', status: 'error' });
-      return this.adminsCache.data || [
-        { id: 1, name: 'Admin 1 (Mock-Error)' },
-        { id: 2, name: 'Admin 2 (Mock-Error)' },
-        { id: 3, name: 'Technician A (Mock-Error)' }
-      ];
-    }
-    inc('integration_calls_total', { service: 'splynx', op: 'administrators', status: 'success' });
-    inc('cache_miss', { cache: 'splynx_admins' });
-    const data = await res.json();
-    this.adminsCache = { data, ts: now };
+
+    const data = await this.cacheAdmins.getOrLoad('all', async () => {
+      const res = await fetchWithRetry(url, { headers: { Authorization: `Basic ${auth}`, Accept: 'application/json', 'Content-Type': 'application/json' }, timeout: 15000, retries: 1 });
+      if (!res.ok) {
+        inc('integration_calls_total', { service: 'splynx', op: 'administrators', status: 'error' });
+        return this.cacheAdmins.peek('all') || [
+          { id: 1, name: 'Admin 1 (Mock-Error)' },
+          { id: 2, name: 'Admin 2 (Mock-Error)' },
+          { id: 3, name: 'Technician A (Mock-Error)' }
+        ];
+      }
+      inc('integration_calls_total', { service: 'splynx', op: 'administrators', status: 'success' });
+      return await res.json();
+    }, { ttlMs: 3600000 });
+
     return data;
   }
 

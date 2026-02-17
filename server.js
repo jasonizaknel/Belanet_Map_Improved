@@ -8,6 +8,7 @@ const https = require("https");
 const { logger, requestLoggerMiddleware, installConsoleInterceptor } = require('./lib/logger');
 const { requestMetricsMiddleware, inc, setGauge, snapshot } = require('./lib/metrics');
 const { listSpreadsheetFiles, parseSplynxTasksFromFile, loadTaskIdsFromExcel, tryAutoLoadSpreadsheetIntoCache } = require('./lib/spreadsheetTasks');
+const { LruTtlCache } = require('./lib/cache');
 installConsoleInterceptor();
 const app = express();
 app.use(express.json());
@@ -58,16 +59,10 @@ const nagiosService = new NagiosService({ baseUrl: NAGIOS_URL, user: NAGIOS_USER
 const splynxService = new SplynxService({ baseUrl: SPLYNX_URL, readKey: SPLYNX_READ_ONLY_KEY, assignKey: SPLYNX_ASSIGN_KEY, secret: SPLYNX_SECRET, adminUser: SPLYNX_ADMIN_USER, adminPass: SPLYNX_ADMIN_PASS, enable: ENABLE_SPLYNX_TASKS });
 const weatherBackend = new WeatherBackend({ apiKey: OPENWEATHER_API_KEY, dataDir: __dirname, enable: ENABLE_WEATHER });
 
-let nagiosStatusCache = {
-  data: null,
-  lastFetch: 0
-};
+const nagiosCache = new LruTtlCache({ name: 'nagios_status', ttlMs: NAGIOS_REFRESH_INTERVAL, maxSize: 1 });
 
-let tasksCache = {
-  data: null,
-  lastFetch: 0,
-  sourceFile: null
-};
+const tasksCache = new LruTtlCache({ name: 'splynx_tasks', ttlMs: TASKS_REFRESH_INTERVAL, maxSize: 1 });
+let tasksSourceFile = null;
 
 let isFirstFetch = true;
 let taskPaginationOffset = 0;
@@ -317,9 +312,8 @@ app.post('/api/tasks/import', express.json(), (req, res) => {
     const allowed = /\.(xlsx|csv)$/i.test(file);
     if (!allowed) return res.status(400).json({ error: 'Unsupported file type' });
     const tasks = parseSplynxTasksFromFile(__dirname, file);
-    tasksCache.data = tasks;
-    tasksCache.lastFetch = Date.now();
-    tasksCache.sourceFile = file;
+    tasksCache.set('all', tasks);
+    tasksSourceFile = file;
     res.json({ ok: true, count: tasks.length, file });
   } catch (e) {
     if (/Missing required header/i.test(e.message)) {
@@ -334,14 +328,18 @@ app.post('/api/tasks/import', express.json(), (req, res) => {
 
 app.get('/api/tasks/reload', (req, res) => {
   try {
-    if (tasksCache.sourceFile && fs.existsSync(path.join(__dirname, 'Data', tasksCache.sourceFile))) {
-      const tasks = parseSplynxTasksFromFile(__dirname, tasksCache.sourceFile);
-      tasksCache.data = tasks;
-      tasksCache.lastFetch = Date.now();
-      return res.json({ ok: true, count: tasks.length, file: tasksCache.sourceFile });
+    if (tasksSourceFile && fs.existsSync(path.join(__dirname, 'Data', tasksSourceFile))) {
+      const tasks = parseSplynxTasksFromFile(__dirname, tasksSourceFile);
+      tasksCache.set('all', tasks);
+      return res.json({ ok: true, count: tasks.length, file: tasksSourceFile });
     }
-    const ok = tryAutoLoadSpreadsheetIntoCache(__dirname, tasksCache);
-    if (ok) return res.json({ ok: true, count: tasksCache.data.length, file: tasksCache.sourceFile });
+    const tmp = { data: tasksCache.peek('all') || null, lastFetch: tasksCache.ts('all') || 0, sourceFile: tasksSourceFile };
+    const ok = tryAutoLoadSpreadsheetIntoCache(__dirname, tmp);
+    if (ok) {
+      tasksCache.set('all', tmp.data);
+      tasksSourceFile = tmp.sourceFile;
+      return res.json({ ok: true, count: tmp.data.length, file: tasksSourceFile });
+    }
     res.status(404).json({ error: 'No spreadsheet found' });
   } catch (e) {
     res.status(500).json({ error: 'Reload failed', details: e.message });
@@ -388,14 +386,16 @@ app.get("/api/administrators", adminAuth, async (req, res) => {
 // ADDED: Fetch tasks (spreadsheet-first, API as optional fallback)
 app.get("/api/tasks", async (req, res) => {
   try {
-    const now = Date.now();
-    if (tasksCache.data && (now - tasksCache.lastFetch < TASKS_REFRESH_INTERVAL)) {
-      inc('cache_hit', { cache: 'splynx_tasks' });
-      return res.json(tasksCache.data);
+    const cached = tasksCache.get('all');
+    if (cached) {
+      return res.json(cached);
     }
 
-    if (tryAutoLoadSpreadsheetIntoCache(__dirname, tasksCache)) {
-      return res.json(tasksCache.data || []);
+    const tmp = { data: tasksCache.peek('all') || null, lastFetch: tasksCache.ts('all') || 0, sourceFile: tasksSourceFile };
+    if (tryAutoLoadSpreadsheetIntoCache(__dirname, tmp)) {
+      tasksCache.set('all', tmp.data);
+      tasksSourceFile = tmp.sourceFile;
+      return res.json(tmp.data || []);
     }
 
     // If Splynx integration is disabled, attempt to use local fallback file `Data/tasks.json`
@@ -405,34 +405,38 @@ app.get("/api/tasks", async (req, res) => {
         try {
           const raw = fs.readFileSync(localTasksFile, 'utf8');
           const local = JSON.parse(raw);
-          tasksCache.data = Array.isArray(local) ? local : [];
-          tasksCache.lastFetch = now;
-          tasksCache.sourceFile = 'tasks.json (local)';
-          console.log(`[Tasks] Loaded ${tasksCache.data.length} tasks from local fallback ${localTasksFile}`);
-          return res.json(tasksCache.data);
+          const arr = Array.isArray(local) ? local : [];
+          tasksCache.set('all', arr);
+          tasksSourceFile = 'tasks.json (local)';
+          console.log(`[Tasks] Loaded ${arr.length} tasks from local fallback ${localTasksFile}`);
+          return res.json(arr);
         } catch (e) {
           console.error('[Tasks] Failed to load local tasks.json fallback:', e && e.message);
           // fall through to return cache/empty
         }
       }
-      return res.json(tasksCache.data || []);
+      const cached = tasksCache.peek('all');
+      return res.json(cached || []);
     }
 
     const newTasks = await fetchTasksFromSplynx();
-    if (!tasksCache.data || tasksCache.data.length === 0) {
-      tasksCache.data = newTasks;
+    const prev = tasksCache.peek('all') || [];
+    let merged = [];
+    if (!prev || prev.length === 0) {
+      merged = newTasks;
     } else {
-      const taskMap = new Map(tasksCache.data.map(t => [String(t.ID || t.id), t]));
+      const taskMap = new Map(prev.map(t => [String(t.ID || t.id), t]));
       newTasks.forEach(t => {
         taskMap.set(String(t.ID || t.id), t);
       });
-      tasksCache.data = Array.from(taskMap.values());
+      merged = Array.from(taskMap.values());
     }
 
-    tasksCache.lastFetch = now;
-    res.json(tasksCache.data);
+    tasksCache.set('all', merged);
+    res.json(merged);
   } catch (error) {
-    if (tasksCache.data) return res.json(tasksCache.data);
+    const cached = tasksCache.peek('all');
+    if (cached) return res.json(cached);
     const tasksFile = path.join(__dirname, "Data", "tasks.json");
     if (fs.existsSync(tasksFile)) {
       try {
@@ -542,14 +546,14 @@ app.get("/api/nagios/status/:hostName", async (req, res) => {
     const hostName = req.params.hostName;
     const now = Date.now();
 
-    if (nagiosStatusCache.data && (now - nagiosStatusCache.lastFetch < NAGIOS_REFRESH_INTERVAL)) {
-      const filteredServices = nagiosStatusCache.data.filter(s => s.host_name === hostName);
+    const cachedAll = nagiosCache.get('all');
+    if (cachedAll) {
+      const filteredServices = cachedAll.filter(s => s.host_name === hostName);
       if (filteredServices.length > 0) {
-        console.log(`[Nagios] Serving status for ${hostName} from global cache`);
         return res.json({
           hostName,
           services: filteredServices,
-          timestamp: new Date(nagiosStatusCache.lastFetch).toISOString()
+          timestamp: new Date(nagiosCache.ts('all') || Date.now()).toISOString()
         });
       }
     }
@@ -582,15 +586,16 @@ async function broadcastNagiosStatus() {
     const now = Date.now();
     let allStatus;
 
-    if (nagiosStatusCache.data && (now - nagiosStatusCache.lastFetch < NAGIOS_REFRESH_INTERVAL)) {
-      allStatus = nagiosStatusCache.data;
+    const cached = nagiosCache.get('all');
+    if (cached) {
+      allStatus = cached;
     } else if (!ENABLE_NAGIOS) {
-      if (nagiosStatusCache.data) allStatus = nagiosStatusCache.data;
+      const peeked = nagiosCache.peek('all');
+      if (peeked) allStatus = peeked;
       else return;
     } else {
       allStatus = await nagiosService.getAllStatus(true);
-      nagiosStatusCache.data = allStatus;
-      nagiosStatusCache.lastFetch = now;
+      nagiosCache.set('all', allStatus);
       console.log(`[Nagios] Fetched and cached ${allStatus.length} entries`);
     }
 
@@ -646,34 +651,36 @@ async function broadcastTasks() {
   if (wss.clients.size === 0) return;
 
   try {
-    const now = Date.now();
-    let tasks;
+    let tasks = tasksCache.get('all');
 
-    if (tasksCache.data && (now - tasksCache.lastFetch < TASKS_REFRESH_INTERVAL)) {
-      tasks = tasksCache.data;
-    } else if (tryAutoLoadSpreadsheetIntoCache(__dirname, tasksCache)) {
-      tasks = tasksCache.data;
-    } else if (ENABLE_SPLYNX_TASKS) {
-      try {
-        const fetchedTasks = await fetchTasksFromSplynx();
-        if (!tasksCache.data || tasksCache.data.length === 0) {
-          tasksCache.data = fetchedTasks;
-        } else {
-          const taskMap = new Map(tasksCache.data.map(t => [String(t.id || t.ID), t]));
-          fetchedTasks.forEach(t => {
-            taskMap.set(String(t.id || t.ID), t);
-          });
-          tasksCache.data = Array.from(taskMap.values());
+    if (!tasks) {
+      const tmp = { data: tasksCache.peek('all') || null, lastFetch: tasksCache.ts('all') || 0, sourceFile: tasksSourceFile };
+      if (tryAutoLoadSpreadsheetIntoCache(__dirname, tmp)) {
+        tasksCache.set('all', tmp.data);
+        tasksSourceFile = tmp.sourceFile;
+        tasks = tmp.data;
+      } else if (ENABLE_SPLYNX_TASKS) {
+        try {
+          const fetchedTasks = await fetchTasksFromSplynx();
+          const prev = tasksCache.peek('all') || [];
+          if (!prev || prev.length === 0) {
+            tasks = fetchedTasks;
+          } else {
+            const taskMap = new Map(prev.map(t => [String(t.id || t.ID), t]));
+            fetchedTasks.forEach(t => {
+              taskMap.set(String(t.id || t.ID), t);
+            });
+            tasks = Array.from(taskMap.values());
+          }
+          tasksCache.set('all', tasks);
+        } catch (e) {
+          const cached = tasksCache.peek('all');
+          if (cached) tasks = cached; else return;
         }
-        tasks = tasksCache.data;
-        tasksCache.lastFetch = now;
-      } catch (e) {
-        if (tasksCache.data) tasks = tasksCache.data;
-        else return;
+      } else {
+        const cached = tasksCache.peek('all');
+        if (cached) tasks = cached; else return;
       }
-    } else {
-      if (tasksCache.data) tasks = tasksCache.data;
-      else return;
     }
 
     const message = JSON.stringify({
@@ -793,18 +800,20 @@ wss.on("connection", (ws) => {
   }));
 
   // Send initial data from cache if available
-  if (nagiosStatusCache.data) {
+  const initNagios = nagiosCache.peek('all');
+  if (initNagios) {
     ws.send(JSON.stringify({
       type: "nagios_update",
-      services: nagiosStatusCache.data,
-      timestamp: new Date(nagiosStatusCache.lastFetch).toISOString()
+      services: initNagios,
+      timestamp: new Date(nagiosCache.ts('all') || Date.now()).toISOString()
     }));
   }
-  if (tasksCache.data) {
+  const initTasks = tasksCache.peek('all');
+  if (initTasks) {
     ws.send(JSON.stringify({
       type: "tasks_update",
-      tasks: tasksCache.data,
-      timestamp: new Date(tasksCache.lastFetch).toISOString()
+      tasks: initTasks,
+      timestamp: new Date(tasksCache.ts('all') || Date.now()).toISOString()
     }));
   }
   if (trackerCache.data) {

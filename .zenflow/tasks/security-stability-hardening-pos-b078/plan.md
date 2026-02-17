@@ -32,7 +32,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Metrics: `integration_calls_total{service=splynx,...}`, `splynx_circuit_open`
 - Verify with bad creds → circuit opens; restore → recovers
 
-### [ ] Step: R2 – Centralized TTL/LRU Caches
+### [x] Step: R2 – Centralized TTL/LRU Caches
+<!-- chat-id: 25c0a172-44bb-4bc8-a260-c762f62e45b4 -->
 - Add `lib/cache.js` (TTL + max-size + in-flight de-dupe)
 - Replace ad-hoc caches in `server.js` and `SplynxService`
 - Metrics: `cache_hit|cache_miss|cache_eviction{cache}`
