@@ -82,7 +82,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Metrics: `ws_client_count`, `ws_broadcast_total`, `ws_dropped_total{reason}`
 - Verify under load with multiple clients
 
-### [ ] Step: R10 – Unified Retry/Timeouts
+### [x] Step: R10 – Unified Retry/Timeouts
+<!-- chat-id: afeee18e-c42f-428a-ace9-3f113415d46c -->
 - Standardize all outbound HTTP on `fetchWithRetry`
 - Remove ad-hoc retries; ensure global limits respected
 - Verify timeouts/retries via simulated failures

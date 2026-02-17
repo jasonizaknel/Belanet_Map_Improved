@@ -1,6 +1,6 @@
 const cheerio = require('cheerio');
 const { chromium } = require('playwright');
-const axios = require('axios');
+
 const { fetchWithRetry } = require('../lib/http');
 const { inc, setGauge } = require('../lib/metrics');
 const { logger } = require('../lib/logger');
@@ -169,9 +169,15 @@ class SplynxService {
     try {
       const taskUrl = `${this.baseUrl}/admin/scheduling/tasks/view?id=${taskId}`;
       log.info('view.start');
-      const viewRes = await axios.get(taskUrl, { headers: { 'Cookie': cookieStr }, timeout: 10000 });
+      const viewRes = await fetchWithRetry(taskUrl, { headers: { 'Cookie': cookieStr } });
+      if (!viewRes.ok) {
+        inc('integration_calls_total', { service: 'splynx', op: 'view', status: 'error' });
+        log.warn('view.http_error', { status: viewRes.status });
+        return false;
+      }
       inc('integration_calls_total', { service: 'splynx', op: 'view', status: 'success' });
-      const $ = cheerio.load(viewRes.data);
+      const html = await viewRes.text();
+      const $ = cheerio.load(html);
       const csrfToken = $('meta[name="csrf-token"]').attr('content');
       if (!csrfToken) {
         inc('integration_calls_total', { service: 'splynx', op: 'csrf', status: 'missing' });
@@ -183,8 +189,8 @@ class SplynxService {
       formData.append('_csrf_token', csrfToken);
       formData.append('TaskComment[text]', `This task has been assigned to ${technicianName} - Auto`);
       log.info('comment.submit');
-      const saveRes = await axios.post(commentUrl, formData.toString(), { headers: { 'Cookie': cookieStr, 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, timeout: 10000 });
-      const ok = !!saveRes.data;
+      const saveRes = await fetchWithRetry(commentUrl, { method: 'POST', headers: { 'Cookie': cookieStr, 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, body: formData.toString() });
+      const ok = saveRes && saveRes.ok;
       inc('integration_calls_total', { service: 'splynx', op: 'comment', status: ok ? 'success' : 'empty' });
       if (!ok) log.warn('comment.empty_response');
       else log.info('comment.success');

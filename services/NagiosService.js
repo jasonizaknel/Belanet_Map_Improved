@@ -1,4 +1,4 @@
-const http = require('http');
+const { fetchWithRetry } = require('../lib/http');
 const cheerio = require('cheerio');
 const { inc } = require('../lib/metrics');
 
@@ -25,45 +25,28 @@ class NagiosService {
     return all;
   }
 
-  fetchFromNagios(hostName = null, type = 'services') {
-    return new Promise((resolve, reject) => {
-      const auth = Buffer.from(`${this.user}:${this.pass}`).toString('base64');
-      let url;
-      if (type === 'hosts') {
-        url = `${this.baseUrl}/cgi-bin/status.cgi?hostgroup=all&style=hostdetail&limit=0`;
-      } else {
-        url = hostName ? `${this.baseUrl}/cgi-bin/status.cgi?host=${encodeURIComponent(hostName)}&limit=0` : `${this.baseUrl}/cgi-bin/status.cgi?host=all&limit=0`;
+  async fetchFromNagios(hostName = null, type = 'services') {
+    const auth = Buffer.from(`${this.user}:${this.pass}`).toString('base64');
+    let url;
+    if (type === 'hosts') {
+      url = `${this.baseUrl}/cgi-bin/status.cgi?hostgroup=all&style=hostdetail&limit=0`;
+    } else {
+      url = hostName ? `${this.baseUrl}/cgi-bin/status.cgi?host=${encodeURIComponent(hostName)}&limit=0` : `${this.baseUrl}/cgi-bin/status.cgi?host=all&limit=0`;
+    }
+    try {
+      const res = await fetchWithRetry(url, { headers: { 'Authorization': `Basic ${auth}` } });
+      if (!res.ok) {
+        inc('integration_calls_total', { service: 'nagios', op: type, status: 'error' });
+        throw new Error(`HTTP ${res.status}`);
       }
-      const parsed = new URL(url);
-      const options = {
-        hostname: parsed.hostname,
-        port: parsed.port || 80,
-        path: parsed.pathname + parsed.search,
-        headers: { 'Authorization': `Basic ${auth}` },
-        timeout: 15000,
-      };
-      const req = http.get(options, (res) => {
-        let html = '';
-        res.on('data', (c) => html += c);
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            try {
-              const data = type === 'hosts' ? this.parseHostHTML(html) : this.parseServicesHTML(html);
-              inc('integration_calls_total', { service: 'nagios', op: type, status: 'success' });
-              resolve(data);
-            } catch (e) {
-              inc('integration_calls_total', { service: 'nagios', op: type, status: 'error' });
-              reject(new Error(`Failed to parse HTML: ${e.message}`));
-            }
-          } else {
-            inc('integration_calls_total', { service: 'nagios', op: type, status: 'error' });
-            reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
-          }
-        });
-      });
-      req.on('error', reject);
-      req.on('timeout', () => reject(new Error('Request timeout')));
-    });
+      const html = await res.text();
+      const data = type === 'hosts' ? this.parseHostHTML(html) : this.parseServicesHTML(html);
+      inc('integration_calls_total', { service: 'nagios', op: type, status: 'success' });
+      return data;
+    } catch (e) {
+      inc('integration_calls_total', { service: 'nagios', op: type, status: 'error' });
+      throw e;
+    }
   }
 
   parseHostHTML(html) {

@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
-const axios = require('axios');
+const { fetchWithRetry } = require('../lib/http');
 const { inc } = require('../lib/metrics');
 
 class WeatherBackend {
@@ -44,11 +44,12 @@ class WeatherBackend {
     if (!this.enable) return null;
     if (!this.apiKey) return null;
     try {
-      const url = 'https://api.openweathermap.org/data/3.0/onecall';
+      const url = new URL('https://api.openweathermap.org/data/3.0/onecall');
       const params = { lat, lon, exclude: 'minutely,alerts', units: 'metric', appid: this.apiKey };
-      const response = await axios.get(url, { params, timeout: 10000 });
-      if (response.status === 200 && response.data) {
-        const data = response.data;
+      url.search = new URLSearchParams(params).toString();
+      const response = await fetchWithRetry(url.toString(), { headers: { Accept: 'application/json' } });
+      if (response.ok) {
+        const data = await response.json();
         this.cache = { data, ts: now };
         inc('integration_calls_total', { service: 'openweather', op: 'onecall_cache', status: 'success' });
         return data;
@@ -73,10 +74,15 @@ class WeatherBackend {
     if (!this.apiKey) throw Object.assign(new Error('Weather service not configured'), { status: 503 });
     if (this.apiCallStats.callsUsed >= this.apiCallStats.callLimit) throw Object.assign(new Error('OneCall API 3 call limit reached'), { status: 429 });
     try {
-      const url = 'https://api.openweathermap.org/data/3.0/onecall';
+      const url = new URL('https://api.openweathermap.org/data/3.0/onecall');
       const params = { lat: qlat, lon: qlon, exclude: 'minutely,alerts', units: 'metric', appid: this.apiKey };
-      const resp = await axios.get(url, { params, timeout: 10000 });
-      const data = resp.data;
+      url.search = new URLSearchParams(params).toString();
+      const resp = await fetchWithRetry(url.toString(), { headers: { Accept: 'application/json' } });
+      if (!resp.ok) {
+        inc('integration_calls_total', { service: 'openweather', op: 'onecall', status: 'error' });
+        throw Object.assign(new Error('Upstream error'), { status: resp.status });
+      }
+      const data = await resp.json();
       inc('integration_calls_total', { service: 'openweather', op: 'onecall', status: 'success' });
       this.apiCallStats.callsUsed += 1;
       this.apiCallStats.startTime = this.apiCallStats.startTime || Date.now();
@@ -85,7 +91,7 @@ class WeatherBackend {
       return data;
     } catch (e) {
       inc('integration_calls_total', { service: 'openweather', op: 'onecall', status: 'error' });
-      if (e.response && e.response.status) throw Object.assign(new Error('Upstream error'), { status: e.response.status });
+      if (e && typeof e === 'object' && e.status) throw Object.assign(new Error('Upstream error'), { status: e.status });
       throw new Error('Failed to fetch onecall');
     }
   }
