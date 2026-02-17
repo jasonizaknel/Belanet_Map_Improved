@@ -76,7 +76,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Detect ambiguities; surface warnings; avoid auto-assign on ties
 - Verify with crafted ambiguous inputs
 
-### [ ] Step: R9 – WebSocket Rate Limit/Backpressure
+### [x] Step: R9 – WebSocket Rate Limit/Backpressure
+<!-- chat-id: b55e554f-1647-49d3-8c80-795dbf8f067f -->
 - Add per-topic batching/rate-limits; drop under high `bufferedAmount`
 - Metrics: `ws_client_count`, `ws_broadcast_total`, `ws_dropped_total{reason}`
 - Verify under load with multiple clients

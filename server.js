@@ -17,6 +17,49 @@ app.use(requestLoggerMiddleware);
 app.use(requestMetricsMiddleware);
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+const WS_MAX_BUFFERED_BYTES = 262144;
+const WS_MIN_INTERVAL_MS = 200;
+const wsState = {
+  nagios: { lastSent: 0, timer: null, pending: null },
+  tracker: { lastSent: 0, timer: null, pending: null },
+  tasks: { lastSent: 0, timer: null, pending: null },
+  weather: { lastSent: 0, timer: null, pending: null },
+};
+function flushTopic(topic) {
+  const st = wsState[topic];
+  const msg = st.pending;
+  st.pending = null;
+  st.timer = null;
+  if (!msg) return;
+  let sent = 0;
+  let dropped = 0;
+  wss.clients.forEach((client) => {
+    if (client.readyState !== WebSocket.OPEN) {
+      dropped++;
+      return;
+    }
+    if (client.bufferedAmount > WS_MAX_BUFFERED_BYTES) {
+      dropped++;
+      return;
+    }
+    try { client.send(msg); sent++; } catch { dropped++; }
+  });
+  inc('ws_broadcast_total', { type: topic }, sent);
+  if (dropped) inc('ws_dropped_total', { reason: 'backpressure', type: topic }, dropped);
+  st.lastSent = Date.now();
+}
+function wsBroadcast(topic, msg) {
+  const st = wsState[topic];
+  const now = Date.now();
+  if (now - st.lastSent < WS_MIN_INTERVAL_MS) {
+    st.pending = msg;
+    if (!st.timer) st.timer = setTimeout(() => flushTopic(topic), WS_MIN_INTERVAL_MS - (now - st.lastSent));
+    return;
+  }
+  st.pending = msg;
+  flushTopic(topic);
+}
+setInterval(() => setGauge('ws_client_count', {}, wss.clients.size), 1000);
 
 const PORT = config.PORT;
 
@@ -687,13 +730,7 @@ async function broadcastNagiosStatus() {
       timestamp: new Date().toISOString()
     });
 
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-
-    inc('ws_broadcast_total', { type: 'nagios' });
+    wsBroadcast('nagios', message);
     const uniqueHosts = [...new Set(allStatus.map(s => s.host_name))];
     console.log(`[Nagios] Broadcast ${allStatus.length} entries across ${uniqueHosts.length} hosts to ${wss.clients.size} clients`);
   } catch (error) {
@@ -715,13 +752,7 @@ async function broadcastTrackerPositions() {
       timestamp: new Date().toISOString()
     });
 
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-
-    inc('ws_broadcast_total', { type: 'tracker' });
+    wsBroadcast('tracker', message);
     console.log(`[WebSocket] Broadcast ${positions.length} tracker positions to ${wss.clients.size} clients`);
   } catch (error) {
     console.error("Error broadcasting tracker positions:", error.message);
@@ -771,13 +802,7 @@ async function broadcastTasks() {
       timestamp: new Date().toISOString()
     });
 
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-
-    inc('ws_broadcast_total', { type: 'tasks' });
+    wsBroadcast('tasks', message);
     console.log(`[WebSocket] Broadcast ${tasks.length} tasks to ${wss.clients.size} clients`);
   } catch (error) {
     console.error("Error broadcasting tasks:", error.message);
@@ -823,13 +848,7 @@ async function broadcastWeatherEvents() {
         timestamp: new Date().toISOString()
       });
 
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-
-      inc('ws_broadcast_total', { type: 'weather' });
+      wsBroadcast('weather', message);
       console.log(`[Weather] Broadcast ${strikes.length} lightning strikes to ${wss.clients.size} clients`);
     }
   } catch (error) {
@@ -838,10 +857,18 @@ async function broadcastWeatherEvents() {
 }
 
 // ADDED: WebSocket connection handler
+const wsRecentConnections = [];
 wss.on("connection", (ws) => {
   console.log(`[WebSocket] Client connected. Total clients: ${wss.clients.size}`);
+  setGauge('ws_client_count', {}, wss.clients.size);
+  const now = Date.now();
+  wsRecentConnections.push(now);
+  while (wsRecentConnections.length && now - wsRecentConnections[0] > 3000) wsRecentConnections.shift();
+  if (wsRecentConnections.length >= 5) {
+    inc('ws_reconnect_storms_total', {});
+    console.warn('ws_reconnect_storm', { count3s: wsRecentConnections.length, clients: wss.clients.size });
+  }
 
-  // Start broadcasts if this is the first client
   if (wss.clients.size === 1) {
     console.log("[WebSocket] First client connected, starting broadcast timers");
     startTrackerBroadcast();
@@ -863,8 +890,7 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     console.log(`[WebSocket] Client disconnected. Total clients: ${wss.clients.size}`);
-    
-    // Stop broadcasts if this was the last client
+    setGauge('ws_client_count', {}, wss.clients.size);
     if (wss.clients.size === 0) {
       console.log("[WebSocket] No clients connected, stopping broadcast timers");
       stopAllBroadcasts();
