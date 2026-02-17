@@ -14,6 +14,9 @@ class WeatherBackend {
     this.apiCallStats = { callsUsed: 0, callLimit: 500, startTime: Date.now(), resetTime: Date.now() };
     this.enable = !!enable;
     this._loadStats();
+    try { console.warn('[Weather] Client cache is advisory; server cache is authoritative for now'); } catch(_) {}
+    try { const { setGauge } = require('../lib/metrics'); setGauge('weather_server_ttl_ms', { type: 'global' }, this.cacheTtlMs); setGauge('weather_server_ttl_ms', { type: 'coord' }, this.coordTtlMs); } catch(_) {}
+    try { const { logger } = require('../lib/logger'); if (logger && typeof logger.info==='function') { logger.info('weather.ttl_config', { cacheTtlMs: this.cacheTtlMs, coordTtlMs: this.coordTtlMs }); } else { console.info('[Weather] TTLs', { cacheTtlMs: this.cacheTtlMs, coordTtlMs: this.coordTtlMs }); } } catch(_) {}
   }
 
   _loadStats() {
@@ -36,6 +39,7 @@ class WeatherBackend {
 
   async getWeatherData(lat = -25.0, lon = 28.0) {
     const now = Date.now();
+    try { const { inc } = require('../lib/metrics'); inc('weather_fetch_total', { source: 'server', route: '/api/weather' }); } catch(_) {}
     if (this.cache.data && (now - this.cache.ts) < this.cacheTtlMs) return this.cache.data;
     if (!this.enable) return null;
     if (!this.apiKey) return null;
@@ -63,6 +67,7 @@ class WeatherBackend {
     const key = `${qlat.toFixed(2)},${qlon.toFixed(2)}`;
     const now = Date.now();
     const cached = this.coordCache.get(key);
+    try { const { inc } = require('../lib/metrics'); inc('weather_fetch_total', { source: 'server', route: '/api/onecall' }); } catch(_) {}
     if (cached && (now - cached.ts) < this.coordTtlMs) return cached.data;
     if (!this.enable) throw Object.assign(new Error('Weather service disabled'), { status: 503 });
     if (!this.apiKey) throw Object.assign(new Error('Weather service not configured'), { status: 503 });

@@ -205,6 +205,19 @@ app.get('/metrics.json', (req, res) => {
   res.json(snapshot());
 });
 
+app.post('/api/metrics/inc', express.json(), (req, res) => {
+  try {
+    const name = req.body && typeof req.body.name === 'string' ? req.body.name : '';
+    const labels = req.body && req.body.labels && typeof req.body.labels === 'object' ? req.body.labels : {};
+    const by = req.body && Number.isFinite(Number(req.body.by)) ? Number(req.body.by) : 1;
+    if (!name || name.length > 128) return res.status(400).json({ error: 'invalid metric name' });
+    inc(name, labels, by);
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(400).json({ error: 'bad request' });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', pid: process.pid, uptime_s: Math.floor(process.uptime()) });
 });

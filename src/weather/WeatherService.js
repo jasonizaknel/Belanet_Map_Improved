@@ -247,6 +247,7 @@
       this._apiCallsUsed = 0;
       this._apiCallLimit = 500;
       this._loadApiCallStats();
+      try { if (!globalThis.__WEATHER_DUP_WARNED) { console.warn('[Weather] Client cache is advisory; server cache is authoritative for now'); console.info('[Weather] Client TTLs', { current_ms: this._ttlFor('current'), hourly_ms: this._ttlFor('hourly'), daily_ms: this._ttlFor('daily') }); globalThis.__WEATHER_DUP_WARNED = true; } } catch(_) {}
     }
 
     _ttlFor(kind) {
@@ -333,6 +334,7 @@
           if (!res) throw new WeatherServiceError('No response', 'NETWORK');
           this._em.emit('response',{url,status:res.status,ok:res.ok});
           if (res.ok) {
+            try { if (typeof navigator!=='undefined' && navigator.sendBeacon) { const body = new Blob([JSON.stringify({ name: 'weather_fetch_total', labels: { source: 'client', base: (this.baseUrl && typeof this.baseUrl==='string' && this.baseUrl.startsWith('/')) ? 'server' : 'openweather' }, by: 1 })], { type: 'application/json' }); navigator.sendBeacon('/api/metrics/inc', body); } else if (typeof fetch!=='undefined') { fetch('/api/metrics/inc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'weather_fetch_total', labels: { source: 'client', base: (this.baseUrl && typeof this.baseUrl==='string' && this.baseUrl.startsWith('/')) ? 'server' : 'openweather' }, by: 1 }) }).catch(()=>{}); } } catch(_) {}
             return await res.json();
           }
           if (res.status === 401) {
@@ -520,7 +522,7 @@
         this._em.emit('cache_hit',{key,ts:entry.ts});
         const age = now - entry.ts;
         const freshForAny = age < Math.min(ttlCurrent, ttlHourly, ttlDaily);
-        const result = { ...entry.data, units: this.units, lang: this.lang, _meta: { ts: entry.ts, stale: !freshForAny, source: 'cache' } };
+        const result = { ...entry.data, units: this.units, lang: this.lang, _meta: { ts: entry.ts, stale: !freshForAny, source: 'cache', ttl_current_ms: ttlCurrent, ttl_hourly_ms: ttlHourly, ttl_daily_ms: ttlDaily } };
         if (!freshForAny) {
           Promise.resolve().then(() => this._revalidate(kind, key, url));
         }
