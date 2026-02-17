@@ -39,7 +39,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Metrics: `cache_hit|cache_miss|cache_eviction{cache}`
 - Verify bounded memory and correct hit/miss behavior
 
-### [ ] Step: R3 – ENV Validation & Readiness
+### [x] Step: R3 – ENV Validation & Readiness
+<!-- chat-id: e1111b28-0b16-4102-9767-152ba807705c -->
 - Add `lib/config.js` and remove empty-string fallbacks
 - Fail readiness when enabled features lack required env
 - Update `.env.example` with explicit requirements

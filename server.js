@@ -1,4 +1,4 @@
-require('dotenv').config();
+const { config } = require('./lib/config');
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -17,37 +17,41 @@ app.use(requestMetricsMiddleware);
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const PORT = 5505;
+const PORT = config.PORT;
 
 const { TrackerService } = require('./services/TrackerService');
 const { NagiosService } = require('./services/NagiosService');
 const { SplynxService } = require('./services/SplynxService');
 const { WeatherBackend } = require('./services/WeatherBackend');
 
-const TRACCAR_URL = process.env.TRACCAR_URL || "https://demo.traccar.org";
-const USER = process.env.TRACCAR_USER || "";
-const PASS = process.env.TRACCAR_PASS || "";
-let ENABLE_TRACCAR = process.env.ENABLE_TRACCAR === 'true';
+const TRACCAR_URL = config.TRACCAR_URL;
+const USER = config.TRACCAR_USER;
+const PASS = config.TRACCAR_PASS;
+let ENABLE_TRACCAR = !!config.ENABLE_TRACCAR;
 
-const SPLYNX_URL = process.env.SPLYNX_URL || "https://splynx.bndns.co.za";
-const SPLYNX_READ_ONLY_KEY = process.env.SPLYNX_READ_ONLY_KEY || process.env.SPLYNX_KEY || "";
-const SPLYNX_ASSIGN_KEY = process.env.SPLYNX_ASSIGN_KEY || process.env.SPLYNX_KEY || "";
-const SPLYNX_SECRET = process.env.SPLYNX_SECRET || "";
-let ENABLE_SPLYNX_TASKS = process.env.ENABLE_SPLYNX_TASKS === 'true';
+const SPLYNX_URL = config.SPLYNX_URL;
+const SPLYNX_READ_ONLY_KEY = config.SPLYNX_READ_ONLY_KEY;
+const SPLYNX_ASSIGN_KEY = config.SPLYNX_ASSIGN_KEY;
+const SPLYNX_SECRET = config.SPLYNX_SECRET;
+let ENABLE_SPLYNX_TASKS = !!config.ENABLE_SPLYNX_TASKS;
 
-const NAGIOS_URL = process.env.NAGIOS_URL || "http://nagios.bndns.co.za/nagios";
-const NAGIOS_USER = process.env.NAGIOS_USER || "nagiosadmin";
-const NAGIOS_PASS = process.env.NAGIOS_PASS || "";
-let ENABLE_NAGIOS = process.env.ENABLE_NAGIOS === 'true';
+const NAGIOS_URL = config.NAGIOS_URL;
+const NAGIOS_USER = config.NAGIOS_USER;
+const NAGIOS_PASS = config.NAGIOS_PASS;
+let ENABLE_NAGIOS = !!config.ENABLE_NAGIOS;
 
-// Weather feature toggle (disabled by default)
-let ENABLE_WEATHER = process.env.ENABLE_WEATHER === 'true';
+let ENABLE_WEATHER = !!config.ENABLE_WEATHER;
 
-const GOOGLE_MAPS_KEY = process.env.GOOGLE_MAPS_KEY || "";
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "";
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
-const SPLYNX_ADMIN_USER = process.env.SPLYNX_ADMIN_USER || "Jason";
-const SPLYNX_ADMIN_PASS = process.env.SPLYNX_ADMIN_PASS || "";
+const GOOGLE_MAPS_KEY = config.GOOGLE_MAPS_KEY;
+const OPENWEATHER_API_KEY = config.OPENWEATHER_API_KEY;
+const ADMIN_TOKEN = config.ADMIN_TOKEN;
+const SPLYNX_ADMIN_USER = config.SPLYNX_ADMIN_USER;
+const SPLYNX_ADMIN_PASS = config.SPLYNX_ADMIN_PASS;
+
+const initialReady = config.readiness();
+if (!initialReady.ready) {
+  logger.warn('readiness.startup_not_ready', { missing: initialReady.details.missing, warnings: initialReady.details.warnings });
+}
 
 const TRACKER_REFRESH_INTERVAL = 5000;
 const NAGIOS_REFRESH_INTERVAL = 60000; // Increased from 30s to 1m
@@ -206,7 +210,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/ready', (req, res) => {
-  const readiness = {
+  const details = {
     process: true,
     env: {
       TRACCAR_URL: !!TRACCAR_URL,
@@ -214,22 +218,44 @@ app.get('/ready', (req, res) => {
       TRACCAR_PASS: !!PASS,
       SPLYNX_URL: !!SPLYNX_URL,
       SPLYNX_KEYS: !!(SPLYNX_READ_ONLY_KEY && SPLYNX_SECRET),
+      SPLYNX_ADMIN: !!(SPLYNX_ADMIN_USER && SPLYNX_ADMIN_PASS),
       NAGIOS_URL: !!NAGIOS_URL,
       NAGIOS_USER: !!NAGIOS_USER,
       NAGIOS_PASS: !!NAGIOS_PASS,
       OPENWEATHER_API_KEY: !!OPENWEATHER_API_KEY,
+      ADMIN_TOKEN: !!ADMIN_TOKEN,
     },
     features: {
       traccar_enabled: ENABLE_TRACCAR,
       splynx_tasks_enabled: ENABLE_SPLYNX_TASKS,
       nagios_enabled: ENABLE_NAGIOS,
-    }
+      weather_enabled: ENABLE_WEATHER,
+    },
+    missing: [],
+    warnings: [],
   };
-  let ok = true;
-  if (ENABLE_TRACCAR && (!USER || !PASS)) ok = false;
-  if (ENABLE_SPLYNX_TASKS && (!SPLYNX_READ_ONLY_KEY || !SPLYNX_SECRET)) ok = false;
-  if (ENABLE_NAGIOS && (!NAGIOS_USER || !NAGIOS_PASS)) ok = false;
-  res.status(ok ? 200 : 503).json({ ready: ok, details: readiness });
+
+  if (ENABLE_TRACCAR) {
+    if (!USER) details.missing.push('TRACCAR_USER');
+    if (!PASS) details.missing.push('TRACCAR_PASS');
+  }
+  if (ENABLE_SPLYNX_TASKS) {
+    if (!SPLYNX_READ_ONLY_KEY) details.missing.push('SPLYNX_READ_ONLY_KEY');
+    if (!SPLYNX_SECRET) details.missing.push('SPLYNX_SECRET');
+    if (!SPLYNX_ASSIGN_KEY) details.missing.push('SPLYNX_ASSIGN_KEY');
+    if (!SPLYNX_ADMIN_USER || !SPLYNX_ADMIN_PASS) details.missing.push('SPLYNX_ADMIN_CREDS');
+  }
+  if (ENABLE_NAGIOS) {
+    if (!NAGIOS_USER) details.missing.push('NAGIOS_USER');
+    if (!NAGIOS_PASS) details.missing.push('NAGIOS_PASS');
+  }
+  if (ENABLE_WEATHER) {
+    if (!OPENWEATHER_API_KEY) details.missing.push('OPENWEATHER_API_KEY');
+  }
+  if (!ADMIN_TOKEN) details.warnings.push('ADMIN_TOKEN not set (admin-only routes will be disabled)');
+
+  const ok = details.missing.length === 0;
+  res.status(ok ? 200 : 503).json({ ready: ok, details });
 });
 
 // ADDED: Serve public configuration to frontend
