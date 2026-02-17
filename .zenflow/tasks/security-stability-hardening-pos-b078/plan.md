@@ -58,7 +58,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Preload or background parse spreadsheets; keep reload endpoint
 - Verify latency improvements and timing metrics
 
-### [ ] Step: R6 – CDN Pinning + SRI
+### [x] Step: R6 – CDN Pinning + SRI
+<!-- chat-id: 6323085e-4208-4dcd-b610-cbcef6f681f1 -->
 - Pin Tailwind/Lucide/Animate.css versions in `map.html`
 - Add SRI attributes; document fallback in `docs/map.html.md`
 - Verify assets load with integrity and notes exist
