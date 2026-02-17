@@ -64,7 +64,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Add SRI attributes; document fallback in `docs/map.html.md`
 - Verify assets load with integrity and notes exist
 
-### [ ] Step: R7 – Secrets Hygiene in Utilities/Tests
+### [x] Step: R7 – Secrets Hygiene in Utilities/Tests
+<!-- chat-id: be5ff2fc-0697-47c6-af92-2fa48fded1c3 -->
 - Remove hardcoded secrets (e.g., `test_tasks.js`) → env-based or quarantine
 - Update `.env.example`; document findings in cleanup report
 - Verify no secrets remain via repo scan
