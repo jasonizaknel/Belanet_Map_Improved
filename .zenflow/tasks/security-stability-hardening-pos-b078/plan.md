@@ -52,7 +52,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Expose TTLs via logs/metrics; compare client vs server fetch rates
 - Verify metrics and console warnings visible
 
-### [ ] Step: R5 – Async File I/O & Preload
+### [x] Step: R5 – Async File I/O & Preload
+<!-- chat-id: 4441e66b-877c-4be5-87ef-927352d36d2f -->
 - Convert sync fs ops to async; add timings
 - Preload or background parse spreadsheets; keep reload endpoint
 - Verify latency improvements and timing metrics
@@ -90,3 +91,7 @@ Do not make assumptions on important decisions — get clarification first.
 - Document test prerequisites and startup waits
 - Configurable ports and network dependency flags
 - Verify fewer false negatives running e2e flows
+
+### [ ] Step: Update docs
+
+Update all the relevant docs/ files to include the changes made during this task.

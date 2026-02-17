@@ -1,6 +1,7 @@
 const { config } = require('./lib/config');
 const express = require("express");
 const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
 const WebSocket = require("ws");
 const http = require("http");
@@ -67,6 +68,15 @@ const nagiosCache = new LruTtlCache({ name: 'nagios_status', ttlMs: NAGIOS_REFRE
 
 const tasksCache = new LruTtlCache({ name: 'splynx_tasks', ttlMs: TASKS_REFRESH_INTERVAL, maxSize: 1 });
 let tasksSourceFile = null;
+setImmediate(() => {
+  try {
+    const tmp = { data: tasksCache.peek('all') || null, lastFetch: tasksCache.ts('all') || 0, sourceFile: tasksSourceFile };
+    if (tryAutoLoadSpreadsheetIntoCache(__dirname, tmp)) {
+      tasksCache.set('all', tmp.data);
+      tasksSourceFile = tmp.sourceFile;
+    }
+  } catch {}
+});
 
 let isFirstFetch = true;
 let taskPaginationOffset = 0;
@@ -102,29 +112,28 @@ const apiCallStats = {
 // ADDED: Load API stats from storage if available
 const API_STATS_FILE = path.join(__dirname, 'Data', 'weather-api-stats.json');
 
-function _loadApiCallStatsFromDisk() {
+async function _loadApiCallStatsFromDisk() {
   try {
-    if (fs.existsSync(API_STATS_FILE)) {
-      const raw = fs.readFileSync(API_STATS_FILE, 'utf8');
-      const obj = JSON.parse(raw);
-      if (obj && typeof obj === 'object') {
-        apiCallStats.callsUsed = Number.isFinite(obj.callsUsed) ? obj.callsUsed : apiCallStats.callsUsed;
-        apiCallStats.callLimit = Number.isFinite(obj.callLimit) ? obj.callLimit : apiCallStats.callLimit;
-        apiCallStats.startTime = obj.startTime || apiCallStats.startTime;
-        apiCallStats.resetTime = obj.resetTime || apiCallStats.resetTime;
-        console.log('[API Stats] Loaded stats from disk:', apiCallStats.callsUsed, '/', apiCallStats.callLimit);
-      }
+    await fsp.access(API_STATS_FILE).catch(() => null);
+    const raw = await fsp.readFile(API_STATS_FILE, 'utf8');
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj === 'object') {
+      apiCallStats.callsUsed = Number.isFinite(obj.callsUsed) ? obj.callsUsed : apiCallStats.callsUsed;
+      apiCallStats.callLimit = Number.isFinite(obj.callLimit) ? obj.callLimit : apiCallStats.callLimit;
+      apiCallStats.startTime = obj.startTime || apiCallStats.startTime;
+      apiCallStats.resetTime = obj.resetTime || apiCallStats.resetTime;
+      console.log('[API Stats] Loaded stats from disk:', apiCallStats.callsUsed, '/', apiCallStats.callLimit);
     }
   } catch (e) {
     console.warn('[API Stats] Failed to load stats from disk', e && e.message);
   }
 }
 
-function _saveApiCallStatsToDisk() {
+async function _saveApiCallStatsToDisk() {
   try {
     const dir = path.dirname(API_STATS_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(API_STATS_FILE, JSON.stringify(apiCallStats, null, 2), 'utf8');
+    await fsp.mkdir(dir, { recursive: true });
+    await fsp.writeFile(API_STATS_FILE, JSON.stringify(apiCallStats, null, 2), 'utf8');
   } catch (e) {
     console.warn('[API Stats] Failed to save stats to disk', e && e.message);
   }
@@ -325,19 +334,23 @@ app.post("/api/weather/toggle", adminAuth, (req, res) => {
   res.json({ success: true, enabled: ENABLE_WEATHER });
 });
 
-app.post("/api/simulation/report", (req, res) => {
+app.post("/api/simulation/report", async (req, res) => {
+  try {
+    const t0 = Date.now();
     const report = req.body;
-    console.log('[Simulation] Received report:', report.summary);
-    
-    const reportsDir = path.join(__dirname, "Data", "reports");
-    if (!fs.existsSync(reportsDir)) {
-        fs.mkdirSync(reportsDir, { recursive: true });
-    }
-    
+    console.log('[Simulation] Received report:', report && report.summary);
+    const reportsDir = path.join(__dirname, 'Data', 'reports');
+    await fsp.mkdir(reportsDir, { recursive: true });
     const filename = `sim-report-${Date.now()}.json`;
-    fs.writeFileSync(path.join(reportsDir, filename), JSON.stringify(report, null, 2));
-    
+    await fsp.writeFile(path.join(reportsDir, filename), JSON.stringify(report, null, 2), 'utf8');
+    const ms = Date.now() - t0;
+    inc('file_io_ms_sum', { op: 'write_sim_report' });
+    inc('file_io_ms_count', { op: 'write_sim_report' });
+    setGauge('file_io_last_ms', { op: 'write_sim_report' }, ms);
     res.json({ success: true, filename });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to persist report' });
+  }
 });
 
 app.get('/api/data/files', (req, res) => {
@@ -355,7 +368,12 @@ app.post('/api/tasks/import', express.json(), (req, res) => {
     if (!file) return res.status(400).json({ error: 'Missing file parameter' });
     const allowed = /\.(xlsx|csv)$/i.test(file);
     if (!allowed) return res.status(400).json({ error: 'Unsupported file type' });
+    const t0 = Date.now();
     const tasks = parseSplynxTasksFromFile(__dirname, file);
+    const ms = Date.now() - t0;
+    inc('file_io_ms_sum', { op: 'import_tasks_xlsx' });
+    inc('file_io_ms_count', { op: 'import_tasks_xlsx' });
+    setGauge('file_io_last_ms', { op: 'import_tasks_xlsx' }, ms);
     tasksCache.set('all', tasks);
     tasksSourceFile = file;
     res.json({ ok: true, count: tasks.length, file });
@@ -372,14 +390,24 @@ app.post('/api/tasks/import', express.json(), (req, res) => {
 
 app.get('/api/tasks/reload', (req, res) => {
   try {
+    const t0 = Date.now();
     if (tasksSourceFile && fs.existsSync(path.join(__dirname, 'Data', tasksSourceFile))) {
       const tasks = parseSplynxTasksFromFile(__dirname, tasksSourceFile);
+      const ms = Date.now() - t0;
+      inc('file_io_ms_sum', { op: 'reload_tasks_xlsx' });
+      inc('file_io_ms_count', { op: 'reload_tasks_xlsx' });
+      setGauge('file_io_last_ms', { op: 'reload_tasks_xlsx' }, ms);
       tasksCache.set('all', tasks);
       return res.json({ ok: true, count: tasks.length, file: tasksSourceFile });
     }
+    const t1 = Date.now();
     const tmp = { data: tasksCache.peek('all') || null, lastFetch: tasksCache.ts('all') || 0, sourceFile: tasksSourceFile };
     const ok = tryAutoLoadSpreadsheetIntoCache(__dirname, tmp);
+    const ms2 = Date.now() - t1;
     if (ok) {
+      inc('file_io_ms_sum', { op: 'autoload_tasks_xlsx' });
+      inc('file_io_ms_count', { op: 'autoload_tasks_xlsx' });
+      setGauge('file_io_last_ms', { op: 'autoload_tasks_xlsx' }, ms2);
       tasksCache.set('all', tmp.data);
       tasksSourceFile = tmp.sourceFile;
       return res.json({ ok: true, count: tmp.data.length, file: tasksSourceFile });
@@ -445,18 +473,23 @@ app.get("/api/tasks", async (req, res) => {
     // If Splynx integration is disabled, attempt to use local fallback file `Data/tasks.json`
     const localTasksFile = path.join(__dirname, "Data", "tasks.json");
     if (!ENABLE_SPLYNX_TASKS) {
-      if (fs.existsSync(localTasksFile)) {
-        try {
-          const raw = fs.readFileSync(localTasksFile, 'utf8');
-          const local = JSON.parse(raw);
-          const arr = Array.isArray(local) ? local : [];
-          tasksCache.set('all', arr);
-          tasksSourceFile = 'tasks.json (local)';
-          console.log(`[Tasks] Loaded ${arr.length} tasks from local fallback ${localTasksFile}`);
-          return res.json(arr);
-        } catch (e) {
+      try {
+        await fsp.access(localTasksFile);
+        const t0 = Date.now();
+        const raw = await fsp.readFile(localTasksFile, 'utf8');
+        const ms = Date.now() - t0;
+        inc('file_io_ms_sum', { op: 'read_local_tasks' });
+        inc('file_io_ms_count', { op: 'read_local_tasks' });
+        setGauge('file_io_last_ms', { op: 'read_local_tasks' }, ms);
+        const local = JSON.parse(raw);
+        const arr = Array.isArray(local) ? local : [];
+        tasksCache.set('all', arr);
+        tasksSourceFile = 'tasks.json (local)';
+        console.log(`[Tasks] Loaded ${arr.length} tasks from local fallback ${localTasksFile}`);
+        return res.json(arr);
+      } catch (e) {
+        if (e && e.code !== 'ENOENT') {
           console.error('[Tasks] Failed to load local tasks.json fallback:', e && e.message);
-          // fall through to return cache/empty
         }
       }
       const cached = tasksCache.peek('all');
@@ -484,7 +517,12 @@ app.get("/api/tasks", async (req, res) => {
     const tasksFile = path.join(__dirname, "Data", "tasks.json");
     if (fs.existsSync(tasksFile)) {
       try {
-        const data = fs.readFileSync(tasksFile, 'utf8');
+        const t0 = Date.now();
+        const data = await fsp.readFile(tasksFile, 'utf8');
+        const ms = Date.now() - t0;
+        inc('file_io_ms_sum', { op: 'read_tasks_fallback' });
+        inc('file_io_ms_count', { op: 'read_tasks_fallback' });
+        setGauge('file_io_last_ms', { op: 'read_tasks_fallback' }, ms);
         return res.json(JSON.parse(data));
       } catch(e) {}
     }
@@ -540,14 +578,14 @@ app.get('/api/weather/stats', (req, res) => {
   res.json(weatherBackend.weatherStats());
 });
 
-app.post('/api/weather/stats/limit', express.json(), (req, res) => {
+app.post('/api/weather/stats/limit', express.json(), async (req, res) => {
   const { limit } = req.body;
-  const stats = weatherBackend.setLimit(limit);
+  const stats = await weatherBackend.setLimit(limit);
   res.json(stats);
 });
 
-app.post('/api/weather/stats/reset', (req, res) => {
-  const stats = weatherBackend.resetCounter();
+app.post('/api/weather/stats/reset', async (req, res) => {
+  const stats = await weatherBackend.resetCounter();
   res.json(stats);
 });
 

@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const fsp = fs.promises;
 const axios = require('axios');
 const { inc } = require('../lib/metrics');
 
@@ -13,27 +14,26 @@ class WeatherBackend {
     this.statsFile = path.join(dataDir || process.cwd(), 'Data', 'weather-api-stats.json');
     this.apiCallStats = { callsUsed: 0, callLimit: 500, startTime: Date.now(), resetTime: Date.now() };
     this.enable = !!enable;
-    this._loadStats();
+    this._loadStatsAsync().catch(() => {});
     try { console.warn('[Weather] Client cache is advisory; server cache is authoritative for now'); } catch(_) {}
     try { const { setGauge } = require('../lib/metrics'); setGauge('weather_server_ttl_ms', { type: 'global' }, this.cacheTtlMs); setGauge('weather_server_ttl_ms', { type: 'coord' }, this.coordTtlMs); } catch(_) {}
     try { const { logger } = require('../lib/logger'); if (logger && typeof logger.info==='function') { logger.info('weather.ttl_config', { cacheTtlMs: this.cacheTtlMs, coordTtlMs: this.coordTtlMs }); } else { console.info('[Weather] TTLs', { cacheTtlMs: this.cacheTtlMs, coordTtlMs: this.coordTtlMs }); } } catch(_) {}
   }
 
-  _loadStats() {
+  async _loadStatsAsync() {
     try {
-      if (fs.existsSync(this.statsFile)) {
-        const raw = fs.readFileSync(this.statsFile, 'utf8');
-        const obj = JSON.parse(raw);
-        this.apiCallStats = { ...this.apiCallStats, ...obj };
-      }
+      await fsp.access(this.statsFile).catch(() => null);
+      const raw = await fsp.readFile(this.statsFile, 'utf8');
+      const obj = JSON.parse(raw);
+      this.apiCallStats = { ...this.apiCallStats, ...obj };
     } catch {}
   }
 
-  _saveStats() {
+  async _saveStatsAsync() {
     try {
       const dir = path.dirname(this.statsFile);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(this.statsFile, JSON.stringify(this.apiCallStats, null, 2), 'utf8');
+      await fsp.mkdir(dir, { recursive: true });
+      await fsp.writeFile(this.statsFile, JSON.stringify(this.apiCallStats, null, 2), 'utf8');
     } catch {}
   }
 
@@ -80,7 +80,7 @@ class WeatherBackend {
       inc('integration_calls_total', { service: 'openweather', op: 'onecall', status: 'success' });
       this.apiCallStats.callsUsed += 1;
       this.apiCallStats.startTime = this.apiCallStats.startTime || Date.now();
-      this._saveStats();
+      await this._saveStatsAsync();
       this.coordCache.set(key, { ts: now, data });
       return data;
     } catch (e) {
@@ -94,24 +94,23 @@ class WeatherBackend {
     return { callsUsed: this.apiCallStats.callsUsed, limit: this.apiCallStats.callLimit, startTime: this.apiCallStats.startTime, resetTime: this.apiCallStats.resetTime };
   }
 
-  setLimit(limit) {
+  async setLimit(limit) {
     const newLimit = Math.max(1, parseInt(limit, 10) || 500);
     this.apiCallStats.callLimit = newLimit;
-    this._saveStats();
+    await this._saveStatsAsync();
     return this.weatherStats();
   }
 
-  resetCounter() {
+  async resetCounter() {
     this.apiCallStats.callsUsed = 0;
     this.apiCallStats.resetTime = Date.now();
-    this._saveStats();
+    await this._saveStatsAsync();
     return this.weatherStats();
   }
 }
 
 module.exports = { WeatherBackend };
 
-// Toggle helpers
 WeatherBackend.prototype.setEnabled = function (enabled) {
   this.enable = !!enabled;
 };
