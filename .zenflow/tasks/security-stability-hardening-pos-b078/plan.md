@@ -46,7 +46,7 @@ Do not make assumptions on important decisions — get clarification first.
 - Update `.env.example` with explicit requirements
 - Verify `/ready` returns 503/200 appropriately
 
-### [ ] Step: R4 – Weather Duplication Warnings (Interim)
+### [x] Step: R4 – Weather Duplication Warnings (Interim)
 <!-- chat-id: 036a0b8c-7cb8-4158-875b-c02b7e4f9f48 -->
 - Add runtime warnings: client cache advisory; server authoritative
 - Expose TTLs via logs/metrics; compare client vs server fetch rates

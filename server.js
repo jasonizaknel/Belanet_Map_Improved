@@ -210,8 +210,13 @@ app.post('/api/metrics/inc', express.json(), (req, res) => {
     const name = req.body && typeof req.body.name === 'string' ? req.body.name : '';
     const labels = req.body && req.body.labels && typeof req.body.labels === 'object' ? req.body.labels : {};
     const by = req.body && Number.isFinite(Number(req.body.by)) ? Number(req.body.by) : 1;
-    if (!name || name.length > 128) return res.status(400).json({ error: 'invalid metric name' });
-    inc(name, labels, by);
+    if (name !== 'weather_fetch_total') return res.status(400).json({ error: 'unsupported metric' });
+    const outLabels = {};
+    if (labels && typeof labels === 'object') {
+      if (labels.source === 'client') outLabels.source = 'client';
+      if (labels.base === 'server' || labels.base === 'openweather') outLabels.base = labels.base;
+    }
+    inc(name, outLabels, by);
     return res.json({ ok: true });
   } catch (e) {
     return res.status(400).json({ error: 'bad request' });

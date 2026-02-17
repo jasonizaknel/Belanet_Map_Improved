@@ -123,6 +123,7 @@
       const resetBtn=doc.createElement('button'); resetBtn.className='weather-overlay__btn'; resetBtn.style.width='100%'; resetBtn.style.padding='4px 8px'; resetBtn.style.fontSize='11px'; resetBtn.style.marginTop='4px'; resetBtn.textContent='Reset Counter';
       resetBtn.addEventListener('click',()=>{ fetch('/api/weather/stats/reset', {method:'POST'}).then(r=>r.json()).then(_=>{this._updateApiStats();}).catch(e=>{console.error('Failed to reset:',e);this._updateApiStats();}); if(this._svc&&typeof this._svc.resetApiCallCount==='function'){this._svc.resetApiCallCount();} });
       apiSec.appendChild(resetBtn);
+      const note=doc.createElement('div'); note.style.marginTop='8px'; note.style.fontSize='11px'; note.style.color='#a3a3a3'; note.style.lineHeight='1.3'; note.textContent='Client weather cache is advisory only; server cache is authoritative for now.'; apiSec.appendChild(note);
       sidebar.appendChild(apiSec);
       this._apiStatsDisplay={callsValue,limitInput,callsDisplay};
       this._updateApiStats();
