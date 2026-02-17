@@ -222,17 +222,22 @@ function updateMemberStats(member) {
     if (taskCountEl) taskCountEl.textContent = memberTasks.length;
 
     const trackers = window.AppState.trackerPositions || [];
-    const technicianTracker = trackers.find(tr => 
-        tr.attributes && tr.attributes.name && 
-        tr.attributes.name.toLowerCase().includes(member.name.toLowerCase())
-    );
+    const normalizeName = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const positions = trackers || [];
+    const candidates = positions.filter(tr => (String(tr.deviceId) === String(member.id)) || (tr.attributes && normalizeName(tr.attributes.name) === normalizeName(member.name)));
+    const technicianTracker = candidates.length === 1 ? candidates[0] : null;
+    if (candidates.length > 1) { console.warn('[Team][AmbiguousTrackerMatch]', { member: member.name, candidates: candidates.map(c => (c.attributes && c.attributes.name) || c.name || c.deviceId) }); }
 
     const vehicleEl = document.getElementById('infoVehicle');
     let techPos = null;
     if (vehicleEl) {
-        vehicleEl.textContent = technicianTracker ? (technicianTracker.attributes.name || technicianTracker.name || "Tracked") : "None";
         if (technicianTracker) {
+            vehicleEl.textContent = technicianTracker.attributes?.name || technicianTracker.name || 'Tracked';
             techPos = { lat: technicianTracker.latitude, lng: technicianTracker.longitude };
+        } else if (candidates.length > 1) {
+            vehicleEl.textContent = `Ambiguous (${candidates.length})`;
+        } else {
+            vehicleEl.textContent = 'None';
         }
     }
 

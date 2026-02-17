@@ -70,7 +70,8 @@ Do not make assumptions on important decisions — get clarification first.
 - Update `.env.example`; document findings in cleanup report
 - Verify no secrets remain via repo scan
 
-### [ ] Step: R8 – Safer Name Matching
+### [x] Step: R8 – Safer Name Matching
+<!-- chat-id: 06641e09-9688-4d29-9ad9-7ecf7e7f3dd2 -->
 - Add normalization (case/whitespace/accents) utilities
 - Detect ambiguities; surface warnings; avoid auto-assign on ties
 - Verify with crafted ambiguous inputs

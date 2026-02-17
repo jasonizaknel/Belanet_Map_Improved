@@ -460,7 +460,11 @@ function aggregateAllAgents() {
     if (AppState.team && AppState.team.members) {
         AppState.team.members.forEach(member => {
             // Find current position if available
-            const pos = AppState.trackerPositions?.find(p => p.attributes?.name === member.name || p.deviceId === member.id);
+            const normalizeName = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+            const positions = AppState.trackerPositions || [];
+            const candidates = positions.filter(p => String(p.deviceId) === String(member.id) || (p.attributes && normalizeName(p.attributes.name) === normalizeName(member.name)));
+            const pos = candidates.length === 1 ? candidates[0] : null;
+            if (candidates.length > 1) { console.warn('[Team][AmbiguousTrackerMatch]', { member: member.name, candidates: candidates.map(c => (c.attributes && c.attributes.name) || c.name || c.deviceId) }); }
             
             let status = "Offline";
             if (pos) {
