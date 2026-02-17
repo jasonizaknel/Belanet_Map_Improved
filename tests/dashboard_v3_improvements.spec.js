@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test('Dashboard V3 Improvements: Strategy Toggle, Animations, and Scaling', async ({ page }) => {
   test.setTimeout(120000);
   
   // 1. Setup and Load
-  await page.goto('http://localhost:5505/map.html');
+  await page.goto(BASE + '/map.html');
   await page.waitForLoadState('domcontentloaded');
   
   // Wait for map and simulation to be ready

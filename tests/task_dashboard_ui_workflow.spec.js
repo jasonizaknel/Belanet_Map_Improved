@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
-const BASE_URL = 'http://localhost:5505/map.html';
+const BASE_URL = BASE + '/map.html';
 
 async function openDashboard(page) {
   await page.goto(BASE_URL);

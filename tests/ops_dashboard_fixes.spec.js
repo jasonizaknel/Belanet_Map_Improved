@@ -1,9 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Ops Dashboard Fixes', () => {
     test.beforeEach(async ({ page }) => {
         // Go to the app
-        await page.goto('http://localhost:5505/map.html');
+        await page.goto(BASE + '/map.html');
         // Wait for body to be ready
         await page.waitForSelector('body');
         // Inject a mock AppState if it doesn't exist or wait a bit

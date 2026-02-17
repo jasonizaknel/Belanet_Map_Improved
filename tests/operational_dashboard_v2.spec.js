@@ -1,9 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Operational Dashboard V2 - ISP Heartbeat & Priority Queue', () => {
     test.beforeEach(async ({ page }) => {
         // Navigate to the map application
-        await page.goto('http://localhost:5505/map.html');
+        await page.goto(BASE + '/map.html');
         
         // Wait for AppState to be initialized
         await page.waitForFunction(() => window.AppState && window.AppState.dataLoaded);

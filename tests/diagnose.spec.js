@@ -1,9 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test('Verify simulation and admin dropdown', async ({ page }) => {
     test.setTimeout(120000);
     
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
     
     // Wait for AppState to be initialized
     await page.waitForFunction(() => window.AppState && window.AppState.config);

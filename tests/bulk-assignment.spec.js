@@ -1,8 +1,9 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Bulk Task Assignment', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:5505/map.html');
+        await page.goto(BASE + '/map.html');
         // Wait for map and data to load
         await page.waitForFunction(() => window.AppState && window.AppState.dataLoaded);
     });

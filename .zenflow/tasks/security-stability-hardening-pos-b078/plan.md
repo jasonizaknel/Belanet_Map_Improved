@@ -93,11 +93,13 @@ Do not make assumptions on important decisions — get clarification first.
 - Namespace keys with version; add schema checks and graceful reset
 - Verify corrupted state resets and valid state persists
 
-### [ ] Step: R12 – Test Stability Aids
+### [x] Step: R12 – Test Stability Aids
+<!-- chat-id: bffc2552-dfbb-4521-b108-05eeebfcbd9d -->
 - Document test prerequisites and startup waits
 - Configurable ports and network dependency flags
 - Verify fewer false negatives running e2e flows
 
 ### [ ] Step: Update docs
+<!-- chat-id: a8d3a8eb-e49a-456c-89b2-6e742b364f1c -->
 
 Update all the relevant docs/ files to include the changes made during this task.

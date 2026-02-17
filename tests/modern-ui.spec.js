@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Belanet Map Modern UI & Simulation', () => {
   test.setTimeout(60000);
   test.beforeEach(async ({ page }) => {
     // Go to the map page
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
     // Wait for the map and data to be initialized
     await page.waitForFunction(() => window.google && window.google.maps && window.AppState && window.AppState.dataLoaded === true, { timeout: 30000 });
   });

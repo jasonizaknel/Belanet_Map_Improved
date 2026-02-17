@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Simulation Optimization Features', () => {
     test.beforeEach(async ({ page }) => {
         // Increase timeout for map loading
         test.setTimeout(60000);
-        await page.goto('http://localhost:5505/map.html');
+        await page.goto(BASE + '/map.html');
         // Wait for the map to be initialized (google object available)
         await page.waitForFunction(() => window.google && window.google.maps);
     });

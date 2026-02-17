@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('UI Font Improvements', () => {
   test.setTimeout(60000);
   test.beforeEach(async ({ page }) => {
     // Navigate to the local server
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
   });
 
   test('should use Inter font for body and sidebar', async ({ page }) => {

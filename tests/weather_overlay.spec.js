@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 const path = require('path');
 
 async function injectScript(page, src) {
@@ -7,7 +8,7 @@ async function injectScript(page, src) {
 
 test.describe('WeatherOverlay UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
     await page.waitForSelector('#map', { timeout: 30000 });
     await injectScript(page, 'src/weather/ClockManager.js');
     await injectScript(page, 'src/weather/WeatherService.js');

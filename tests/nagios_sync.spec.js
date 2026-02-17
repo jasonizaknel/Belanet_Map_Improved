@@ -1,9 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Nagios Integration and Map Marker Synchronization', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the map page
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
     // Wait for data to load
     await page.waitForFunction(() => window.AppState && window.AppState.dataLoaded === true, { timeout: 30000 });
   });

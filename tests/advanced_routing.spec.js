@@ -1,8 +1,9 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Advanced Routing & Visual Indicators', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:5505/map.html');
+        await page.goto(BASE + '/map.html');
         await page.waitForSelector('.tabBtn[data-tab="playground"]', { timeout: 30000 });
         await page.click('.tabBtn[data-tab="playground"]');
         await page.click('#startSimBtn');

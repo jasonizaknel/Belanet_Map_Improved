@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 const path = require('path');
 
 async function waitForGoogleMaps(page) {
@@ -26,7 +27,7 @@ async function expectTile(page, key) {
 
 test.describe('Weather Overlay E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
     await waitForGoogleMaps(page);
   });
 

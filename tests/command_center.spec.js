@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('ISP Command Center & Simulation Optimization', () => {
     test.beforeEach(async ({ page }) => {
         // Increase timeout for map loading
         test.setTimeout(60000);
-        await page.goto('http://localhost:5505/map.html');
+        await page.goto(BASE + '/map.html');
         // Wait for data to load
         await page.waitForFunction(() => window.AppState && window.AppState.dataLoaded === true);
     });

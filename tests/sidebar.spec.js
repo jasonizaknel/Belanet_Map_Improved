@@ -1,9 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5505}`;
 
 test.describe('Sidebar and Tab Functionality', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the local server
-    await page.goto('http://localhost:5505/map.html');
+    await page.goto(BASE + '/map.html');
   });
 
   test('should toggle sidebar visibility', async ({ page }) => {
