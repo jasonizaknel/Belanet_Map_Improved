@@ -41,12 +41,40 @@ window.AppState = {
             trackers: true,
             weather: false
         };
+        const nsKey = 'belanet:v1:ui:visibility';
         try {
-            const saved = localStorage.getItem('belanet_map_visibility');
-            if (saved) {
-                return { ...defaults, ...JSON.parse(saved) };
+            const raw = localStorage.getItem(nsKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.v === 1 && parsed.data && typeof parsed.data === 'object') {
+                    const d = parsed.data;
+                    const valid = {
+                        customers: !!d.customers,
+                        towers: !!d.towers,
+                        links: !!d.links,
+                        trackers: !!d.trackers,
+                        weather: !!d.weather
+                    };
+                    return { ...defaults, ...valid };
+                }
+            } else {
+                const legacy = localStorage.getItem('belanet_map_visibility');
+                if (legacy) {
+                    const lv = JSON.parse(legacy) || {};
+                    const valid = {
+                        customers: !!lv.customers,
+                        towers: !!lv.towers,
+                        links: !!lv.links,
+                        trackers: !!lv.trackers,
+                        weather: !!lv.weather
+                    };
+                    const wrapped = { v: 1, data: { ...defaults, ...valid } };
+                    try { localStorage.setItem(nsKey, JSON.stringify(wrapped)); } catch (_) {}
+                    return wrapped.data;
+                }
             }
-        } catch (e) { console.error("Error loading visibility preferences", e); }
+        } catch (_) {}
+        try { localStorage.setItem(nsKey, JSON.stringify({ v: 1, data: defaults })); } catch (_) {}
         return defaults;
     })(),
     filters: {
@@ -107,17 +135,32 @@ window.AppState = {
     // ADDED: SLA configuration with localStorage persistence
     slaConfig: (function(){
         const defaults = { amberHours: 8, redHours: 24 };
+        const nsKey = 'belanet:v1:sla:config';
         try {
-            const saved = localStorage.getItem('belanet_sla_config');
-            if (saved) {
-                const cfg = JSON.parse(saved);
-                const amber = parseInt(cfg.amberHours);
-                const red = parseInt(cfg.redHours);
+            const raw = localStorage.getItem(nsKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                const cfg = parsed && parsed.v === 1 && parsed.data ? parsed.data : parsed;
+                const amber = parseInt(cfg && cfg.amberHours);
+                const red = parseInt(cfg && cfg.redHours);
                 if (!isNaN(amber) && !isNaN(red) && red >= amber && amber > 0) {
                     return { amberHours: amber, redHours: red };
                 }
+            } else {
+                const legacy = localStorage.getItem('belanet_sla_config');
+                if (legacy) {
+                    const cfg = JSON.parse(legacy) || {};
+                    const amber = parseInt(cfg.amberHours);
+                    const red = parseInt(cfg.redHours);
+                    if (!isNaN(amber) && !isNaN(red) && red >= amber && amber > 0) {
+                        const wrapped = { v: 1, data: { amberHours: amber, redHours: red } };
+                        try { localStorage.setItem(nsKey, JSON.stringify(wrapped)); } catch (_) {}
+                        return wrapped.data;
+                    }
+                }
             }
-        } catch (e) { console.error('Error loading SLA config', e); }
+        } catch (_) {}
+        try { localStorage.setItem(nsKey, JSON.stringify({ v: 1, data: defaults })); } catch (_) {}
         return defaults;
     })(),
     metricsHistory: { openTickets: [], critical: [] }

@@ -1517,7 +1517,7 @@ function renderMarkers() { // CHANGED: extracted marker logic into a function
 
 // ADDED: Save visibility to localStorage
 function saveVisibility() {
-    localStorage.setItem('belanet_map_visibility', JSON.stringify(AppState.visibility));
+    try { localStorage.setItem('belanet:v1:ui:visibility', JSON.stringify({ v: 1, data: AppState.visibility })); } catch(_) {}
 }
 
 // ADDED: Toggle visibility of customers

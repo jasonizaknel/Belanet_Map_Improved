@@ -343,14 +343,16 @@
 
     _loadState(overrides){
       const raw=this._storage.getItem(this._stateKey()); let s=null; try{ s= raw? JSON.parse(raw): null; }catch(_){}
+      const data = s && s.v===1 && s.data && typeof s.data==='object' ? s.data : (s && typeof s==='object' ? s : null);
       const base={ left:80, top:80, width:640, height:480, pinned:false, mode:'realtime', rate:1, layers:{ temperature:false, precipitation:false, wind:true, clouds:false } };
-      const out=Object.assign({}, base, s||{}, overrides||{});
+      const out=Object.assign({}, base, data||{}, overrides||{});
       if(this._clock && out.mode && this._clock.mode!==out.mode) this._clock.setMode(out.mode);
       if(this._clock && typeof out.rate==='number') this._clock.setRate(out.rate);
+      try{ this._storage.setItem(this._stateKey(), JSON.stringify({ v:1, data: out })); }catch(_){ }
       return out;
     }
 
-    _saveState(){ try{ this._storage.setItem(this._stateKey(), JSON.stringify(this._state)); }catch(_){}}
+    _saveState(){ try{ this._storage.setItem(this._stateKey(), JSON.stringify({ v:1, data: this._state })); }catch(_){}}
     _stateKey(){ return `WeatherOverlay:state:${this._id}`; }
 
     _renderLegends(){ if(!this._legendWrap) return; while(this._legendWrap.firstChild){ this._legendWrap.removeChild(this._legendWrap.firstChild);} const layers=this._state.layers||{}; const defs=[{k:'temperature',title:'Temperature (°C)',grad:'linear-gradient(90deg,#0a2a8c,#00c8ff,#ff8c00,#ff2828)',labels:['-5','5','20','35']},{k:'precipitation',title:'Precipitation (mm/3h)',grad:'linear-gradient(90deg,#bfdbfe,#60a5fa,#2563eb,#1e3a8a)',labels:['0','2','5','10','20+']},{k:'wind',title:'Wind (m/s)',grad:'linear-gradient(90deg,#50c8ff,#34d399,#059669,#065f46)',labels:['0','5','10','15','20+']},{k:'clouds',title:'Clouds (%)',grad:'linear-gradient(90deg,rgba(200,210,240,0.2),#cbd5e1,#475569)',labels:['0','25','50','75','100']}]; defs.filter(d=>layers[d.k]).forEach(d=>{ const box=document.createElement('div'); box.style.background='rgba(15,23,42,0.55)'; box.style.border='1px solid rgba(255,255,255,0.08)'; box.style.borderRadius='10px'; box.style.padding='8px'; const h=document.createElement('div'); h.textContent=d.title; h.style.fontWeight='700'; h.style.fontSize='11px'; h.style.marginBottom='6px'; const bar=document.createElement('div'); bar.style.width='100%'; bar.style.height='10px'; bar.style.borderRadius='6px'; bar.style.background=d.grad; bar.style.marginBottom='4px'; const row=document.createElement('div'); row.style.opacity='.8'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.fontSize='10px'; d.labels.forEach(t=>{ const s=document.createElement('span'); s.textContent=t; row.appendChild(s); }); box.appendChild(h); box.appendChild(bar); box.appendChild(row); this._legendWrap.appendChild(box); }); }

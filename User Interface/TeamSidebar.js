@@ -52,15 +52,29 @@ function addTeamMember(admin) {
 }
 
 function saveTeamMembers() {
-    localStorage.setItem('belanet_team_members', JSON.stringify(window.AppState.team.members));
+    try { localStorage.setItem('belanet:v1:team:members', JSON.stringify({ v: 1, data: window.AppState.team.members })); } catch(_) {}
 }
 
 function loadTeamMembers() {
-    const saved = localStorage.getItem('belanet_team_members');
-    if (saved) {
-        window.AppState.team.members = JSON.parse(saved);
-        renderTeamMembers();
-    }
+    try {
+        const raw = localStorage.getItem('belanet:v1:team:members');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            const arr = parsed && parsed.v === 1 && Array.isArray(parsed.data) ? parsed.data : [];
+            window.AppState.team.members = arr;
+            renderTeamMembers();
+            return;
+        }
+        const legacy = localStorage.getItem('belanet_team_members');
+        if (legacy) {
+            const v = JSON.parse(legacy);
+            if (Array.isArray(v)) {
+                window.AppState.team.members = v;
+                try { localStorage.setItem('belanet:v1:team:members', JSON.stringify({ v: 1, data: v })); } catch(_) {}
+                renderTeamMembers();
+            }
+        }
+    } catch(_) {}
 }
 
 function renderTeamMembers() {

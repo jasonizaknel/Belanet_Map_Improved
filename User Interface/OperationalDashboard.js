@@ -120,9 +120,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // New: Initialize and bind Filtering & Sorting controls with persistence
     if (!AppState.taskFilters) {
+        const nsKey = 'belanet:v1:dash:task_filters';
         try {
-            const saved = localStorage.getItem('belanet_task_filters_v1');
-            AppState.taskFilters = saved ? JSON.parse(saved) : null;
+            const raw = localStorage.getItem(nsKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                const data = parsed && parsed.v === 1 && parsed.data ? parsed.data : null;
+                if (data && typeof data === 'object') AppState.taskFilters = data;
+            } else {
+                const legacy = localStorage.getItem('belanet_task_filters_v1');
+                if (legacy) {
+                    const v = JSON.parse(legacy);
+                    if (v && typeof v === 'object') { AppState.taskFilters = v; try { localStorage.setItem(nsKey, JSON.stringify({ v: 1, data: v })); } catch(_) {} }
+                }
+            }
         } catch (_) { AppState.taskFilters = null; }
         if (!AppState.taskFilters) {
             AppState.taskFilters = {
@@ -135,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
     }
-    const persistFilters = () => { try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_) {} };
+    const persistFilters = () => { try { localStorage.setItem('belanet:v1:dash:task_filters', JSON.stringify({ v: 1, data: AppState.taskFilters })); } catch(_) {} };
 
     const fPriCritical = document.getElementById('fPriCritical');
     const fPriHigh = document.getElementById('fPriHigh');
@@ -200,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fPriMediumEl) fPriMediumEl.checked = true;
             if (fPriLowEl) fPriLowEl.checked = true;
         }
-        try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_) {}
+        try { localStorage.setItem('belanet:v1:dash:task_filters', JSON.stringify({ v: 1, data: AppState.taskFilters })); } catch(_) {}
         updateOperationalDashboard();
     };
     const openTicketsCard = document.getElementById('hbOpenTickets') ? document.getElementById('hbOpenTickets').closest('.heartbeat-stat') : null;
@@ -232,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const amber = Math.max(1, parseInt(slaAmberInput.value || '8'));
             const red = Math.max(amber, parseInt(slaRedInput.value || '24'));
             AppState.slaConfig = { amberHours: amber, redHours: red };
-            try { localStorage.setItem('belanet_sla_config', JSON.stringify(AppState.slaConfig)); } catch (e) {}
+            try { localStorage.setItem('belanet:v1:sla:config', JSON.stringify({ v: 1, data: AppState.slaConfig })); } catch (_) {}
             updateOperationalDashboard();
         };
         slaAmberInput.oninput = persist;
@@ -268,8 +279,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dashEl) {
             if (!AppState.dashboardDensity) {
                 try {
-                    const saved = localStorage.getItem('belanet_density');
-                    AppState.dashboardDensity = saved === 'compact' ? 'compact' : 'comfortable';
+                    const raw = localStorage.getItem('belanet:v1:dash:density');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        const v = parsed && parsed.v === 1 ? parsed.data : null;
+                        AppState.dashboardDensity = v === 'compact' ? 'compact' : 'comfortable';
+                    } else {
+                        const legacy = localStorage.getItem('belanet_density');
+                        if (legacy === 'compact' || legacy === 'comfortable') {
+                            AppState.dashboardDensity = legacy;
+                            try { localStorage.setItem('belanet:v1:dash:density', JSON.stringify({ v: 1, data: legacy })); } catch(_) {}
+                        }
+                    }
                 } catch (_) { AppState.dashboardDensity = 'comfortable'; }
             }
             const apply = () => {
@@ -284,13 +305,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (compactBtn) compactBtn.onclick = (e) => {
                 e.preventDefault();
                 AppState.dashboardDensity = 'compact';
-                try { localStorage.setItem('belanet_density', 'compact'); } catch(_){ }
+                try { localStorage.setItem('belanet:v1:dash:density', JSON.stringify({ v: 1, data: 'compact' })); } catch(_){ }
                 apply();
             };
             if (comfortBtn) comfortBtn.onclick = (e) => {
                 e.preventDefault();
                 AppState.dashboardDensity = 'comfortable';
-                try { localStorage.setItem('belanet_density', 'comfortable'); } catch(_){ }
+                try { localStorage.setItem('belanet:v1:dash:density', JSON.stringify({ v: 1, data: 'comfortable' })); } catch(_){ }
                 apply();
             };
             dashEl.classList.toggle('density-compact', AppState.dashboardDensity === 'compact');
@@ -806,7 +827,7 @@ function updatePriorityTaskQueue(tasks) {
                     if (fPriLowEl) fPriLowEl.checked = true;
                 }
                 AppState.activeMetricFilter = null;
-                try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_) {}
+                try { localStorage.setItem('belanet:v1:dash:task_filters', JSON.stringify({ v: 1, data: AppState.taskFilters })); } catch(_) {}
                 updateOperationalDashboard();
             };
             filtersBar.appendChild(chip);
@@ -888,7 +909,7 @@ function updatePriorityTaskQueue(tasks) {
             e.preventDefault();
             AppState.activeMetricFilter = null;
             AppState.taskFilters = { priorities: { critical: true, high: true, medium: true, low: true }, status: 'all', customer: 'all', age: 'all', unassignedOnly: false, sort: 'urgent' };
-            try { localStorage.setItem('belanet_task_filters_v1', JSON.stringify(AppState.taskFilters)); } catch(_){ }
+            try { localStorage.setItem('belanet:v1:dash:task_filters', JSON.stringify({ v: 1, data: AppState.taskFilters })); } catch(_){ }
             updateOperationalDashboard();
         };
         return;
