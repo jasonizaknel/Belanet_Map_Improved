@@ -1443,29 +1443,46 @@ function renderCustomerList() {
 
     filteredCustomers.forEach(customer => {
         const item = document.createElement("div");
-        item.className = "p-3 mb-2 rounded-lg bg-gradient-to-br from-white/80 to-white/50 border-2 border-slate-100 hover:border-primary-300 hover:bg-gradient-to-br hover:from-primary-50/50 hover:to-white/60 transition-all cursor-pointer shadow-sm group relative overflow-hidden";
-        
-        // Add a subtle left accent bar
-        const accentBar = document.createElement("div");
         const taskCount = customer.tasks ? customer.tasks.length : 0;
         const accentColor = taskCount > 3 ? "#ef4444" : taskCount > 0 ? "#f59e0b" : "#10b981";
-        accentBar.style.cssText = `position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: ${accentColor};`;
-        item.appendChild(accentBar);
+        const badgeBg = taskCount > 3 ? "#fee2e2" : taskCount > 0 ? "#fef3c7" : "#dcfce7";
+        const badgeColor = taskCount > 3 ? "#dc2626" : taskCount > 0 ? "#d97706" : "#16a34a";
         
-        const taskBadgeColor = taskCount > 3 ? "bg-red-100 text-red-600" : taskCount > 0 ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600";
+        item.style.cssText = `
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            background: linear-gradient(to bottom right, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+            border: 2px solid #e2e8f0;
+            border-left: 4px solid ${accentColor};
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        `;
         
-        item.innerHTML += `
-            <div class="pl-3">
-                <div class="flex justify-between items-start mb-1">
-                    <div class="flex-1">
-                        <span class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors text-sm">${customer.name}</span>
-                    </div>
-                    <span class="text-[10px] px-2 py-1 rounded-full ${taskBadgeColor} font-bold flex-shrink-0 ml-2">${taskCount}</span>
-                </div>
-                <div class="text-[10px] text-slate-500 flex justify-between items-center">
-                    <span>ID: ${customer.id}</span>
-                    <span class="capitalize font-semibold text-slate-600">${customer.status}</span>
-                </div>
+        item.onmouseenter = () => {
+            item.style.borderColor = "#93c5fd";
+            item.style.backgroundColor = "rgba(240, 247, 255, 0.8)";
+            item.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+            item.style.transform = "translateY(-2px)";
+        };
+        
+        item.onmouseleave = () => {
+            item.style.borderColor = "#e2e8f0";
+            item.style.backgroundColor = "linear-gradient(to bottom right, rgba(255,255,255,0.95), rgba(255,255,255,0.7))";
+            item.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+            item.style.transform = "translateY(0)";
+        };
+        
+        item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <span style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${customer.name}</span>
+                <span style="font-size: 10px; padding: 4px 8px; border-radius: 12px; background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; margin-left: 8px;">${taskCount}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">
+                <span>ID: ${customer.id}</span>
+                <span style="text-transform: capitalize; font-weight: 600; color: #475569;">${customer.status}</span>
             </div>
         `;
 
@@ -1652,31 +1669,56 @@ function initTowerFilter() {
 
     AppState.towers.forEach(tower => {
         const item = document.createElement("div");
-        item.className = "tower-filter-item p-3 mb-2 rounded-lg bg-gradient-to-r from-white/80 to-white/50 border-2 border-slate-100 hover:border-primary-300 hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-white/60 transition-all cursor-pointer shadow-sm group flex items-center gap-3 relative overflow-hidden";
-        item.dataset.towerId = tower.id;
-        
-        // Add accent bar
-        const accentBar = document.createElement("div");
         const statusColor = getTowerStatusColor(tower.id);
-        accentBar.style.cssText = `position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: ${statusColor};`;
-        item.appendChild(accentBar);
         
-        if (AppState.filters.selectedTowers.includes(tower.id)) {
-            item.classList.add("border-primary-400", "bg-gradient-to-r", "from-primary-50", "to-white/80");
-        }
-
-        const statusColor2 = getTowerStatusColor(tower.id);
-        const statusText = statusColor2 === "#d32f2f" ? "Critical" : statusColor2 === "#f57c00" ? "Warning" : "Online";
+        item.style.cssText = `
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            background: linear-gradient(to right, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+            border: 2px solid #e2e8f0;
+            border-left: 3px solid ${statusColor};
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        `;
         
-        item.innerHTML += `
-            <div class="flex-1 pl-2">
-                <div class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors text-sm">${tower.id}</div>
-                <div class="text-[10px] text-slate-500 uppercase font-semibold tracking-wider">${statusText}</div>
+        item.onmouseenter = () => {
+            item.style.borderColor = "#93c5fd";
+            item.style.backgroundColor = "rgba(240, 247, 255, 0.95)";
+            item.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+            item.style.transform = "translateY(-2px)";
+        };
+        
+        item.onmouseleave = () => {
+            item.style.borderColor = "#e2e8f0";
+            item.style.backgroundColor = "linear-gradient(to right, rgba(255,255,255,0.95), rgba(255,255,255,0.7))";
+            item.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+            item.style.transform = "translateY(0)";
+        };
+        
+        item.dataset.towerId = tower.id;
+        const isSelected = AppState.filters.selectedTowers.includes(tower.id);
+        const statusText = statusColor === "#d32f2f" ? "Critical" : statusColor === "#f57c00" ? "Warning" : "Online";
+        
+        item.innerHTML = `
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${statusColor}; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+            <div style="flex: 1;">
+                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${tower.id}</div>
+                <div style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">${statusText}</div>
             </div>
-            <div class="tower-checkbox w-6 h-6 rounded-lg border-2 border-slate-300 flex items-center justify-center transition-all flex-shrink-0 ${AppState.filters.selectedTowers.includes(tower.id) ? 'bg-primary-500 border-primary-500 shadow-md shadow-primary-200' : 'bg-white'}">
-                ${AppState.filters.selectedTowers.includes(tower.id) ? '<i data-lucide="check" class="w-4 h-4 text-white"></i>' : ''}
+            <div style="width: 24px; height: 24px; border-radius: 8px; border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0; background: ${isSelected ? '#3b82f6' : 'white'}; border-color: ${isSelected ? '#3b82f6' : '#cbd5e1'}; box-shadow: ${isSelected ? '0 2px 6px rgba(59, 130, 246, 0.3)' : 'none'};">
+                ${isSelected ? '<svg style="width: 16px; height: 16px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : ''}
             </div>
         `;
+        
+        if (isSelected) {
+            item.style.backgroundColor = "rgba(219, 234, 254, 0.5)";
+            item.style.borderColor = "#93c5fd";
+        }
         
         item.addEventListener("click", () => {
             const index = AppState.filters.selectedTowers.indexOf(tower.id);
@@ -1998,15 +2040,36 @@ function renderGlobalTasksList() {
 
     filteredTasks.forEach(task => {
         const item = document.createElement("div");
-        item.className = "p-4 mb-3 rounded-lg bg-gradient-to-br from-white/80 to-white/50 border-2 border-slate-100 hover:border-primary-300 hover:bg-gradient-to-br hover:from-primary-50/50 hover:to-white/60 transition-all cursor-pointer shadow-sm group relative overflow-hidden";
-        
-        // Add a subtle left accent bar
-        const accentBar = document.createElement("div");
         const status = getTaskStatusLabel(task);
         const accentColor = status === "High Priority" || status === "Critical" ? "#ef4444" : 
                            status === "Medium" || status === "In Progress" ? "#f59e0b" : "#10b981";
-        accentBar.style.cssText = `position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: ${accentColor};`;
-        item.appendChild(accentBar);
+        const statusBg = status === "Quote sent" || status === "To Do" ? "#f3f4f6" : "#e0f2fe";
+        
+        item.style.cssText = `
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            background: linear-gradient(to bottom right, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+            border: 2px solid #e2e8f0;
+            border-left: 4px solid ${accentColor};
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        `;
+        
+        item.onmouseenter = () => {
+            item.style.borderColor = "#93c5fd";
+            item.style.backgroundColor = "rgba(240, 247, 255, 0.9)";
+            item.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+            item.style.transform = "translateY(-2px)";
+        };
+        
+        item.onmouseleave = () => {
+            item.style.borderColor = "#e2e8f0";
+            item.style.backgroundColor = "linear-gradient(to bottom right, rgba(255,255,255,0.95), rgba(255,255,255,0.7))";
+            item.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+            item.style.transform = "translateY(0)";
+        };
         
         const title = task.Title || task.title || task.subject || "No Title";
         const id = task.ID || task.id;
@@ -2022,17 +2085,15 @@ function renderGlobalTasksList() {
             customerObj = Object.values(AppState.customerById).find(c => c.name === task.Customer);
         }
 
-        item.innerHTML += `
-            <div class="pl-3">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[10px] font-bold text-white bg-primary-600 px-2.5 py-0.5 rounded-full">#${id}</span>
-                    <span class="text-[10px] font-semibold text-slate-600 capitalize bg-slate-100 px-2 py-0.5 rounded-full">${status}</span>
-                </div>
-                <div class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors mb-1 text-sm">${title}</div>
-                <div class="text-xs text-slate-500 flex items-center gap-2">
-                    <i data-lucide="user" class="w-3.5 h-3.5 flex-shrink-0"></i>
-                    <span class="font-medium">${customerName || "No Customer"}</span>
-                </div>
+        item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <span style="font-size: 10px; font-weight: 700; color: white; background: #3b82f6; padding: 4px 10px; border-radius: 20px;">#${id}</span>
+                <span style="font-size: 10px; font-weight: 600; color: #475569; background: ${statusBg}; padding: 4px 8px; border-radius: 6px; text-transform: capitalize;">${status}</span>
+            </div>
+            <div style="font-weight: 700; color: #1e293b; margin-bottom: 8px; font-size: 0.95rem;">${title}</div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b;">
+                <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span style="font-weight: 500;">${customerName || "No Customer"}</span>
             </div>
         `;
 
