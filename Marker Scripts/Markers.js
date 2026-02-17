@@ -1443,19 +1443,29 @@ function renderCustomerList() {
 
     filteredCustomers.forEach(customer => {
         const item = document.createElement("div");
-        item.className = "p-3 mb-2 rounded-xl bg-white/50 border border-white/50 hover:bg-white hover:border-primary-300 transition-all cursor-pointer shadow-sm group";
+        item.className = "p-3 mb-2 rounded-lg bg-gradient-to-br from-white/80 to-white/50 border-2 border-slate-100 hover:border-primary-300 hover:bg-gradient-to-br hover:from-primary-50/50 hover:to-white/60 transition-all cursor-pointer shadow-sm group relative overflow-hidden";
         
+        // Add a subtle left accent bar
+        const accentBar = document.createElement("div");
         const taskCount = customer.tasks ? customer.tasks.length : 0;
+        const accentColor = taskCount > 3 ? "#ef4444" : taskCount > 0 ? "#f59e0b" : "#10b981";
+        accentBar.style.cssText = `position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: ${accentColor};`;
+        item.appendChild(accentBar);
+        
         const taskBadgeColor = taskCount > 3 ? "bg-red-100 text-red-600" : taskCount > 0 ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600";
         
-        item.innerHTML = `
-            <div class="flex justify-between items-start mb-1">
-                <span class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors">${customer.name}</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded-full ${taskBadgeColor} font-bold">${taskCount}</span>
-            </div>
-            <div class="text-[10px] text-slate-500 flex justify-between items-center">
-                <span>ID: ${customer.id}</span>
-                <span class="capitalize">${customer.status}</span>
+        item.innerHTML += `
+            <div class="pl-3">
+                <div class="flex justify-between items-start mb-1">
+                    <div class="flex-1">
+                        <span class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors text-sm">${customer.name}</span>
+                    </div>
+                    <span class="text-[10px] px-2 py-1 rounded-full ${taskBadgeColor} font-bold flex-shrink-0 ml-2">${taskCount}</span>
+                </div>
+                <div class="text-[10px] text-slate-500 flex justify-between items-center">
+                    <span>ID: ${customer.id}</span>
+                    <span class="capitalize font-semibold text-slate-600">${customer.status}</span>
+                </div>
             </div>
         `;
 
@@ -1642,24 +1652,29 @@ function initTowerFilter() {
 
     AppState.towers.forEach(tower => {
         const item = document.createElement("div");
-        item.className = "tower-filter-item p-3 mb-2 rounded-xl bg-white/50 border border-white/50 hover:bg-white hover:border-primary-300 transition-all cursor-pointer shadow-sm group flex items-center gap-3";
+        item.className = "tower-filter-item p-3 mb-2 rounded-lg bg-gradient-to-r from-white/80 to-white/50 border-2 border-slate-100 hover:border-primary-300 hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-white/60 transition-all cursor-pointer shadow-sm group flex items-center gap-3 relative overflow-hidden";
         item.dataset.towerId = tower.id;
         
+        // Add accent bar
+        const accentBar = document.createElement("div");
+        const statusColor = getTowerStatusColor(tower.id);
+        accentBar.style.cssText = `position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: ${statusColor};`;
+        item.appendChild(accentBar);
+        
         if (AppState.filters.selectedTowers.includes(tower.id)) {
-            item.classList.add("border-primary-500", "bg-primary-50/50");
+            item.classList.add("border-primary-400", "bg-gradient-to-r", "from-primary-50", "to-white/80");
         }
 
-        const statusColor = getTowerStatusColor(tower.id);
-        const statusText = statusColor === "#d32f2f" ? "Critical" : statusColor === "#f57c00" ? "Warning" : "Online";
+        const statusColor2 = getTowerStatusColor(tower.id);
+        const statusText = statusColor2 === "#d32f2f" ? "Critical" : statusColor2 === "#f57c00" ? "Warning" : "Online";
         
-        item.innerHTML = `
-            <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${statusColor};"></div>
-            <div class="flex-1">
+        item.innerHTML += `
+            <div class="flex-1 pl-2">
                 <div class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors text-sm">${tower.id}</div>
                 <div class="text-[10px] text-slate-500 uppercase font-semibold tracking-wider">${statusText}</div>
             </div>
-            <div class="tower-checkbox w-5 h-5 rounded-lg border border-slate-200 flex items-center justify-center transition-all ${AppState.filters.selectedTowers.includes(tower.id) ? 'bg-primary-500 border-primary-500 shadow-md shadow-primary-200' : 'bg-white'}">
-                ${AppState.filters.selectedTowers.includes(tower.id) ? '<i data-lucide="check" class="w-3.5 h-3.5 text-white"></i>' : ''}
+            <div class="tower-checkbox w-6 h-6 rounded-lg border-2 border-slate-300 flex items-center justify-center transition-all flex-shrink-0 ${AppState.filters.selectedTowers.includes(tower.id) ? 'bg-primary-500 border-primary-500 shadow-md shadow-primary-200' : 'bg-white'}">
+                ${AppState.filters.selectedTowers.includes(tower.id) ? '<i data-lucide="check" class="w-4 h-4 text-white"></i>' : ''}
             </div>
         `;
         
@@ -1732,9 +1747,11 @@ function initStatusFilter() {
     // ADDED: Clear existing checkboxes
     statusCheckboxesContainer.innerHTML = '';
 
-    // ADDED: Add each status as a checkbox
+    // ADDED: Add each status as a styled filter pill
     uniqueStatuses.forEach(status => {
-        const label = document.createElement("label");
+        const pill = document.createElement("label");
+        pill.className = "filter-pill";
+        
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = status;
@@ -1743,17 +1760,26 @@ function initStatusFilter() {
         // ADDED: Listen for individual checkbox changes
         checkbox.addEventListener("change", () => {
             updateSelectedStatuses();
+            // Update pill appearance
+            if (checkbox.checked) {
+                pill.classList.add("active");
+            } else {
+                pill.classList.remove("active");
+            }
         });
         
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(status));
-        statusCheckboxesContainer.appendChild(label);
+        pill.appendChild(checkbox);
+        pill.appendChild(document.createTextNode(status));
+        statusCheckboxesContainer.appendChild(pill);
     });
 
     // ADDED: Select All button
     if (selectAllStatusBtn) {
         selectAllStatusBtn.addEventListener("click", () => {
-            document.querySelectorAll(".status-filter-checkbox").forEach(cb => cb.checked = true);
+            document.querySelectorAll(".status-filter-checkbox").forEach(cb => {
+                cb.checked = true;
+                cb.parentElement.classList.add("active");
+            });
             updateSelectedStatuses();
         });
     }
@@ -1761,7 +1787,10 @@ function initStatusFilter() {
     // ADDED: Clear All button
     if (clearAllStatusBtn) {
         clearAllStatusBtn.addEventListener("click", () => {
-            document.querySelectorAll(".status-filter-checkbox").forEach(cb => cb.checked = false);
+            document.querySelectorAll(".status-filter-checkbox").forEach(cb => {
+                cb.checked = false;
+                cb.parentElement.classList.remove("active");
+            });
             updateSelectedStatuses();
         });
     }
@@ -1787,9 +1816,11 @@ function initTaskStatusFilter() {
     // ADDED: Clear existing checkboxes
     taskStatusCheckboxesContainer.innerHTML = '';
 
-    // ADDED: Add each task status as a checkbox
+    // ADDED: Add each task status as a styled filter pill
     uniqueTaskStatuses.forEach(status => {
-        const label = document.createElement("label");
+        const pill = document.createElement("label");
+        pill.className = "filter-pill";
+        
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = status;
@@ -1798,17 +1829,26 @@ function initTaskStatusFilter() {
         // ADDED: Listen for individual checkbox changes
         checkbox.addEventListener("change", () => {
             updateSelectedTaskStatuses();
+            // Update pill appearance
+            if (checkbox.checked) {
+                pill.classList.add("active");
+            } else {
+                pill.classList.remove("active");
+            }
         });
         
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(status));
-        taskStatusCheckboxesContainer.appendChild(label);
+        pill.appendChild(checkbox);
+        pill.appendChild(document.createTextNode(status));
+        taskStatusCheckboxesContainer.appendChild(pill);
     });
 
     // ADDED: Select All button
     if (selectAllTaskStatusBtn) {
         selectAllTaskStatusBtn.addEventListener("click", () => {
-            document.querySelectorAll(".task-status-filter-checkbox").forEach(cb => cb.checked = true);
+            document.querySelectorAll(".task-status-filter-checkbox").forEach(cb => {
+                cb.checked = true;
+                cb.parentElement.classList.add("active");
+            });
             updateSelectedTaskStatuses();
         });
     }
@@ -1816,7 +1856,10 @@ function initTaskStatusFilter() {
     // ADDED: Clear All button
     if (clearAllTaskStatusBtn) {
         clearAllTaskStatusBtn.addEventListener("click", () => {
-            document.querySelectorAll(".task-status-filter-checkbox").forEach(cb => cb.checked = false);
+            document.querySelectorAll(".task-status-filter-checkbox").forEach(cb => {
+                cb.checked = false;
+                cb.parentElement.classList.remove("active");
+            });
             updateSelectedTaskStatuses();
         });
     }
@@ -1955,9 +1998,16 @@ function renderGlobalTasksList() {
 
     filteredTasks.forEach(task => {
         const item = document.createElement("div");
-        item.className = "p-4 mb-3 rounded-xl bg-white/50 border border-white/50 hover:bg-white hover:border-primary-300 transition-all cursor-pointer shadow-sm group";
+        item.className = "p-4 mb-3 rounded-lg bg-gradient-to-br from-white/80 to-white/50 border-2 border-slate-100 hover:border-primary-300 hover:bg-gradient-to-br hover:from-primary-50/50 hover:to-white/60 transition-all cursor-pointer shadow-sm group relative overflow-hidden";
         
+        // Add a subtle left accent bar
+        const accentBar = document.createElement("div");
         const status = getTaskStatusLabel(task);
+        const accentColor = status === "High Priority" || status === "Critical" ? "#ef4444" : 
+                           status === "Medium" || status === "In Progress" ? "#f59e0b" : "#10b981";
+        accentBar.style.cssText = `position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: ${accentColor};`;
+        item.appendChild(accentBar);
+        
         const title = task.Title || task.title || task.subject || "No Title";
         const id = task.ID || task.id;
         const customerId = task.related_customer_id || task.customer_id;
@@ -1972,15 +2022,17 @@ function renderGlobalTasksList() {
             customerObj = Object.values(AppState.customerById).find(c => c.name === task.Customer);
         }
 
-        item.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <span class="text-[10px] font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded">#${id}</span>
-                <span class="text-[10px] font-medium text-slate-400 capitalize">${status}</span>
-            </div>
-            <div class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors mb-1">${title}</div>
-            <div class="text-xs text-slate-500 flex items-center gap-1">
-                <i data-lucide="user" class="w-3 h-3"></i>
-                <span>${customerName || "No Customer"}</span>
+        item.innerHTML += `
+            <div class="pl-3">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] font-bold text-white bg-primary-600 px-2.5 py-0.5 rounded-full">#${id}</span>
+                    <span class="text-[10px] font-semibold text-slate-600 capitalize bg-slate-100 px-2 py-0.5 rounded-full">${status}</span>
+                </div>
+                <div class="font-bold text-slate-800 group-hover:text-primary-600 transition-colors mb-1 text-sm">${title}</div>
+                <div class="text-xs text-slate-500 flex items-center gap-2">
+                    <i data-lucide="user" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                    <span class="font-medium">${customerName || "No Customer"}</span>
+                </div>
             </div>
         `;
 
