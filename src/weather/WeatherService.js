@@ -5,7 +5,7 @@
     root.WeatherService = factory();
   }
 })(typeof self !== 'undefined' ? self : this, function () {
-  const DEFAULT_BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall';
+  const DEFAULT_BASE_URL = '/api/onecall';
 
   class InMemoryStorage {
     constructor() {
@@ -228,7 +228,7 @@
         fetcher = (typeof fetch !== 'undefined' ? fetch.bind(globalThis) : null),
       } = options;
 
-      if (!apiKey) {
+      if (!apiKey && !(typeof baseUrl === 'string' && baseUrl.startsWith('/'))) {
         throw new WeatherServiceError('Missing apiKey', 'CONFIG');
       }
       if (!fetcher) {
@@ -261,6 +261,10 @@
 
     _now() {
       return Date.now();
+    }
+
+    _isServerBase() {
+      return typeof this.baseUrl === 'string' && this.baseUrl.startsWith('/');
     }
 
     on(t,fn){ return this._em.on(t,fn); }
@@ -335,6 +339,7 @@
           this._em.emit('response',{url,status:res.status,ok:res.ok});
           if (res.ok) {
             try { if (typeof navigator!=='undefined' && navigator.sendBeacon) { const body = new Blob([JSON.stringify({ name: 'weather_fetch_total', labels: { source: 'client', base: (this.baseUrl && typeof this.baseUrl==='string' && this.baseUrl.startsWith('/')) ? 'server' : 'openweather' }, by: 1 })], { type: 'application/json' }); navigator.sendBeacon('/api/metrics/inc', body); } else if (typeof fetch!=='undefined') { fetch('/api/metrics/inc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'weather_fetch_total', labels: { source: 'client', base: (this.baseUrl && typeof this.baseUrl==='string' && this.baseUrl.startsWith('/')) ? 'server' : 'openweather' }, by: 1 }) }).catch(()=>{}); } } catch(_) {}
+            try { if (res.headers && typeof res.headers.get==='function') { const used = Number(res.headers.get('X-Weather-Quota-Used')); const limit = Number(res.headers.get('X-Weather-Quota-Limit')); if (Number.isFinite(used)) { this._apiCallsUsed = used; } if (Number.isFinite(limit) && limit>0) { this._apiCallLimit = limit; } } } catch(_) {}
             return await res.json();
           }
           if (res.status === 401) {
@@ -376,9 +381,11 @@
       p.set('lat', String(params.lat));
       p.set('lon', String(params.lon));
       if (params.exclude) p.set('exclude', params.exclude);
-      p.set('appid', this.apiKey);
-      p.set('units', params.units || this.units);
-      p.set('lang', params.lang || this.lang);
+      if (!this._isServerBase()) p.set('appid', this.apiKey);
+      if (!this._isServerBase()) {
+        p.set('units', params.units || this.units);
+        p.set('lang', params.lang || this.lang);
+      }
       return `${this.baseUrl}?${p.toString()}`;
     }
 
@@ -472,7 +479,7 @@
       try {
         this._em.emit('revalidate_start',{key,url});
         const json = await this._requestJson(url);
-        this._incrementApiCallCount();
+        if (!this._isServerBase()) this._incrementApiCallCount();
         const norm = this._normalize(json);
         const entry = { ts: this._now(), data: norm };
         this._cacheSet(kind, key, entry);
@@ -501,7 +508,7 @@
     _keyFor(params){ return `${params.lat.toFixed(3)},${params.lon.toFixed(3)}:${this.units}:${this.lang}:ex=minutely,alerts`; }
 
     async fetchOneCall(params) {
-      if (this.isApiCallLimitReached()) {
+      if (!this._isServerBase() && this.isApiCallLimitReached()) {
         const e = new WeatherServiceError(`OneCall API 3 call limit reached (${this._apiCallLimit} calls)`, 'LIMIT_REACHED');
         this._em.emit('error', e);
         throw e;
@@ -535,27 +542,31 @@
         let json;
         try {
           json = await this._requestJson(url);
-          this._incrementApiCallCount();
+          if (!this._isServerBase()) this._incrementApiCallCount();
         } catch (e) {
           if (e && e.code === 'UNAUTHENTICATED') {
-            if (typeof this.baseUrl === 'string' && this.baseUrl.includes('/3.0/onecall')) {
+            if (!this._isServerBase() && typeof this.baseUrl === 'string' && this.baseUrl.includes('/3.0/onecall')) {
               try {
                 const fallbackUrl = url.replace('/3.0/onecall', '/2.5/onecall');
                 json = await this._requestJson(fallbackUrl, { retries: 1 });
               } catch (_e) {
                 json = await this._fetchFreeTierAggregate(params);
               }
-            } else {
+            } else if (!this._isServerBase()) {
               json = await this._fetchFreeTierAggregate(params);
+            } else {
+              throw e;
             }
           } else {
             throw e;
           }
         }
         const norm = this._normalize(json);
-        const newEntry = { ts: now, data: norm };
+        const ts = (json && json._meta && typeof json._meta.ts === 'number') ? json._meta.ts : now;
+        const newEntry = { ts, data: norm };
         this._cacheSet(kind, key, newEntry);
-        return { ...norm, units: this.units, lang: this.lang, _meta: { ts: now, stale: false, source: 'network' } };
+        const meta = (json && json._meta && typeof json._meta === 'object') ? json._meta : { ts, stale: false, source: 'network' };
+        return { ...norm, units: this.units, lang: this.lang, _meta: meta };
       } catch(e){
         const fallback=this._cacheGet(kind,key);
         if(fallback){

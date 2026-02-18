@@ -66,10 +66,11 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Ensure `/api/weather`, `/api/onecall`, and `/api/weather/stats*` return `_meta` and proper headers
 - [x] Confirm logging and telemetry reflect cache behavior and quota enforcement
 
-### [ ] Step: Client Refactor
-- [ ] Default `WeatherService` to use server base `/api/onecall`
-- [ ] Delegate quota and TTL validation to server; keep client cache advisory-only
-- [ ] Maintain backward-compatible API; surface server stats where applicable
+### [x] Step: Client Refactor
+<!-- chat-id: 823df323-389b-46b7-9379-44d70221181b -->
+- [x] Default `WeatherService` to use server base `/api/onecall`
+- [x] Delegate quota and TTL validation to server; keep client cache advisory-only
+- [x] Maintain backward-compatible API; surface server stats where applicable
 
 ### [ ] Step: Module Update & Integration
 - [ ] Update `src/weather/WeatherOverlay.js` to rely on server-provided stats and cache ownership
