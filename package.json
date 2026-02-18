@@ -4,10 +4,10 @@
   "description": "Belanet Map Server with Traccar Proxy",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:css": "tailwindcss -i ./tailwind.input.css -o ./assets/tailwind.css --minify"
   },
   "dependencies": {
-
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
@@ -16,6 +16,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.57.0"
+    "@playwright/test": "^1.57.0",
+    "tailwindcss": "^3.4.1"
   }
 }
