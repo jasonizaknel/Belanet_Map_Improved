@@ -934,74 +934,9 @@ input, button, select, textarea {
     backdrop-filter: blur(12px);
     z-index: 10000;
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
+    align-items: center;
+    justify-content: center;
     transition: all 0.3s ease;
-}
-
-/* Dashboard Fallback Layout (no Tailwind required) */
-#taskDashboard #dashHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 24px;
-    background: linear-gradient(90deg, #0f172a, #1e293b);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-#taskDashboard #dashMain {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    padding: 24px;
-    gap: 24px;
-    background: rgba(241, 245, 249, 0.3);
-}
-#taskDashboard #hbGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    margin-bottom: 32px;
-}
-@media (min-width: 768px) {
-  #taskDashboard #hbGrid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-}
-@media (min-width: 1024px) {
-  #taskDashboard #hbGrid { grid-template-columns: repeat(4, minmax(0,1fr)); }
-}
-#taskDashboard #dashSplit {
-    display: flex;
-    flex: 1;
-    gap: 32px;
-    min-height: 0;
-}
-#taskDashboard #dashLeft {
-    min-height: 500px;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-#taskDashboard #dashRight {
-    min-height: 500px;
-    display: flex;
-    flex-direction: column;
-    width: 384px;
-    flex: 0 0 384px;
-}
-#taskDashboard #dashLeft > div:first-child,
-#taskDashboard #dashRight > div:first-child {
-    padding: 24px;
-    border-bottom: 1px solid #e2e8f0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background: rgba(255,255,255,0.5);
-    backdrop-filter: blur(4px);
-}
-#taskDashboard #dashAgentList,
-#taskDashboard #dashTaskList {
-    padding: 24px;
 }
 
 #taskDashboard.hidden {

@@ -518,7 +518,7 @@
 
     <!-- Task Management Dashboard -->
     <div id="taskDashboard" class="fixed inset-0 bg-slate-50/95 backdrop-blur-xl z-[3000] hidden flex flex-col animate__animated">
-        <div id="dashHeader" class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 flex justify-between items-center shadow-2xl border-b border-white/10">
+        <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 flex justify-between items-center shadow-2xl border-b border-white/10">
             <div class="flex items-center gap-6">
                 <div class="bg-primary-600 p-3.5 rounded-2xl text-white shadow-xl shadow-primary-500/20 animate-pulse-soft">
                     <i data-lucide="layout-dashboard" class="w-8 h-8"></i>
@@ -548,7 +548,7 @@
             </div>
         </div>
         
-        <div id="dashMain" class="flex-1 overflow-hidden flex p-6 gap-6 bg-slate-100/30">
+        <div class="flex-1 overflow-hidden flex p-6 gap-6 bg-slate-100/30">
             <!-- Left: Priority Factors & Configuration -->
             <div id="strategyPanel" class="w-80 dashboard-card p-6 overflow-y-auto custom-scrollbar transition-all duration-500 origin-left">
                 <h3 class="font-black text-slate-800 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
@@ -636,7 +636,7 @@
             <!-- Main Dashboard Area -->
             <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                 <!-- ISP Heartbeat Strip -->
-                <div id="hbGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 shrink-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 shrink-0">
                     <div class="dashboard-card heartbeat-stat p-6 border-l-4 border-l-emerald-500">
                         <div class="flex items-center gap-5">
                             <div class="bg-emerald-500/10 p-4 rounded-2xl text-emerald-600">
@@ -685,9 +685,9 @@
                     </div>
                 </div>
 
-                <div id="dashSplit" class="flex flex-1 gap-8 pb-10 min-h-0">
+                <div class="flex flex-1 gap-8 pb-10 min-h-0">
                     <!-- Open Tasks Overview (NOW ON LEFT) -->
-                    <div id="dashLeft" class="flex-1 dashboard-card overflow-hidden flex flex-col min-h-[500px] min-w-0">
+                    <div class="flex-1 dashboard-card overflow-hidden flex flex-col min-h-[500px] min-w-0">
                         <div class="p-6 border-b border-slate-100 flex flex-col gap-4 bg-white/50 backdrop-blur-sm">
                             <div class="flex justify-between items-center">
                                 <h3 class="font-black text-slate-800 flex items-center gap-3 uppercase tracking-tight">
@@ -772,7 +772,7 @@
                     </div>
 
                     <!-- Active Agents & Queues (NOW ON RIGHT) -->
-                    <div id="dashRight" class="w-96 dashboard-card overflow-hidden flex flex-col min-h-[500px]">
+                    <div class="w-96 dashboard-card overflow-hidden flex flex-col min-h-[500px]">
                         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white/50 backdrop-blur-sm">
                             <h3 class="font-black text-slate-800 flex items-center gap-3 uppercase tracking-tight">
                                 <div class="p-2 bg-primary-100 text-primary-500 rounded-lg">
