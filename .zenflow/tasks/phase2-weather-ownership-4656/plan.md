@@ -53,11 +53,12 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Server Weather Cache Implementation
-- [ ] Centralize server cache in `services/WeatherBackend.js` using `LruTtlCache`
-- [ ] Implement TTL enforcement (global and per-coordinate)
-- [ ] Implement quota accounting and persistence
-- [ ] Collect stats: requests, cache hits/misses, failures; expose `_meta`
+### [x] Step: Server Weather Cache Implementation
+<!-- chat-id: 8410cda1-b957-4af1-a538-65a2674bccb8 -->
+- [x] Centralize server cache in `services/WeatherBackend.js` using `LruTtlCache`
+- [x] Implement TTL enforcement (global and per-coordinate)
+- [x] Implement quota accounting and persistence
+- [x] Collect stats: requests, cache hits/misses, failures; expose `_meta`
 
 ### [ ] Step: Server Routes & Cleanup
 - [ ] Remove duplicate caches from `server.js` and delegate to `WeatherBackend`

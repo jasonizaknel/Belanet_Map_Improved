@@ -2,21 +2,22 @@ const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
 const { fetchWithRetry } = require('../lib/http');
-const { inc } = require('../lib/metrics');
+const { inc, setGauge } = require('../lib/metrics');
+const { LruTtlCache } = require('../lib/cache');
 
 class WeatherBackend {
   constructor({ apiKey, coordTtlMs = 10*60*1000, cacheTtlMs = 10*60*1000, dataDir, enable = false }) {
     this.apiKey = apiKey;
     this.coordTtlMs = coordTtlMs;
     this.cacheTtlMs = cacheTtlMs;
-    this.coordCache = new Map();
-    this.cache = { data: null, ts: 0 };
+    this.globalCache = new LruTtlCache({ name: 'weather_global', ttlMs: this.cacheTtlMs, maxSize: 8 });
+    this.coordCache = new LruTtlCache({ name: 'weather_coord', ttlMs: this.coordTtlMs, maxSize: 512 });
     this.statsFile = path.join(dataDir || process.cwd(), 'Data', 'weather-api-stats.json');
     this.apiCallStats = { callsUsed: 0, callLimit: 500, startTime: Date.now(), resetTime: Date.now() };
     this.enable = !!enable;
     this._loadStatsAsync().catch(() => {});
     try { console.warn('[Weather] Client cache is advisory; server cache is authoritative for now'); } catch(_) {}
-    try { const { setGauge } = require('../lib/metrics'); setGauge('weather_server_ttl_ms', { type: 'global' }, this.cacheTtlMs); setGauge('weather_server_ttl_ms', { type: 'coord' }, this.coordTtlMs); } catch(_) {}
+    try { setGauge('weather_server_ttl_ms', { type: 'global' }, this.cacheTtlMs); setGauge('weather_server_ttl_ms', { type: 'coord' }, this.coordTtlMs); } catch(_) {}
     try { const { logger } = require('../lib/logger'); if (logger && typeof logger.info==='function') { logger.info('weather.ttl_config', { cacheTtlMs: this.cacheTtlMs, coordTtlMs: this.coordTtlMs }); } else { console.info('[Weather] TTLs', { cacheTtlMs: this.cacheTtlMs, coordTtlMs: this.coordTtlMs }); } } catch(_) {}
   }
 
@@ -37,10 +38,16 @@ class WeatherBackend {
     } catch {}
   }
 
+  _meta({ source, ts, ttlMs, key }) {
+    return { ts, stale: false, source, ttl_ms: ttlMs, key: key || null };
+  }
+
   async getWeatherData(lat = -25.0, lon = 28.0) {
     const now = Date.now();
-    try { const { inc } = require('../lib/metrics'); inc('weather_fetch_total', { source: 'server', route: '/api/weather' }); } catch(_) {}
-    if (this.cache.data && (now - this.cache.ts) < this.cacheTtlMs) return this.cache.data;
+    try { inc('weather_fetch_total', { source: 'server', route: '/api/weather' }); } catch(_) {}
+    const k = 'global';
+    const fromCache = this.globalCache.get(k);
+    if (fromCache) return { ...fromCache, _meta: this._meta({ source: 'cache', ts: this.globalCache.ts(k), ttlMs: this.cacheTtlMs, key: k }) };
     if (!this.enable) return null;
     if (!this.apiKey) return null;
     try {
@@ -50,15 +57,18 @@ class WeatherBackend {
       const response = await fetchWithRetry(url.toString(), { headers: { Accept: 'application/json' } });
       if (response.ok) {
         const data = await response.json();
-        this.cache = { data, ts: now };
+        this.globalCache.set(k, data, { ttlMs: this.cacheTtlMs });
         inc('integration_calls_total', { service: 'openweather', op: 'onecall_cache', status: 'success' });
-        return data;
+        this.apiCallStats.callsUsed += 1;
+        this.apiCallStats.startTime = this.apiCallStats.startTime || now;
+        await this._saveStatsAsync();
+        return { ...data, _meta: this._meta({ source: 'network', ts: now, ttlMs: this.cacheTtlMs, key: k }) };
       }
       inc('integration_calls_total', { service: 'openweather', op: 'onecall_cache', status: 'error' });
-      return this.cache.data || null;
+      return null;
     } catch {
       inc('integration_calls_total', { service: 'openweather', op: 'onecall_cache', status: 'error' });
-      return this.cache.data || null;
+      return null;
     }
   }
 
@@ -67,9 +77,9 @@ class WeatherBackend {
     const qlon = Math.round(lon*100)/100;
     const key = `${qlat.toFixed(2)},${qlon.toFixed(2)}`;
     const now = Date.now();
+    try { inc('weather_fetch_total', { source: 'server', route: '/api/onecall' }); } catch(_) {}
     const cached = this.coordCache.get(key);
-    try { const { inc } = require('../lib/metrics'); inc('weather_fetch_total', { source: 'server', route: '/api/onecall' }); } catch(_) {}
-    if (cached && (now - cached.ts) < this.coordTtlMs) return cached.data;
+    if (cached) return { ...cached, _meta: this._meta({ source: 'cache', ts: this.coordCache.ts(key), ttlMs: this.coordTtlMs, key }) };
     if (!this.enable) throw Object.assign(new Error('Weather service disabled'), { status: 503 });
     if (!this.apiKey) throw Object.assign(new Error('Weather service not configured'), { status: 503 });
     if (this.apiCallStats.callsUsed >= this.apiCallStats.callLimit) throw Object.assign(new Error('OneCall API 3 call limit reached'), { status: 429 });
@@ -85,10 +95,10 @@ class WeatherBackend {
       const data = await resp.json();
       inc('integration_calls_total', { service: 'openweather', op: 'onecall', status: 'success' });
       this.apiCallStats.callsUsed += 1;
-      this.apiCallStats.startTime = this.apiCallStats.startTime || Date.now();
+      this.apiCallStats.startTime = this.apiCallStats.startTime || now;
       await this._saveStatsAsync();
-      this.coordCache.set(key, { ts: now, data });
-      return data;
+      this.coordCache.set(key, data, { ttlMs: this.coordTtlMs });
+      return { ...data, _meta: this._meta({ source: 'network', ts: now, ttlMs: this.coordTtlMs, key }) };
     } catch (e) {
       inc('integration_calls_total', { service: 'openweather', op: 'onecall', status: 'error' });
       if (e && typeof e === 'object' && e.status) throw Object.assign(new Error('Upstream error'), { status: e.status });
