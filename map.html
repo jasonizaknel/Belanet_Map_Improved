@@ -5,7 +5,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- CSS Load Order: 1) Tailwind (pinned), 2) Plugins, 3) Global app CSS, 4) Dashboard-specific CSS. This order ensures Tailwind utilities and Preflight apply first, then our overrides. -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
     <script>
         // Tailwind CDN config MUST be defined before the CDN script executes to ensure custom utilities like `bg-primary-500` are generated
         window.tailwind = window.tailwind || {};
