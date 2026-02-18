@@ -60,10 +60,11 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Implement quota accounting and persistence
 - [x] Collect stats: requests, cache hits/misses, failures; expose `_meta`
 
-### [ ] Step: Server Routes & Cleanup
-- [ ] Remove duplicate caches from `server.js` and delegate to `WeatherBackend`
-- [ ] Ensure `/api/weather`, `/api/onecall`, and `/api/weather/stats*` return `_meta` and proper headers
-- [ ] Confirm logging and telemetry reflect cache behavior and quota enforcement
+### [x] Step: Server Routes & Cleanup
+<!-- chat-id: f9ae90c0-33d5-4c5c-987a-b0c4787cda65 -->
+- [x] Remove duplicate caches from `server.js` and delegate to `WeatherBackend`
+- [x] Ensure `/api/weather`, `/api/onecall`, and `/api/weather/stats*` return `_meta` and proper headers
+- [x] Confirm logging and telemetry reflect cache behavior and quota enforcement
 
 ### [ ] Step: Client Refactor
 - [ ] Default `WeatherService` to use server base `/api/onecall`

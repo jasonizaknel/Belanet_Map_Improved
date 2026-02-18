@@ -138,51 +138,6 @@ let devicesCache = {
   data: null,
   lastFetch: 0
 };
-let weatherCache = {
-  data: null,
-  lastFetch: 0
-};
-
-const coordWeatherCache = new Map();
-
-// ADDED: API call tracking for OneCall API 3
-const apiCallStats = {
-  callsUsed: 0,
-  callLimit: 500,
-  startTime: Date.now(),
-  resetTime: Date.now(),
-};
-// ADDED: Load API stats from storage if available
-const API_STATS_FILE = path.join(__dirname, 'Data', 'weather-api-stats.json');
-
-async function _loadApiCallStatsFromDisk() {
-  try {
-    await fsp.access(API_STATS_FILE).catch(() => null);
-    const raw = await fsp.readFile(API_STATS_FILE, 'utf8');
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === 'object') {
-      apiCallStats.callsUsed = Number.isFinite(obj.callsUsed) ? obj.callsUsed : apiCallStats.callsUsed;
-      apiCallStats.callLimit = Number.isFinite(obj.callLimit) ? obj.callLimit : apiCallStats.callLimit;
-      apiCallStats.startTime = obj.startTime || apiCallStats.startTime;
-      apiCallStats.resetTime = obj.resetTime || apiCallStats.resetTime;
-      console.log('[API Stats] Loaded stats from disk:', apiCallStats.callsUsed, '/', apiCallStats.callLimit);
-    }
-  } catch (e) {
-    console.warn('[API Stats] Failed to load stats from disk', e && e.message);
-  }
-}
-
-async function _saveApiCallStatsToDisk() {
-  try {
-    const dir = path.dirname(API_STATS_FILE);
-    await fsp.mkdir(dir, { recursive: true });
-    await fsp.writeFile(API_STATS_FILE, JSON.stringify(apiCallStats, null, 2), 'utf8');
-  } catch (e) {
-    console.warn('[API Stats] Failed to save stats to disk', e && e.message);
-  }
-}
-
-_loadApiCallStatsFromDisk();
 
 // ADDED: Administrative Authentication Middleware
 function adminAuth(req, res, next) {
@@ -576,59 +531,80 @@ app.get("/api/tasks", async (req, res) => {
 
 app.get("/api/weather", async (req, res) => {
   try {
-    const weatherData = await getWeatherData();
-    
-    if (!weatherData) {
-      inc('cache_miss', { cache: 'weather' });
+    const data = await weatherBackend.getWeatherData();
+    if (!data) {
+      const stats = weatherBackend.weatherStats();
+      res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+      res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
       if (!OPENWEATHER_API_KEY) {
-        return res.status(503).json({ 
-          error: "Weather service not configured",
-          message: "OpenWeatherMap API key is missing"
-        });
+        return res.status(503).json({ error: "Weather service not configured", message: "OpenWeatherMap API key is missing" });
       }
-      return res.status(503).json({ 
-        error: "Weather data unavailable",
-        message: "Failed to fetch weather data"
-      });
+      return res.status(503).json({ error: "Weather data unavailable", message: "Failed to fetch weather data" });
     }
-    
-    inc('cache_hit', { cache: 'weather' });
-    res.json(weatherData);
+    const meta = data._meta || {};
+    const stats = weatherBackend.weatherStats();
+    if (typeof meta.ttl_ms === 'number') res.setHeader('Cache-Control', `private, max-age=${Math.floor(meta.ttl_ms / 1000)}`);
+    if (typeof meta.ttl_ms === 'number') res.setHeader('X-Weather-TTL', String(meta.ttl_ms));
+    if (meta.source) res.setHeader('X-Weather-Source', String(meta.source));
+    if (meta.key) res.setHeader('X-Weather-Key', String(meta.key));
+    res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+    res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
+    return res.json(data);
   } catch (error) {
-    console.error("[Weather][API] Failed to serve weather data:", error.message);
-    res.status(500).json({ 
-      error: "Weather fetch failed", 
-      details: error.message 
-    });
+    console.error("[Weather][API] Failed to serve weather data:", error && error.message ? error.message : String(error));
+    return res.status(500).json({ error: "Weather fetch failed" });
   }
 });
 
 app.get('/api/onecall', async (req, res) => {
-  try{
+  try {
     const lat = parseFloat(req.query.lat);
     const lon = parseFloat(req.query.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(400).json({ error: 'Missing lat/lon' });
     const data = await weatherBackend.oneCall(lat, lon);
-    res.json(data);
+    const meta = data._meta || {};
+    const stats = weatherBackend.weatherStats();
+    if (typeof meta.ttl_ms === 'number') res.setHeader('Cache-Control', `private, max-age=${Math.floor(meta.ttl_ms / 1000)}`);
+    if (typeof meta.ttl_ms === 'number') res.setHeader('X-Weather-TTL', String(meta.ttl_ms));
+    if (meta.source) res.setHeader('X-Weather-Source', String(meta.source));
+    if (meta.key) res.setHeader('X-Weather-Key', String(meta.key));
+    res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+    res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
+    return res.json(data);
   } catch (e) {
-    if (e.status) return res.status(e.status).json({ error: e.message });
-    res.status(500).json({ error: 'Failed to fetch onecall' });
+    const status = e && e.status ? e.status : 500;
+    try { if (status === 429) inc('weather_quota_enforced_total', {}); } catch(_) {}
+    const stats = weatherBackend.weatherStats();
+    res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+    res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
+    if (e && e.status) return res.status(e.status).json({ error: e.message });
+    return res.status(500).json({ error: 'Failed to fetch onecall' });
   }
 });
 
 // ADDED: Get current API call statistics
 app.get('/api/weather/stats', (req, res) => {
-  res.json(weatherBackend.weatherStats());
+  const stats = weatherBackend.weatherStats();
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+  res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
+  res.json(stats);
 });
 
 app.post('/api/weather/stats/limit', express.json(), async (req, res) => {
   const { limit } = req.body;
   const stats = await weatherBackend.setLimit(limit);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+  res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
   res.json(stats);
 });
 
 app.post('/api/weather/stats/reset', async (req, res) => {
   const stats = await weatherBackend.resetCounter();
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Weather-Quota-Used', String(stats.callsUsed));
+  res.setHeader('X-Weather-Quota-Limit', String(stats.limit));
   res.json(stats);
 });
 
