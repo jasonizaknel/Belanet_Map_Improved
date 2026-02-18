@@ -5,31 +5,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- CSS Load Order: 1) Tailwind (pinned), 2) Plugins, 3) Global app CSS, 4) Dashboard-specific CSS. This order ensures Tailwind utilities and Preflight apply first, then our overrides. -->
-    <script>
-        // Tailwind CDN config MUST be defined before the CDN script executes to ensure custom utilities like `bg-primary-500` are generated
-        window.tailwind = window.tailwind || {};
-        window.tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        primary: {
-                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a'
-                        }
-                    }
-                }
-            }
-        };
-    </script>
-    <!-- Tailwind CSS (pinned to avoid silent upgrades). Do not add integrity here; mismatches can block load and break layout. -->
-    <script src="https://cdn.tailwindcss.com/3.4.1" crossorigin="anonymous"></script>
+    <!-- Tailwind CSS (pinned + SRI) -->
+    <script src="https://cdn.tailwindcss.com/3.4.1" integrity="sha384-SOMLQz+nKv/ORIYXo3J3NrWJ33oBgGvkHlV9t8i70QVLq8ZtST9Np1gDsVUkk4xN" crossorigin="anonymous"></script>
     <!-- Lucide Icons (pinned UMD + SRI) -->
     <script src="https://unpkg.com/lucide@0.568.0/dist/umd/lucide.min.js" integrity="sha384-eiar3BCHV4A3ISksVAvClwS2VQfQa0LWccSYkkk2/UNldyer+2d205GVYzj65+VU" crossorigin="anonymous"></script>
     <!-- Animate.css (SRI) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" integrity="sha384-Gu3KVV2H9d+yA4QDpVB7VcOyhJlAVrcXd0thEjr4KznfaFPLe0xQJyonVxONa4ZC" crossorigin="anonymous"/>
-    <!-- Global app CSS: loaded after Tailwind to safely override utilities where needed -->
+    
+    <script>
+        if (window.tailwind) {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                        },
+                        colors: {
+                            primary: {
+                                50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a',
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="stylesheet.css">
 </head>
 
@@ -973,31 +974,6 @@
             } catch (e) { console.error('Service toggles setup failed', e); }
         }
         setupServiceToggles();
-  });
-})();
-</script>
-
-<script>
-// Defensive checks: surface failures early rather than silently degrading
-(function(){
-  document.addEventListener('DOMContentLoaded', function(){
-    var dash = document.getElementById('taskDashboard');
-    if (!window.tailwind) {
-      console.warn('[Operations Dashboard] Tailwind did not load. Check CSP/SRI and network to cdn.tailwindcss.com.');
-    } else {
-      var probe = document.createElement('div');
-      probe.className = 'grid gap-6';
-      document.body.appendChild(probe);
-      var ds = getComputedStyle(probe);
-      if (ds.display !== 'grid') {
-        console.warn('[Operations Dashboard] Tailwind utilities are not applying (e.g., grid). Verify CSS order and CSP.');
-      }
-      document.body.removeChild(probe);
-    }
-    if (dash) {
-      var rh = dash.getBoundingClientRect().height;
-      if (rh === 0) console.warn('[Operations Dashboard] Dashboard root has zero height. Verify fixed/inset layout and ancestors.');
-    }
   });
 })();
 </script>
