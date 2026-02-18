@@ -193,11 +193,9 @@ async function loadServiceLinks() {
 
 
 function getWeatherServiceInstance() {
-    const cfg = window.AppConfig || {};
-    const key = cfg.openWeatherKey;
-    if (!key || typeof WeatherService === 'undefined') return null;
+    if (typeof WeatherService === 'undefined') return null;
     if (window.__WeatherService) return window.__WeatherService;
-    const svc = new WeatherService({ apiKey: key, baseUrl: '/api/weather', ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
+    const svc = new WeatherService({ baseUrl: '/api/onecall', ttl: { current: 300000, hourly: 600000, daily: 3600000 } });
     window.__WeatherService = svc;
     return svc;
 }
@@ -302,8 +300,6 @@ window.initMap = async function () { // CHANGED: must be global for Google callb
 
     if (AppState.visibility && AppState.visibility.weather) {
         await __ensureWeatherLibs();
-        const cfg = window.AppConfig || {};
-        const key = cfg.openWeatherKey;
         if (typeof WeatherOverlay !== 'undefined' && typeof ClockManager !== 'undefined') {
             const c = AppState.map ? AppState.map.getCenter() : null;
             const lat = c ? c.lat() : -25.0;
@@ -311,7 +307,7 @@ window.initMap = async function () { // CHANGED: must be global for Google callb
             if (window.__WeatherOverlay && window.__WeatherOverlay._root) {
                 window.__WeatherOverlay._root.style.display = '';
             } else {
-                const svc = (typeof WeatherService !== 'undefined' && key) ? getWeatherServiceInstance() : null;
+                const svc = (typeof WeatherService !== 'undefined') ? getWeatherServiceInstance() : null;
                 const clk = new ClockManager();
                 const ov = new WeatherOverlay({ service: svc, clock: clk, lat, lon, id: 'map' });
                 ov.on('layerchange', function(){ updateWeatherLayers(); });

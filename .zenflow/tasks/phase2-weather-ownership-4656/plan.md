@@ -72,10 +72,11 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Delegate quota and TTL validation to server; keep client cache advisory-only
 - [x] Maintain backward-compatible API; surface server stats where applicable
 
-### [ ] Step: Module Update & Integration
-- [ ] Update `src/weather/WeatherOverlay.js` to rely on server-provided stats and cache ownership
-- [ ] Update any dependent modules to reference centralized server cache
-- [ ] Verify API signatures remain backward-compatible
+### [x] Step: Module Update & Integration
+<!-- chat-id: 0d223f96-dcc2-4494-b559-934ffb2c2622 -->
+- [x] Update `src/weather/WeatherOverlay.js` to rely on server-provided stats and cache ownership
+- [x] Update any dependent modules to reference centralized server cache
+- [x] Verify API signatures remain backward-compatible
 
 ### [ ] Step: Validation & Testing
 - [ ] Unit tests for `WeatherBackend` (hits/misses, TTL expiration, stale return, quota 429)
