@@ -36,7 +36,7 @@ Canvas-based UI overlay that renders weather visualizations and exposes controls
 ## Deletion & Cleanup Suggestions
 - None
 ## Refactor Notes
-- Candidates for extraction:
-- Candidates for merge:
-- Known inefficiencies:
-- Rename or relocation suggestions:
+- Server-owned cache: Overlay relies on server-provided weather data and stats; TTLs and quotas are enforced on the server. Client cache is advisory-only.
+- Delegated limits: API calls/limits displayed are sourced from server endpoints (`/api/weather/stats*`) and response headers; no client-side enforcement when using server base.
+- Metadata usage: Uses `WeatherService` `_meta` to display freshness/source and to inform UI polling and revalidation behavior.
+- Backward compatibility: Public methods and events remain stable; only the source-of-truth for caching/limits moved to the server.

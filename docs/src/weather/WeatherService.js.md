@@ -5,7 +5,7 @@
 - Type: JavaScript (UMD/CommonJS)
 
 ## Purpose & Responsibility
-Fetches and normalizes weather data (OpenWeather One Call 3.0 or free-tier aggregate), caches results with TTLs, exposes an evented API, and tracks API call usage with persistence.
+Fetches and normalizes weather data (OpenWeather One Call 3.0 or free-tier aggregate). Delegates caching, TTLs, and quota enforcement to the server-owned cache by default (via `/api/onecall`), exposes an evented API, maintains an advisory client cache for UI responsiveness, and synchronizes API usage from server-provided headers.
 
 ## Internal Structure
 - UMD wrapper and defaults (lines ~1–9)
@@ -24,7 +24,7 @@ Fetches and normalizes weather data (OpenWeather One Call 3.0 or free-tier aggre
 ## Dependency Mapping
 - Outbound: Relies on a `fetch`-compatible function and browser/localStorage-like storage
 - Inbound: Used by `WeatherOverlay.js` and indirectly via Marker scripts
-- External: OpenWeather endpoints (One Call 3.0, fallback 2.5 endpoints)
+- External: Defaults to server `/api/onecall` (server-owned cache). Optionally calls OpenWeather endpoints directly when configured (One Call 3.0, fallback 2.5/aggregate).
 
 ## Line References
 - Constructor: ~219–251
@@ -39,7 +39,7 @@ Fetches and normalizes weather data (OpenWeather One Call 3.0 or free-tier aggre
 ## Deletion & Cleanup Suggestions
 - None
 ## Refactor Notes
-- Candidates for extraction:
-- Candidates for merge:
-- Known inefficiencies:
-- Rename or relocation suggestions:
+- Server-owned cache: Defaults to server base `/api/onecall`; TTL and quota enforcement are centralized on the server. Client cache is advisory-only to improve UX and avoid UI stalls.
+- Quota centralization: API usage counters are synchronized from `X-Weather-Quota-Used` and `X-Weather-Quota-Limit` headers when hitting the server. Local counters are only incremented when calling OpenWeather directly.
+- Metadata propagation: All methods return `_meta` from the server (`ts`, `stale`, `source`, and TTL hints) to inform UI about freshness and cache behavior.
+- Removed client responsibilities: Client no longer enforces hard rate limits when using server base; backoff/retry is retained for robustness.

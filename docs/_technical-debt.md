@@ -8,6 +8,6 @@
 - [User Interface/OperationalDashboard.js.md](./User%20Interface/OperationalDashboard.js.md) → Dashboard behavior tightly bound to DOM IDs and global state
 - [User Interface/Sidebar.js.md](./User%20Interface/Sidebar.js.md) → Sidebar relies on global functions and DOM structure
 - [User Interface/TeamSidebar.js.md](./User%20Interface/TeamSidebar.js.md) → Team management ties to tracker/task matching via string heuristics
-- [src/weather/WeatherService.js.md](./src/weather/WeatherService.js.md) → Client-side caching/retry overlaps with server weather caching
+- [src/weather/WeatherService.js.md](./src/weather/WeatherService.js.md) → Delegates caching/TTL/quota to server-owned cache; previous client/server overlap removed
 - [src/weather/WeatherOverlay.js.md](./src/weather/WeatherOverlay.js.md) → Direct DOM overlay with internal state and event bus
 - [src/weather/ClockManager.js.md](./src/weather/ClockManager.js.md) → Time management with assumptions on monotonic now/RAF

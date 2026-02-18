@@ -85,6 +85,7 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Update client tests to focus on normalization and server metadata handling
 - [x] Confirm telemetry/logging metrics increment as expected
 
-### [ ] Step: Documentation & Notes
-- [ ] Update per-file docs for `WeatherService.js`, `WeatherOverlay.js`, and affected modules
-- [ ] Add notes on quota centralization, server ownership, and removed client responsibilities
+### [x] Step: Documentation & Notes
+<!-- chat-id: 0eba5c5e-be58-4550-8221-1265f6a1662e -->
+- [x] Update per-file docs for `WeatherService.js`, `WeatherOverlay.js`, and affected modules
+- [x] Add notes on quota centralization, server ownership, and removed client responsibilities

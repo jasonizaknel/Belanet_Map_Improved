@@ -29,9 +29,9 @@ This report enumerates files/folders that are likely redundant, obsolete, or gen
 
 ## Suspected Duplication Clusters
 - Weather fetching and caching logic
-  - Client: `src/weather/WeatherService.js` (client caching/TTL)
-  - Server: `server.js` (`weatherCache`, `coordWeatherCache`, OneCall API usage/persistence)
-  - Note: Consolidate retry/TTL ownership [REQUIRES-REFACTOR]
+  - Centralized: `services/WeatherBackend.js` owns caching, TTLs, and quota enforcement
+  - Clients: `src/weather/WeatherService.js` maintains an advisory cache and surfaces server `_meta`
+  - Status: [RESOLVED] duplication eliminated; server is the source of truth
 - Host listing utilities
   - `list_hosts.js` vs `list_hosts_v2.js` targeting similar outputs [REQUIRES-REFACTOR]
 - Marker verification utilities
