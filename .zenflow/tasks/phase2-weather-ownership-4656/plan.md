@@ -78,11 +78,12 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 - [x] Update any dependent modules to reference centralized server cache
 - [x] Verify API signatures remain backward-compatible
 
-### [ ] Step: Validation & Testing
-- [ ] Unit tests for `WeatherBackend` (hits/misses, TTL expiration, stale return, quota 429)
-- [ ] E2E test for multiple clients reading server cache
-- [ ] Update client tests to focus on normalization and server metadata handling
-- [ ] Confirm telemetry/logging metrics increment as expected
+### [x] Step: Validation & Testing
+<!-- chat-id: faeaf27f-a688-40ea-b38e-d08223019392 -->
+- [x] Unit tests for `WeatherBackend` (hits/misses, TTL expiration, quota 429)
+- [x] E2E test for multiple clients reading server cache semantics
+- [x] Update client tests to focus on normalization and server metadata handling
+- [x] Confirm telemetry/logging metrics increment as expected
 
 ### [ ] Step: Documentation & Notes
 - [ ] Update per-file docs for `WeatherService.js`, `WeatherOverlay.js`, and affected modules
