@@ -18,7 +18,8 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Technical Specification
+### [x] Step: Technical Specification
+<!-- chat-id: 88b222bf-32e0-4b9d-b1b5-285023a7594c -->
 
 Assess the task's difficulty, as underestimating it leads to poor outcomes.
 - easy: Straightforward implementation, trivial bug fix or feature
@@ -52,16 +53,33 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Implementation
+### [ ] Step: Server Weather Cache Implementation
+- [ ] Centralize server cache in `services/WeatherBackend.js` using `LruTtlCache`
+- [ ] Implement TTL enforcement (global and per-coordinate)
+- [ ] Implement quota accounting and persistence
+- [ ] Collect stats: requests, cache hits/misses, failures; expose `_meta`
 
-Implement the task according to the technical specification and general engineering best practices.
+### [ ] Step: Server Routes & Cleanup
+- [ ] Remove duplicate caches from `server.js` and delegate to `WeatherBackend`
+- [ ] Ensure `/api/weather`, `/api/onecall`, and `/api/weather/stats*` return `_meta` and proper headers
+- [ ] Confirm logging and telemetry reflect cache behavior and quota enforcement
 
-1. Break the task into steps where possible.
-2. Implement the required changes in the codebase
-3. If relevant, write unit tests alongside each change.
-4. Run relevant tests and linters in the end of each step.
-5. Perform basic manual verification if applicable.
-6. After completion, write a report to `{@artifacts_path}/report.md` describing:
-   - What was implemented
-   - How the solution was tested
-   - The biggest issues or challenges encountered
+### [ ] Step: Client Refactor
+- [ ] Default `WeatherService` to use server base `/api/onecall`
+- [ ] Delegate quota and TTL validation to server; keep client cache advisory-only
+- [ ] Maintain backward-compatible API; surface server stats where applicable
+
+### [ ] Step: Module Update & Integration
+- [ ] Update `src/weather/WeatherOverlay.js` to rely on server-provided stats and cache ownership
+- [ ] Update any dependent modules to reference centralized server cache
+- [ ] Verify API signatures remain backward-compatible
+
+### [ ] Step: Validation & Testing
+- [ ] Unit tests for `WeatherBackend` (hits/misses, TTL expiration, stale return, quota 429)
+- [ ] E2E test for multiple clients reading server cache
+- [ ] Update client tests to focus on normalization and server metadata handling
+- [ ] Confirm telemetry/logging metrics increment as expected
+
+### [ ] Step: Documentation & Notes
+- [ ] Update per-file docs for `WeatherService.js`, `WeatherOverlay.js`, and affected modules
+- [ ] Add notes on quota centralization, server ownership, and removed client responsibilities
