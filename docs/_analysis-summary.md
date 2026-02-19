@@ -17,7 +17,7 @@ Belanet Map Improved is a geospatial operations dashboard that unifies network m
 2. **Frontend Map & UI**: A large static HTML container with tabs and controls, loaded via script tags/CDNs. UI modules manipulate the DOM and interact via `window.AppState`. See [./map.html.md](./map.html.md), [./User%20Interface/README.md](./User%20Interface/README.md).
 3. **State Management**: Centralized `window.AppState` global with persistence to localStorage and event dispatch via `stateChanged`. See [./state.js.md](./state.js.md).
 4. **Markers & Simulation**: Monolithic files that load data, render on the map, and power simulation/optimization behaviors. See [./Marker%20Scripts/Markers.js.md](./Marker%20Scripts/Markers.js.md), [./Marker%20Scripts/Simulation.js.md](./Marker%20Scripts/Simulation.js.md).
-5. **Weather Feature**: Self-contained overlay and service with caching, resampling, and usage counters, partly duplicating concerns with the server’s own weather cache. See [./src/weather/README.md](./src/weather/README.md).
+5. **Weather Feature**: Self-contained overlay and service with caching, resampling, and usage counters. Centralized on the server as of Phase 2. See [./src/weather/README.md](./src/weather/README.md).
 6. **Test Suite**: Playwright-based specs for weather modules and UI flows; assumes a running server and map page. See [./tests/README.md](./tests/README.md).
 7. **Data Layer**: Icons and generated reports referenced by server/UI; reports are transient artifacts. See [./Data/README.md](./Data/README.md), [./Data/reports/README.md](./Data/reports/README.md).
 
@@ -26,12 +26,11 @@ Belanet Map Improved is a geospatial operations dashboard that unifies network m
 - **Global Frontend State**: `window.AppState` pattern enables loose coupling between modules through shared mutable state and CustomEvents.
 - **UMD/CommonJS Frontend Modules**: Weather components use UMD wrappers for portability and are loaded via script tags rather than ES module imports.
 - **HTML-Driven UI Composition**: Static `map.html` structure with strong reliance on IDs/classes and external CDNs for styling and icons.
-- **Client/Server Duplication**: Overlapping concerns between client `WeatherService` caching/usage tracking and server-side weather cache/endpoints.
+- **Logical Workspace Isolation (Target)**: Moving towards a multi-tenant model where user control state (toggles, simulations) is isolated by `workspaceId` while expensive API data remains shared and deduplicated.
 - **Playwright-Assisted Integrations**: Server uses headless browser automation for Splynx session/CSRF handling.
 
 ## Noted Inconsistencies & Ambiguities
 - **Missing Architecture Index**: [./_index.md](./_index.md) links to [./_architecture.md](./_architecture.md), which is not present, suggesting architectural intent is under-documented.
-- **Cache Ownership**: Documentation indicates both client and server cache weather data with independent TTLs and counters; ownership and conflict resolution are not specified.
 - **Admin Auth Model**: Server uses an `X-Admin-Token` header and screen-scraped sessions for some Splynx flows; division of responsibilities and rotation policies are not documented.
 - **Test Environment Assumptions**: Tests assume a running server on port 5505 and network availability; setup/teardown contracts are not captured in `package.json` scripts. See [./package.json.md](./package.json.md).
 - **Data Hygiene**: Generated reports under `Data/reports` are documented as transient yet exist in the repository; retention policy is not explicit.

@@ -12,7 +12,7 @@ Each item is inferred strictly from the documentation.
 - **Severity**: High
 - **Confidence**: Possible
 - **Impact**: Stale data served, race conditions under concurrent requests, memory growth without bounds.
-- **Why in Docs**: Multiple caches in [./server.js.md](./server.js.md); varied error handling and broadcast timers.
+- **Why in Docs**: Multiple caches in [./server.js.md](./server.js.md); varied error handling and broadcast timers. Partially mitigated by Phase 3 (API Broker & Deduplication).
 
 ## 3) ENV Defaults to Empty Strings
 - **Severity**: Medium
@@ -20,11 +20,11 @@ Each item is inferred strictly from the documentation.
 - **Impact**: Auth loops, unexpected 401s, hidden misconfiguration.
 - **Why in Docs**: Called out in Bug & Risk Notes of [./server.js.md](./server.js.md).
 
-## 4) Client/Server Weather Cache Duplication
+## 4) Client/Server Weather Cache Duplication (RESOLVED)
 - **Severity**: Medium
 - **Confidence**: Certain
 - **Impact**: Inconsistent TTLs/quotas, double counting, debugging overhead.
-- **Why in Docs**: Duplication cluster in [./_cleanup-report.md](./_cleanup-report.md) and [./_technical-debt.md](./_technical-debt.md).
+- **Why in Docs**: Duplication cluster in [./_cleanup-report.md](./_cleanup-report.md). Resolved in Phase 2 roadmap.
 
 ## 5) Blocking File I/O on Request Path
 - **Severity**: Medium
@@ -38,11 +38,11 @@ Each item is inferred strictly from the documentation.
 - **Impact**: Visual regressions or downtime if CDNs unavailable; CSP concerns.
 - **Why in Docs**: [./map.html.md](./map.html.md) lists Tailwind/Lucide/Animate.css via CDNs; risk noted.
 
-## 7) Secrets Handling in Utilities and Tests
+## 7) Secrets Handling in Utilities and Tests (RESOLVED)
 - **Severity**: High
 - **Confidence**: Likely
 - **Impact**: Credential leakage; compromised access to third-party systems.
-- **Why in Docs**: [./_cleanup-report.md](./_cleanup-report.md) flags `test_tasks.js` and debug scripts; recommends scrubbing secrets.
+- **Why in Docs**: [./_cleanup-report.md](./_cleanup-report.md) flags `test_tasks.js` and debug scripts. Resolved in Phase 0 roadmap.
 
 ## 8) Tracker/Admin Name Matching by Heuristics
 - **Severity**: Medium
@@ -73,3 +73,9 @@ Each item is inferred strictly from the documentation.
 - **Confidence**: Likely
 - **Impact**: Red/yellow CI runs; hard-to-reproduce local failures.
 - **Why in Docs**: Tests assume running server, ports, and external network. See [./tests/README.md](./tests/README.md), [./package.json.md](./package.json.md).
+
+## 13) Workspace Isolation Leakage (NEW)
+- **Severity**: Medium
+- **Confidence**: Possible
+- **Impact**: One user's state (toggles, simulations) affecting another; security risk if workspace IDs are predictable.
+- **Why in Docs**: New architecture proposed in Phase 3 of [./docs/_phased-roadmap.md](./docs/_phased-roadmap.md). Requires robust validation and UUID-based identification.
